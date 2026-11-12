@@ -1,3 +1,4 @@
+import { ReflectionScreen } from './ReflectionScreen';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -84,6 +85,7 @@ export function MorningScreen({
   loadDetail?: SheepDetailLoad;
 }) {
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [reflectionOpen, setReflectionOpen] = useState(false);
   const flow = useMorningFlow(actions, onExit);
   const { morning, busy, failure } = flow;
   const hasCandidates =
@@ -281,8 +283,31 @@ export function MorningScreen({
             )}
           </>
         )}
+        {actions.reflection && morning?.night && (
+          <Action
+            label="어젯밤 돌아보기"
+            onPress={() => setReflectionOpen(true)}
+          />
+        )}
         <Action label="미리보기 나가기" onPress={flow.exit} />
       </ScrollView>
+      <Modal
+        testID="reflection-modal"
+        visible={reflectionOpen}
+        animationType="none"
+        onRequestClose={() => setReflectionOpen(false)}
+        statusBarTranslucent
+        navigationBarTranslucent
+      >
+        {reflectionOpen && morning?.night && actions.reflection && (
+          <ReflectionScreen
+            key={morning.night.id}
+            nightId={morning.night.id}
+            actions={actions.reflection}
+            onBack={() => setReflectionOpen(false)}
+          />
+        )}
+      </Modal>
       <Modal
         testID="sheep-detail-modal"
         visible={detailId !== null}

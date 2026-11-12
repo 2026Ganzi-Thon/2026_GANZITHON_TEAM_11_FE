@@ -1,3 +1,4 @@
+import type { ReflectionActions } from './reflection';
 import type { Card } from '../../api/contracts';
 
 /** API v0.6 §6 projection for the memory-only morning preview. */
@@ -24,6 +25,7 @@ export interface Morning {
   adoption: Sheep | null;
 }
 export interface MorningActions {
+  reflection?: ReflectionActions;
   loadMorning(signal: AbortSignal): Promise<Morning>;
   adopt(nightId: string, cardId: string, signal: AbortSignal): Promise<Sheep>;
   loadFlock(signal: AbortSignal): Promise<Sheep[]>;

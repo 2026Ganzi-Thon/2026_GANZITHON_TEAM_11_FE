@@ -1,3 +1,9 @@
+import {
+  initialReflection,
+  reflectionReplies,
+  type ReflectionScenario,
+} from './reflection';
+import type { ReflectionActions } from '../features/morning/reflection';
 import { ApiError } from '../api/errors';
 import { createMockSheepDetail, type DetailScenario } from './sheepDetail';
 import type { SheepDetailLoad } from '../features/flock/types';
@@ -50,7 +56,11 @@ function conflict(code: string, status = 409): never {
 export function createMockMorning(
   scenario: MorningScenario = 'success',
   detailScenario: DetailScenario = 'success',
-): MorningActions & { loadSheep: SheepDetailLoad } {
+  reflectionScenario: ReflectionScenario = 'success',
+): MorningActions & {
+  loadSheep: SheepDetailLoad;
+  reflection: ReflectionActions;
+} {
   const keys = [
     null,
     null,
@@ -148,7 +158,43 @@ export function createMockMorning(
       throw new ApiError('network');
     }
   };
+  let reflection = initialReflection(reflectionScenario);
+  const night = {
+    id: 'preview-night',
+    night_date: '2026-11-10',
+    category_id: reflectionScenario === 'no-worry' ? 'none' : 'career',
+    worry_text:
+      reflectionScenario === 'deleted-worry'
+        ? null
+        : reflectionScenario === 'long'
+          ? '내일의 일을 생각하느라 잠이 오지 않아요. '.repeat(15)
+          : '면접 결과가 내일 나오는데 계속 생각나서 잠이 안 와요.',
+    worry_saved_at: '2026-11-10T16:12:00Z',
+    entrusted: true,
+  };
   return {
+    reflection: {
+      load: (nightId, signal) =>
+        delayed(signal, () => {
+          if (reflectionScenario === 'load-retry') failOnce('reflection-load');
+          if (nightId !== night.id || scenario === 'empty')
+            conflict('NOT_FOUND', 404);
+          return { night: { ...night }, reflection };
+        }),
+      save: (nightId, answer, signal) =>
+        delayed(signal, () => {
+          if (
+            nightId !== night.id ||
+            night.category_id === 'none' ||
+            !night.worry_text ||
+            reflectionScenario === 'unavailable'
+          )
+            conflict('REFLECTION_NOT_AVAILABLE');
+          if (reflectionScenario === 'save-retry') failOnce('reflection-save');
+          reflection = { answer, message: reflectionReplies[answer] };
+          return reflection;
+        }),
+    },
     loadSheep: createMockSheepDetail((id) => {
       const sheep =
         adopted?.id === id ? adopted : earlier.find((item) => item.id === id);
@@ -168,9 +214,13 @@ export function createMockMorning(
         sheep_count: candidate ? candidate.sheep_count : 15,
         night: {
           night_date: sheep.night_date,
-          category_id: 'career',
-          worry_text: '면접 결과가 내일 나오는데 계속 생각나서 잠이 안 와요.',
-          reflection: null,
+          category_id:
+            sheep.night_id === night.id ? night.category_id : 'career',
+          worry_text:
+            sheep.night_id === night.id
+              ? night.worry_text
+              : '면접 결과가 내일 나오는데 계속 생각나서 잠이 안 와요.',
+          reflection: sheep.night_id === night.id ? reflection : null,
         },
       };
     }, detailScenario),

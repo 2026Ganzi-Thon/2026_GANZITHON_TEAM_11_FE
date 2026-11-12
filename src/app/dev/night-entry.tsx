@@ -10,6 +10,7 @@ import { Button } from '../../ui/Button';
 import { NightScreen } from '../../ui/NightScreen';
 import { Notice } from '../../ui/Notice';
 import { theme } from '../../ui/theme';
+import { createMockNightFeed } from '../../mocks/nightFeed';
 
 export default function NightEntryPreview() {
   const [scenario, setScenario] = useState<NightEntryScenario | null>(null);
@@ -20,7 +21,11 @@ export default function NightEntryPreview() {
   if (!__DEV__) return <Redirect href="/" />;
   if (actions)
     return (
-      <NightEntryScreen actions={actions} onBack={() => setScenario(null)} />
+      <NightEntryScreen
+        actions={actions}
+        onBack={() => setScenario(null)}
+        createFeed={createMockNightFeed}
+      />
     );
   return (
     <NightScreen>
@@ -30,7 +35,7 @@ export default function NightEntryPreview() {
         </Text>
         <Notice
           title="가상의 고민으로 확인해 주세요"
-          description="예시 응답으로 화면만 확인합니다. 실제 저장·안전 확인·양 세기는 수행하지 않습니다. 입력은 미리보기를 닫으면 사라집니다. 글자 수 제한은 확정 전 임시 200자입니다."
+          description="예시 응답으로 화면만 확인합니다. 선택한 수만큼 예시 카드를 넘겨볼 수 있으며 실제 저장·안전 확인은 수행하지 않습니다. 입력은 미리보기를 닫으면 사라집니다. 글자 수 제한은 확정 전 임시 200자입니다."
         />
         <Button label="성공 응답" onPress={() => setScenario('success')} />
         <Button

@@ -14,6 +14,10 @@ export default function StartScreen() {
         {__DEV__ && (
           <>
             <Button
+              label="털실 반응 미리보기"
+              onPress={() => router.push('/dev/yarn')}
+            />
+            <Button
               label="담은 노래 미리보기"
               onPress={() => router.push('/dev/saved-songs')}
             />

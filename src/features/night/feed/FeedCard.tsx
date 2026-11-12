@@ -1,44 +1,89 @@
+import { YarnControl, type YarnControlProps } from '../../yarn/YarnControl';
 import { Image } from 'expo-image';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import type { Card } from '../../../api/contracts';
 import { theme } from '../../../ui/theme';
 import { Art, PaperArtwork, SleepingSheep } from './artwork';
 import { SongArtwork } from './SongArtwork';
 
-function Reactions({ warm }: { warm: boolean }) {
+function Reactions({
+  warm,
+  expanded,
+  yarn,
+}: {
+  warm: boolean;
+  expanded: boolean;
+  yarn?: YarnControlProps;
+}) {
   return (
-    <View style={styles.reactions}>
-      {[
-        {
-          label: '솜털 보내기',
-          source: require('../../../../assets/images/feed/fluff.svg'),
-        },
-        {
-          label: '털실 보내기',
-          source: require('../../../../assets/images/feed/yarn.svg'),
-        },
-      ].map(({ label, source }) => (
+    <View
+      style={
+        expanded
+          ? [styles.expandedReactions, warm && styles.warmReactions]
+          : styles.reactions
+      }
+    >
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="솜털 보내기 · 준비 중"
+        accessibilityState={{ disabled: true }}
+        disabled
+        style={[styles.reaction, expanded && styles.expandedReaction]}
+      >
+        <Image
+          source={require('../../../../assets/images/feed/fluff.svg')}
+          style={styles.icon}
+          accessible={false}
+        />
+        <Text style={[styles.reactionLabel, warm && styles.pale]}>
+          솜털 보내기
+        </Text>
+        <Text style={[styles.pendingLabel, warm && styles.pale]}>준비 중</Text>
+      </Pressable>
+      {yarn ? (
+        <YarnControl {...yarn} warm={warm} expanded={expanded} />
+      ) : (
         <Pressable
-          key={label}
           accessibilityRole="button"
-          accessibilityLabel={`${label} · 준비 중`}
+          accessibilityLabel="털실 보내기 · 준비 중"
           accessibilityState={{ disabled: true }}
           disabled
           style={styles.reaction}
         >
-          <Image source={source} style={styles.icon} accessible={false} />
+          <Image
+            source={require('../../../../assets/images/feed/yarn.svg')}
+            style={styles.icon}
+            accessible={false}
+          />
           <Text style={[styles.reactionLabel, warm && styles.pale]}>
-            {label}
+            털실 보내기
           </Text>
           <Text style={[styles.pendingLabel, warm && styles.pale]}>
             준비 중
           </Text>
         </Pressable>
-      ))}
+      )}
     </View>
   );
 }
-export function FeedCard({ card, isLast }: { card: Card; isLast: boolean }) {
+export function FeedCard({
+  card,
+  isLast,
+  yarn,
+}: {
+  card: Card;
+  isLast: boolean;
+  yarn?: YarnControlProps;
+}) {
+  const { fontScale } = useWindowDimensions();
+  const expanded = !!yarn && fontScale > 1.3;
   if (!card.available || !card.content)
     return (
       <View style={[styles.card, styles.unavailable]}>
@@ -55,7 +100,8 @@ export function FeedCard({ card, isLast }: { card: Card; isLast: boolean }) {
     card.kind === 'text' && card.author_type === 'mongchi' && !warm;
   const automatic = card.author_type === 'ai';
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, expanded && styles.growingCard]}>
+      {expanded && <View style={styles.paperSpace} />}
       {warm ? (
         <SleepingSheep />
       ) : (
@@ -186,12 +232,24 @@ export function FeedCard({ card, isLast }: { card: Card; isLast: boolean }) {
           )}
         </>
       )}
-      <Reactions warm={warm} />
+      <Reactions warm={warm} expanded={expanded} yarn={yarn} />
     </View>
   );
 }
 const styles = StyleSheet.create({
   card: { width: 318, height: 470, alignSelf: 'center' },
+  growingCard: { height: undefined },
+  paperSpace: { height: 470 },
+  expandedReactions: {
+    padding: 12,
+    gap: 12,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'flex-start',
+    backgroundColor: '#FFF4D6',
+  },
+  expandedReaction: { width: 132 },
+  warmReactions: { backgroundColor: theme.color.panel },
   unavailable: {
     justifyContent: 'center',
     alignItems: 'center',

@@ -50,6 +50,7 @@ export function NightMorningFlow({
       <FeedScreen
         load={demo.loadFeed}
         songs={demo.songs}
+        yarn={demo.yarn}
         initialPosition={demo.getProgress()}
         onProgress={demo.progress}
         onFinish={(input) => {

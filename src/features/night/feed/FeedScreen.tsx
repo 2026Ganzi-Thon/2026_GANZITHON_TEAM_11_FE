@@ -1,3 +1,6 @@
+import { YarnFeedback } from '../../yarn/YarnFeedback';
+import type { YarnActions } from '../../yarn/types';
+import { useYarnReactions } from '../../yarn/useYarnReactions';
 import { SongSaveButton } from '../../songs/SongSaveButton';
 import type { SongActions } from '../../songs/types';
 import {
@@ -36,6 +39,7 @@ export function FeedScreen({
   onProgress,
   onFinish,
   songs,
+  yarn,
 }: {
   load: FeedLoad;
   onBack: () => void;
@@ -44,6 +48,7 @@ export function FeedScreen({
   onProgress?: (position: FeedPosition) => void;
   onFinish?: (request: ClosingRequest) => void;
   songs?: SongActions;
+  yarn?: YarnActions;
 }) {
   const [start] = useState(
     () => initialPosition ?? { position: 1, furthestPosition: 1 },
@@ -74,6 +79,12 @@ export function FeedScreen({
       : done
         ? 'done'
         : 'ready';
+  const yarnFlow = useYarnReactions(
+    yarn,
+    load,
+    status === 'ready' && !closingRequest,
+  );
+  const { stop: stopYarn } = yarnFlow;
   const [position, setPosition] = useState<FeedPosition>({
     position: 1,
     furthestPosition: 1,
@@ -114,8 +125,9 @@ export function FeedScreen({
   const back = useCallback(() => {
     controller.current?.abort();
     cancel();
+    stopYarn();
     onBack();
-  }, [cancel, onBack]);
+  }, [cancel, onBack, stopYarn]);
   useEffect(() => {
     if (closingRequest) return;
     const subscription = BackHandler.addEventListener(
@@ -142,6 +154,11 @@ export function FeedScreen({
     [cards.length, run, status, onProgress],
   );
   const card = cards[position.position - 1];
+  const yarnState = card ? yarnFlow.stateFor(card) : null;
+  const visibleCard =
+    card && yarnState?.error === 'unavailable'
+      ? { ...card, available: false, content: null }
+      : card;
   const finish = (reason: ClosingRequest['reason']) => {
     if (
       moving ||
@@ -152,6 +169,7 @@ export function FeedScreen({
     )
       return;
     cancel();
+    stopYarn();
     if (onFinish)
       onFinish({ reason, ...current.current, sheepCount: cards.length });
     else if (closingActions)
@@ -237,31 +255,91 @@ export function FeedScreen({
         </View>
       ) : (
         <>
-          <ScrollView ref={body} contentContainerStyle={styles.content}>
-            <SheepStage
-              progress={progress}
-              direction={direction}
-              onMove={move}
-            />
-            <Text style={styles.hint}>양 위에서 위·아래로 넘겨요</Text>
-            <FeedCard
-              key={card.id}
-              card={card}
-              isLast={position.position === cards.length}
-            />
-            {songs &&
-              card.kind === 'song' &&
-              card.available &&
-              card.content && (
-                <SongSaveButton
-                  cardId={card.id}
-                  saved={card.viewer.song_saved}
-                  actions={songs}
-                  disabled={moving}
-                  onPendingChange={onSongPendingChange}
-                />
+          <View style={styles.feedViewport}>
+            <ScrollView
+              ref={body}
+              style={styles.feedScroll}
+              contentContainerStyle={styles.content}
+            >
+              <SheepStage
+                progress={progress}
+                direction={direction}
+                onMove={move}
+              />
+              <Text style={styles.hint}>양 위에서 위·아래로 넘겨요</Text>
+              <FeedCard
+                key={card.id}
+                card={visibleCard}
+                yarn={
+                  yarn && yarnState
+                    ? {
+                        state: yarnState,
+                        onToggle: () => yarnFlow.toggle(card),
+                      }
+                    : undefined
+                }
+                isLast={position.position === cards.length}
+              />
+              {yarnState?.error === 'failed' && (
+                <View
+                  style={styles.yarnStatus}
+                  onLayout={(event) =>
+                    body.current?.scrollTo({
+                      y: event.nativeEvent.layout.y,
+                      animated: false,
+                    })
+                  }
+                >
+                  <Notice
+                    error
+                    title="털실 변경을 확인하지 못했어요"
+                    description={
+                      yarnState.target
+                        ? '선택한 보내기를 확인하지 못했어요. 확인된 마지막 상태를 표시해요.'
+                        : '선택한 취소를 확인하지 못했어요. 확인된 마지막 상태를 표시해요.'
+                    }
+                  />
+                  <Button
+                    label="털실 다시 시도"
+                    onPress={() => yarnFlow.retry(card)}
+                  />
+                </View>
               )}
-          </ScrollView>
+              {yarnState?.pending && (
+                <View style={styles.yarnStatus}>
+                  <Text style={styles.message} accessibilityLiveRegion="polite">
+                    {yarnState.target
+                      ? '털실을 보내는 중이에요.'
+                      : '털실을 거두는 중이에요.'}{' '}
+                    다른 양을 보는 동안에도 처리를 계속해요. 피드를 나가거나
+                    마치면 남은 요청을 취소해요.
+                  </Text>
+                </View>
+              )}
+              {songs &&
+                card.kind === 'song' &&
+                visibleCard.available &&
+                visibleCard.content && (
+                  <SongSaveButton
+                    cardId={card.id}
+                    saved={card.viewer.song_saved}
+                    actions={songs}
+                    disabled={moving}
+                    onPendingChange={onSongPendingChange}
+                  />
+                )}
+            </ScrollView>
+            {yarnState?.notice &&
+              visibleCard.available &&
+              visibleCard.content && (
+                <View style={styles.yarnFeedback} pointerEvents="none">
+                  <YarnFeedback
+                    sent={yarnState.notice === 'sent'}
+                    user={card.author_type === 'user'}
+                  />
+                </View>
+              )}
+          </View>
           <View style={styles.navigation}>
             <Pressable
               accessibilityRole="button"
@@ -302,6 +380,24 @@ export function FeedScreen({
   );
 }
 const styles = StyleSheet.create({
+  feedViewport: { flex: 1 },
+  feedScroll: { flex: 1 },
+  yarnFeedback: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  yarnStatus: {
+    alignSelf: 'stretch',
+    padding: 12,
+    gap: 12,
+    backgroundColor: theme.color.panel,
+    marginTop: 14,
+  },
   topbar: {
     minHeight: 64,
     paddingHorizontal: 20,

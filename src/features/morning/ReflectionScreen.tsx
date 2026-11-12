@@ -34,6 +34,11 @@ export function ReflectionScreen({
 }) {
   const flow = useReflection(nightId, actions, onBack);
   const night = flow.record?.night;
+  const reflection = flow.available ? flow.record?.reflection : null;
+  const completed = flow.saved && !!reflection;
+  const matchingReply =
+    reflection?.answer === flow.selected ? reflection : null;
+  const dirty = !!flow.selected && flow.selected !== reflection?.answer;
   return (
     <DayScreen>
       <View style={styles.header}>
@@ -49,8 +54,32 @@ export function ReflectionScreen({
           어젯밤 돌아보기
         </Text>
       </View>
-      <ScrollView contentContainerStyle={styles.content}>
-        {flow.phase === 'loading' ? (
+      <ScrollView
+        key={completed ? 'result' : 'form'}
+        contentContainerStyle={styles.content}
+      >
+        {completed && reflection ? (
+          <View style={styles.panel}>
+            <Text
+              accessibilityRole="header"
+              accessibilityLiveRegion="polite"
+              style={styles.question}
+            >
+              회고를 저장했어요.
+            </Text>
+            <Text style={styles.text}>
+              저장한 회고 · {reflectionLabels[reflection.answer]}
+            </Text>
+            <Text style={styles.message}>{reflection.message}</Text>
+            <Image
+              source={require('../../../assets/images/reflection/face.svg')}
+              style={styles.face}
+              contentFit="contain"
+              accessibilityIgnoresInvertColors
+            />
+            <Action label="회고 다시 선택하기" onPress={flow.edit} />
+          </View>
+        ) : flow.phase === 'loading' ? (
           <View style={styles.panel}>
             <ActivityIndicator color="#2F3A9E" />
             <Text style={styles.text}>지난밤 기록을 불러오고 있어요.</Text>
@@ -95,10 +124,13 @@ export function ReflectionScreen({
               <Text accessibilityRole="header" style={styles.question}>
                 이 걱정, 지금은 어때요?
               </Text>
-              {flow.record?.reflection && (
-                <Text style={styles.message}>
-                  {flow.record.reflection.message}
-                </Text>
+              {matchingReply && (
+                <View style={styles.reply}>
+                  <Text style={styles.text}>
+                    저장된 회고 · {reflectionLabels[matchingReply.answer]}
+                  </Text>
+                  <Text style={styles.message}>{matchingReply.message}</Text>
+                </View>
               )}
               <Image
                 source={require('../../../assets/images/reflection/face.svg')}
@@ -140,9 +172,9 @@ export function ReflectionScreen({
                   저장하지 못했어요. 선택은 그대로예요. 다시 시도해 주세요.
                 </Text>
               )}
-              {flow.saved && (
+              {dirty && (
                 <Text accessibilityLiveRegion="polite" style={styles.text}>
-                  회고를 저장했어요.
+                  아직 저장하지 않은 선택이에요.
                 </Text>
               )}
               {flow.busy && (
@@ -242,6 +274,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#D6A8FF',
     alignSelf: 'center',
   },
+  reply: { gap: 8 },
   panel: { backgroundColor: '#FFFFFF', padding: 16, gap: 16 },
   question: {
     fontFamily: theme.font,

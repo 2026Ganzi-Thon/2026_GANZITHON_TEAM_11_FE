@@ -53,6 +53,10 @@ describe('morning reflection', () => {
       resolve({ answer: 'smaller', message: '서버에서 온 답변' }),
     );
     expect(screen.getByText('서버에서 온 답변')).toBeTruthy();
+    expect(screen.queryAllByRole('radio')).toHaveLength(0);
+    expect(
+      screen.getByRole('button', { name: '회고 다시 선택하기' }),
+    ).toBeTruthy();
     expect(screen.getByText('회고를 저장했어요.')).toBeTruthy();
   });
   it('retains selection on failure and retries', async () => {
@@ -203,5 +207,55 @@ describe('morning reflection', () => {
     );
     await view.unmount();
     expect(actions.load.mock.calls[0][1].aborted).toBe(true);
+  });
+  it('separates saved A from unsaved B across failure, retry and another edit', async () => {
+    const actions = setup({
+      load: jest.fn<ReflectionActions['load']>().mockResolvedValue({
+        ...record,
+        reflection: { answer: 'smaller', message: '이전 답변 A' },
+      }),
+    });
+    actions.save
+      .mockRejectedValueOnce(new ApiError('network'))
+      .mockResolvedValue({ answer: 'bigger', message: '새 답변 B' });
+    await render(
+      <ReflectionScreen nightId="n1" actions={actions} onBack={() => {}} />,
+    );
+    expect(screen.getByText('저장된 회고 · 작아졌어요')).toBeTruthy();
+    expect(screen.getByText('이전 답변 A')).toBeTruthy();
+    await fireEvent.press(screen.getByRole('radio', { name: '더 커졌어요' }));
+    expect(screen.queryByText('이전 답변 A')).toBeNull();
+    expect(screen.getByText('아직 저장하지 않은 선택이에요.')).toBeTruthy();
+    await press('회고 저장하기');
+    expect(await screen.findByText(/저장하지 못했어요/)).toBeTruthy();
+    expect(screen.getByRole('radio', { name: '더 커졌어요' })).toBeChecked();
+    expect(screen.queryByText('이전 답변 A')).toBeNull();
+    await press('회고 저장하기');
+    expect(await screen.findByText('새 답변 B')).toBeTruthy();
+    expect(screen.getByText('저장한 회고 · 더 커졌어요')).toBeTruthy();
+    expect(screen.queryAllByRole('radio')).toHaveLength(0);
+    expect(screen.queryByText('이전 답변 A')).toBeNull();
+    await press('회고 다시 선택하기');
+    expect(screen.getByText('저장된 회고 · 더 커졌어요')).toBeTruthy();
+    expect(screen.getByRole('radio', { name: '더 커졌어요' })).toBeChecked();
+    await fireEvent.press(screen.getByRole('radio', { name: '작아졌어요' }));
+    expect(screen.queryByText('새 답변 B')).toBeNull();
+  });
+  it('can return to saved A without writing the abandoned choice B', async () => {
+    const actions = setup({
+      load: jest.fn<ReflectionActions['load']>().mockResolvedValue({
+        ...record,
+        reflection: { answer: 'smaller', message: '저장된 답변 A' },
+      }),
+    });
+    await render(
+      <ReflectionScreen nightId="n1" actions={actions} onBack={() => {}} />,
+    );
+    await fireEvent.press(screen.getByRole('radio', { name: '더 커졌어요' }));
+    expect(screen.queryByText('저장된 답변 A')).toBeNull();
+    await fireEvent.press(screen.getByRole('radio', { name: '작아졌어요' }));
+    expect(screen.getByText('저장된 답변 A')).toBeTruthy();
+    expect(screen.queryByText('아직 저장하지 않은 선택이에요.')).toBeNull();
+    expect(actions.save).not.toHaveBeenCalled();
   });
 });

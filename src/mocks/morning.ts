@@ -190,7 +190,11 @@ export function createMockMorning(
             reflectionScenario === 'unavailable'
           )
             conflict('REFLECTION_NOT_AVAILABLE');
-          if (reflectionScenario === 'save-retry') failOnce('reflection-save');
+          if (
+            reflectionScenario === 'save-retry' ||
+            reflectionScenario === 'edit-retry'
+          )
+            failOnce('reflection-save');
           reflection = { answer, message: reflectionReplies[answer] };
           return reflection;
         }),

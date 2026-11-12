@@ -123,6 +123,9 @@ export function useReflection(
     saved,
     back,
     save,
+    edit: () => {
+      if (!active.current && !closed.current) setSaved(false);
+    },
     retry: () => {
       if (!active.current && !closed.current) setAttempt((v) => v + 1);
     },

@@ -11,6 +11,7 @@ import { theme } from '../../ui/theme';
 const scenarios: readonly { label: string; value: ReflectionScenario }[] = [
   { label: '회고 선택·저장', value: 'success' },
   { label: '회고 저장 실패·재시도', value: 'save-retry' },
+  { label: '기존 회고 수정 실패·재시도', value: 'edit-retry' },
   { label: '회고 조회 실패·재시도', value: 'load-retry' },
   { label: '고민 없는 밤', value: 'no-worry' },
   { label: '삭제된 고민', value: 'deleted-worry' },

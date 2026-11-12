@@ -3,6 +3,7 @@ import type { ReflectionAnswer } from '../features/flock/types';
 export type ReflectionScenario =
   | 'success'
   | 'save-retry'
+  | 'edit-retry'
   | 'load-retry'
   | 'no-worry'
   | 'deleted-worry'
@@ -21,6 +22,6 @@ export const reflectionReplies: Record<ReflectionAnswer, string> = {
 export const initialReflection = (
   scenario: ReflectionScenario,
 ): Reflection | null =>
-  scenario === 'existing'
+  scenario === 'existing' || scenario === 'edit-retry'
     ? { answer: 'smaller', message: reflectionReplies.smaller }
     : null;

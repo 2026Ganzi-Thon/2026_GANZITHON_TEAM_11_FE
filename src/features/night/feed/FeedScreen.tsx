@@ -1,3 +1,5 @@
+import { SongSaveButton } from '../../songs/SongSaveButton';
+import type { SongActions } from '../../songs/types';
 import {
   useCallback,
   useEffect,
@@ -33,6 +35,7 @@ export function FeedScreen({
   initialPosition,
   onProgress,
   onFinish,
+  songs,
 }: {
   load: FeedLoad;
   onBack: () => void;
@@ -40,6 +43,7 @@ export function FeedScreen({
   initialPosition?: FeedPosition;
   onProgress?: (position: FeedPosition) => void;
   onFinish?: (request: ClosingRequest) => void;
+  songs?: SongActions;
 }) {
   const [start] = useState(
     () => initialPosition ?? { position: 1, furthestPosition: 1 },
@@ -232,6 +236,16 @@ export function FeedScreen({
               card={card}
               isLast={position.position === cards.length}
             />
+            {songs &&
+              card.kind === 'song' &&
+              card.available &&
+              card.content && (
+                <SongSaveButton
+                  cardId={card.id}
+                  saved={card.viewer.song_saved}
+                  actions={songs}
+                />
+              )}
           </ScrollView>
           <View style={styles.navigation}>
             <Pressable

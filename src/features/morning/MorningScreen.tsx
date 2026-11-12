@@ -1,3 +1,5 @@
+import { SavedSongsScreen } from '../songs/SavedSongsScreen';
+import { songExternal } from '../songs/songExternal';
 import { ReflectionScreen } from './ReflectionScreen';
 import { useState } from 'react';
 import {
@@ -85,6 +87,7 @@ export function MorningScreen({
   loadDetail?: SheepDetailLoad;
 }) {
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [songsOpen, setSongsOpen] = useState(false);
   const [reflectionOpen, setReflectionOpen] = useState(false);
   const flow = useMorningFlow(actions, onExit);
   const { morning, busy, failure } = flow;
@@ -289,8 +292,27 @@ export function MorningScreen({
             onPress={() => setReflectionOpen(true)}
           />
         )}
+        {actions.songs && morning?.night && (
+          <Action label="담은 노래 보기" onPress={() => setSongsOpen(true)} />
+        )}
         <Action label="미리보기 나가기" onPress={flow.exit} />
       </ScrollView>
+      <Modal
+        testID="saved-songs-modal"
+        visible={songsOpen}
+        animationType="none"
+        onRequestClose={() => setSongsOpen(false)}
+        statusBarTranslucent
+        navigationBarTranslucent
+      >
+        {songsOpen && actions.songs && (
+          <SavedSongsScreen
+            actions={actions.songs}
+            external={songExternal}
+            onBack={() => setSongsOpen(false)}
+          />
+        )}
+      </Modal>
       <Modal
         testID="reflection-modal"
         visible={reflectionOpen}

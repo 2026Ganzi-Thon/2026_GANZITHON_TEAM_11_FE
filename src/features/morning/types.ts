@@ -1,3 +1,4 @@
+import type { SongActions } from '../songs/types';
 import type { ReflectionActions } from './reflection';
 import type { Card } from '../../api/contracts';
 
@@ -26,6 +27,7 @@ export interface Morning {
 }
 export interface MorningActions {
   reflection?: ReflectionActions;
+  songs?: SongActions;
   loadMorning(signal: AbortSignal): Promise<Morning>;
   adopt(nightId: string, cardId: string, signal: AbortSignal): Promise<Sheep>;
   loadFlock(signal: AbortSignal): Promise<Sheep[]>;

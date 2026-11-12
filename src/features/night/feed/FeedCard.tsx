@@ -1,4 +1,5 @@
 import { YarnControl, type YarnControlProps } from '../../yarn/YarnControl';
+import { FluffControl, type FluffControlProps } from '../../fluff/FluffControl';
 import { Image } from 'expo-image';
 import {
   Pressable,
@@ -17,10 +18,12 @@ function Reactions({
   warm,
   expanded,
   yarn,
+  fluff,
 }: {
   warm: boolean;
   expanded: boolean;
   yarn?: YarnControlProps;
+  fluff?: FluffControlProps;
 }) {
   return (
     <View
@@ -30,23 +33,29 @@ function Reactions({
           : styles.reactions
       }
     >
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="솜털 보내기 · 준비 중"
-        accessibilityState={{ disabled: true }}
-        disabled
-        style={[styles.reaction, expanded && styles.expandedReaction]}
-      >
-        <Image
-          source={require('../../../../assets/images/feed/fluff.svg')}
-          style={styles.icon}
-          accessible={false}
-        />
-        <Text style={[styles.reactionLabel, warm && styles.pale]}>
-          솜털 보내기
-        </Text>
-        <Text style={[styles.pendingLabel, warm && styles.pale]}>준비 중</Text>
-      </Pressable>
+      {fluff ? (
+        <FluffControl {...fluff} warm={warm} expanded={expanded} />
+      ) : (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="솜털 보내기 · 준비 중"
+          accessibilityState={{ disabled: true }}
+          disabled
+          style={[styles.reaction, expanded && styles.expandedReaction]}
+        >
+          <Image
+            source={require('../../../../assets/images/feed/fluff.svg')}
+            style={styles.icon}
+            accessible={false}
+          />
+          <Text style={[styles.reactionLabel, warm && styles.pale]}>
+            솜털 보내기
+          </Text>
+          <Text style={[styles.pendingLabel, warm && styles.pale]}>
+            준비 중
+          </Text>
+        </Pressable>
+      )}
       {yarn ? (
         <YarnControl {...yarn} warm={warm} expanded={expanded} />
       ) : (
@@ -77,13 +86,15 @@ export function FeedCard({
   card,
   isLast,
   yarn,
+  fluff,
 }: {
   card: Card;
   isLast: boolean;
   yarn?: YarnControlProps;
+  fluff?: FluffControlProps;
 }) {
   const { fontScale } = useWindowDimensions();
-  const expanded = !!yarn && fontScale > 1.3;
+  const expanded = !!(yarn || fluff) && fontScale > 1.3;
   if (!card.available || !card.content)
     return (
       <View style={[styles.card, styles.unavailable]}>
@@ -232,7 +243,7 @@ export function FeedCard({
           )}
         </>
       )}
-      <Reactions warm={warm} expanded={expanded} yarn={yarn} />
+      <Reactions warm={warm} expanded={expanded} yarn={yarn} fluff={fluff} />
     </View>
   );
 }

@@ -217,6 +217,11 @@ export function MorningScreen({
                       <Pressable
                         accessibilityRole="radio"
                         accessibilityLabel={label}
+                        accessibilityHint={
+                          item.fluff_saved
+                            ? '밤에 솜털을 붙인 카드예요.'
+                            : undefined
+                        }
                         accessibilityState={{ checked: selected, disabled }}
                         disabled={disabled}
                         onPress={() => flow.select(item.card.id)}
@@ -229,6 +234,11 @@ export function MorningScreen({
                         <SheepArt
                           colorKey={unavailable ? null : item.card.category_id}
                         />
+                        {item.fluff_saved && (
+                          <Text style={[styles.text, styles.fluffMark]}>
+                            솜털
+                          </Text>
+                        )}
                         {!canAdopt(item) && (
                           <Text style={[styles.text, styles.unavailable]}>
                             선택 불가
@@ -362,6 +372,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 22, lineHeight: 31, fontWeight: '700' },
   subtitle: { fontSize: 12, marginTop: 8, color: '#4A5290' },
   small: { fontSize: 11, lineHeight: 18, color: '#4A5290' },
+  fluffMark: { fontSize: 9, lineHeight: 14, textAlign: 'center' },
   song: { fontSize: 15, fontWeight: '700' },
   grid: {
     flexDirection: 'row',

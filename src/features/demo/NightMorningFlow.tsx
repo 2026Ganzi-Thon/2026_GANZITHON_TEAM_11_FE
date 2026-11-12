@@ -51,6 +51,7 @@ export function NightMorningFlow({
         load={demo.loadFeed}
         songs={demo.songs}
         yarn={demo.yarn}
+        fluff={demo.fluff}
         initialPosition={demo.getProgress()}
         onProgress={demo.progress}
         onFinish={(input) => {

@@ -178,13 +178,18 @@ describe('short text cards', () => {
     'rejects an invalid %s receipt instead of claiming acceptance',
     async (invalid) => {
       const actions = createMockTextCards();
-      jest.spyOn(actions, 'submit').mockResolvedValue({
+      const receipt: TextCardSubmission = {
         id: 'c1',
         kind: 'text',
-        category_id: 'study',
-        content: { text: 'unrelated' },
+        category_id: 'career',
+        content: { text: '오늘도 애썼어요.' },
         moderation_status: 'pending',
-      });
+      };
+      if (invalid === 'category') receipt.category_id = 'study';
+      if (invalid === 'text') receipt.content.text = 'unrelated';
+      if (invalid === 'status') receipt.moderation_status = 'approved' as never;
+      if (invalid === 'id') receipt.id = '';
+      jest.spyOn(actions, 'submit').mockResolvedValue(receipt);
       await setup(actions);
       await write();
       await press('검수 요청하기');

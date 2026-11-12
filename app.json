@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "name": "양 세는 밤",
+    "slug": "yangsebam",
+    "version": "0.1.0",
+    "scheme": "yangsebam",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "platforms": ["android"],
+    "android": {
+      "package": "com.ganzithon.yangsebam"
+    },
+    "plugins": ["expo-router"]
+  }
+}

@@ -14,6 +14,10 @@ export default function StartScreen() {
         {__DEV__ && (
           <>
             <Button
+              label="아침 회고 미리보기"
+              onPress={() => router.push('/dev/morning-reflection')}
+            />
+            <Button
               label="로그인 화면 미리보기"
               onPress={() => router.push('/dev/login')}
             />

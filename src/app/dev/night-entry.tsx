@@ -11,6 +11,7 @@ import { NightScreen } from '../../ui/NightScreen';
 import { Notice } from '../../ui/Notice';
 import { theme } from '../../ui/theme';
 import { createMockNightFeed } from '../../mocks/nightFeed';
+import { createMockNightClosing } from '../../mocks/nightClosing';
 
 export default function NightEntryPreview() {
   const [scenario, setScenario] = useState<NightEntryScenario | null>(null);
@@ -18,6 +19,7 @@ export default function NightEntryPreview() {
     () => (scenario ? createMockNightEntry(scenario) : null),
     [scenario],
   );
+  const closingActions = useMemo(() => createMockNightClosing(), []);
   if (!__DEV__) return <Redirect href="/" />;
   if (actions)
     return (
@@ -25,6 +27,7 @@ export default function NightEntryPreview() {
         actions={actions}
         onBack={() => setScenario(null)}
         createFeed={createMockNightFeed}
+        closingActions={closingActions}
       />
     );
   return (

@@ -31,6 +31,7 @@ import {
 import { SheepCountPicker } from './SheepCountPicker';
 import { WorryPaper } from './WorryPaper';
 import { FeedScreen } from './feed/FeedScreen';
+import type { ClosingActions } from './closing/types';
 import type { FeedLoad } from './feed/model';
 
 /** Transient preview flow. No persistence or safety decision; feed loading is explicitly injected. */
@@ -39,11 +40,13 @@ export function NightEntryScreen({
   onBack,
   worryLimit = PREVIEW_WORRY_LIMIT,
   createFeed,
+  closingActions,
 }: {
   actions: NightEntryActions;
   onBack: () => void;
   worryLimit?: number;
   createFeed?: (count: number) => FeedLoad;
+  closingActions?: ClosingActions;
 }) {
   const [feedLoad, setFeedLoad] = useState<FeedLoad | null>(null);
   const [step, setStep] = useState<'worry' | 'count'>('worry');
@@ -136,7 +139,13 @@ export function NightEntryScreen({
     (!categoryId || (categoryId !== 'none' && !text.trim()));
 
   if (feedLoad)
-    return <FeedScreen load={feedLoad} onBack={() => setFeedLoad(null)} />;
+    return (
+      <FeedScreen
+        load={feedLoad}
+        onBack={() => setFeedLoad(null)}
+        closingActions={closingActions}
+      />
+    );
 
   return (
     <NightScreen>

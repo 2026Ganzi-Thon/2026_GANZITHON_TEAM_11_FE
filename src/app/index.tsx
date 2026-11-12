@@ -33,6 +33,10 @@ export default function StartScreen() {
               label="아침·양떼 미리보기"
               onPress={() => router.push('/dev/morning')}
             />
+            <Button
+              label="양 상세 미리보기"
+              onPress={() => router.push('/dev/sheep-detail')}
+            />
           </>
         )}
       </ScrollView>

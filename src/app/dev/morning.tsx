@@ -27,7 +27,13 @@ export default function MorningPreview() {
   );
   if (!__DEV__) return <Redirect href="/" />;
   if (actions)
-    return <MorningScreen actions={actions} onExit={() => setScenario(null)} />;
+    return (
+      <MorningScreen
+        actions={actions}
+        loadDetail={actions.loadSheep}
+        onExit={() => setScenario(null)}
+      />
+    );
   return (
     <NightScreen>
       <ScrollView contentContainerStyle={styles.content}>
@@ -36,7 +42,7 @@ export default function MorningPreview() {
         </Text>
         <Notice
           title="예시 기록으로 확인해요"
-          description="실제 밤 기록·서버·로그인과 연결되지 않아요. 시나리오를 나갔다 들어오면 초기화돼요. 자동 데려오기·상세·꾸미기·운세는 포함하지 않아요."
+          description="실제 밤 기록·서버·로그인과 연결되지 않아요. 시나리오를 나갔다 들어오면 초기화돼요. 데려온 양을 누르면 담긴 기록을 볼 수 있어요. 자동 데려오기·꾸미기·운세는 포함하지 않아요."
         />
         {scenarios.map(({ label, value }) => (
           <Button

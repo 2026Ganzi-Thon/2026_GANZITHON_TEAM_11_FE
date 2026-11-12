@@ -73,23 +73,34 @@ export function createApiClient(options: ClientOptions) {
 
       const controller = new AbortController();
       let abortKind: 'aborted' | 'timeout' | undefined;
+      let rejectCancellation!: (error: ApiError) => void;
+      const cancellation = new Promise<never>((_resolve, reject) => {
+        rejectCancellation = reject;
+      });
       const abort = (kind: 'aborted' | 'timeout') => {
-        abortKind ??= kind;
+        if (abortKind) return;
+        abortKind = kind;
+        rejectCancellation(new ApiError(kind));
         controller.abort();
+      };
+      const throwIfAborted = () => {
+        if (abortKind) throw new ApiError(abortKind);
       };
       const onAbort = () => abort('aborted');
       request.signal?.addEventListener('abort', onAbort, { once: true });
       const timer = setTimeout(() => abort('timeout'), timeoutMs);
 
-      try {
+      const readResponse = async (): Promise<T | undefined> => {
         const response = await fetcher(url.href, {
           method,
           headers,
           body: serializedBody,
           signal: controller.signal,
         });
+        throwIfAborted();
         if (response.status === 204) return undefined;
         const text = await response.text();
+        throwIfAborted();
         let body: unknown;
         if (text.trim()) {
           try {
@@ -103,6 +114,14 @@ export function createApiClient(options: ClientOptions) {
         }
         if (!response.ok) throw httpError(response, body);
         return body as T | undefined;
+      };
+
+      try {
+        // Bound both awaits even when a transport/body reader ignores abort.
+        // The race also observes late rejections after cancellation wins.
+        const body = await Promise.race([readResponse(), cancellation]);
+        throwIfAborted();
+        return body;
       } catch (error) {
         if (abortKind) throw new ApiError(abortKind);
         if (error instanceof ApiError) throw error;

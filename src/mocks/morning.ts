@@ -1,4 +1,6 @@
 import { ApiError } from '../api/errors';
+import { createMockSheepDetail, type DetailScenario } from './sheepDetail';
+import type { SheepDetailLoad } from '../features/flock/types';
 import type {
   Morning,
   MorningActions,
@@ -47,7 +49,8 @@ function conflict(code: string, status = 409): never {
 /** Fixed response samples, not candidate ranking or a persistence implementation. */
 export function createMockMorning(
   scenario: MorningScenario = 'success',
-): MorningActions {
+  detailScenario: DetailScenario = 'success',
+): MorningActions & { loadSheep: SheepDetailLoad } {
   const keys = [
     null,
     null,
@@ -146,6 +149,31 @@ export function createMockMorning(
     }
   };
   return {
+    loadSheep: createMockSheepDetail((id) => {
+      const sheep =
+        adopted?.id === id ? adopted : earlier.find((item) => item.id === id);
+      if (!sheep) return null;
+      const candidate = candidates.find(
+        (item) => item.card.id === sheep.card_id,
+      );
+      const card = candidate?.card ?? {
+        ...candidates[0].card,
+        id: sheep.card_id,
+        category_id: sheep.color_key,
+      };
+      return {
+        sheep,
+        card,
+        position: candidate ? candidate.position : 4,
+        sheep_count: candidate ? candidate.sheep_count : 15,
+        night: {
+          night_date: sheep.night_date,
+          category_id: 'career',
+          worry_text: '면접 결과가 내일 나오는데 계속 생각나서 잠이 안 와요.',
+          reflection: null,
+        },
+      };
+    }, detailScenario),
     loadMorning: (signal) =>
       delayed(signal, (): Morning => {
         if (scenario === 'load-retry') failOnce('load');

@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import {
   ActivityIndicator,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,6 +13,8 @@ import { DayScreen } from './DayScreen';
 import { SheepArt } from './SheepArt';
 import { canAdopt, useMorningFlow } from './useMorningFlow';
 import type { MorningActions, MorningCandidate } from './types';
+import { SheepDetailScreen } from '../flock/SheepDetailScreen';
+import type { SheepDetailLoad } from '../flock/types';
 
 function Action({
   label,
@@ -73,10 +77,13 @@ function CandidateDetail({ item }: { item: MorningCandidate }) {
 export function MorningScreen({
   actions,
   onExit,
+  loadDetail,
 }: {
   actions: MorningActions;
   onExit: () => void;
+  loadDetail?: SheepDetailLoad;
 }) {
+  const [detailId, setDetailId] = useState<string | null>(null);
   const flow = useMorningFlow(actions, onExit);
   const { morning, busy, failure } = flow;
   const hasCandidates =
@@ -126,9 +133,12 @@ export function MorningScreen({
             <View style={styles.homeSpacer} />
             <View style={styles.pasture}>
               {flow.items.map((item) => (
-                <View
+                <Pressable
                   key={item.id}
                   accessible
+                  accessibilityRole={loadDetail ? 'button' : undefined}
+                  disabled={!loadDetail}
+                  onPress={() => setDetailId(item.id)}
                   accessibilityLabel={`${item.night_date}의 양${item.id === flow.newId ? ' · 새로 온 양' : ''}`}
                   style={[
                     styles.flockSheep,
@@ -142,7 +152,7 @@ export function MorningScreen({
                   {item.id === flow.newId && (
                     <Text style={[styles.text, styles.badge]}>새로 온 양</Text>
                   )}
-                </View>
+                </Pressable>
               ))}
             </View>
           </>
@@ -273,6 +283,23 @@ export function MorningScreen({
         )}
         <Action label="미리보기 나가기" onPress={flow.exit} />
       </ScrollView>
+      <Modal
+        testID="sheep-detail-modal"
+        visible={detailId !== null}
+        animationType="none"
+        onRequestClose={() => setDetailId(null)}
+        statusBarTranslucent
+        navigationBarTranslucent
+      >
+        {detailId !== null && loadDetail && (
+          <SheepDetailScreen
+            key={detailId}
+            sheepId={detailId}
+            load={loadDetail}
+            onBack={() => setDetailId(null)}
+          />
+        )}
+      </Modal>
     </DayScreen>
   );
 }

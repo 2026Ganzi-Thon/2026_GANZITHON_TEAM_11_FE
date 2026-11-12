@@ -18,7 +18,7 @@ npm ci
 npm run android
 ```
 
-`npm run android`는 네이티브 프로젝트를 생성하고 개발용 앱을 빌드·설치한 뒤 Metro를 실행합니다. Android SDK와 JDK가 환경에 설정되어 있어야 합니다. 첫 빌드에는 SDK 구성 요소와 Gradle 의존성 다운로드가 필요할 수 있습니다.
+`npm run android`는 `android/`가 없으면 네이티브 프로젝트를 생성하고, 개발용 앱을 빌드·설치한 뒤 Metro를 실행합니다. `android/`가 이미 있으면 자동 prebuild를 건너뜁니다. Android SDK와 JDK가 환경에 설정되어 있어야 합니다. 첫 빌드에는 SDK 구성 요소와 Gradle 의존성 다운로드가 필요할 수 있습니다.
 
 개발용 앱이 설치된 뒤에는 다음 명령으로 Metro를 다시 실행합니다.
 
@@ -26,7 +26,14 @@ npm run android
 npm start
 ```
 
-네이티브 의존성이나 앱 설정을 바꾸면 `npm run android`로 다시 빌드합니다. 생성된 `android/`, `ios/`는 Git에 포함하지 않으며, 네이티브 설정은 `app.json`과 Expo config plugin으로 관리합니다.
+네이티브 의존성, `app.json`의 화면 방향·scheme, config plugin 설정 등을 바꾸면 아래 순서로 Android 프로젝트를 재생성한 뒤 빌드합니다.
+
+```sh
+npx expo prebuild --clean --platform android
+npm run android
+```
+
+`--clean`은 기존 `android/`를 삭제하고 다시 생성하므로 해당 폴더의 수동 변경도 지워집니다. 필요한 변경은 실행 전에 보존하고 `app.json`이나 Expo config plugin에 반영합니다. 생성된 `android/`, `ios/`는 Git에 포함하지 않으며, 네이티브 설정은 `app.json`과 Expo config plugin으로 관리합니다.
 
 ## 검사
 

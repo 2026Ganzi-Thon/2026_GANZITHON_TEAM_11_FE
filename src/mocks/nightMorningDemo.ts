@@ -1,0 +1,295 @@
+import type { Card } from '../api/contracts';
+import { ApiError } from '../api/errors';
+import type { NightEntryActions, WorryDraft } from '../features/night/entry';
+import { validateWorry } from '../features/night/entry';
+import type { FeedLoad, FeedPosition } from '../features/night/feed/model';
+import type {
+  ClosingActions,
+  ClosingResult,
+} from '../features/night/closing/types';
+import type {
+  MorningActions,
+  MorningCandidate,
+  Sheep,
+} from '../features/morning/types';
+import type {
+  Reflection,
+  ReflectionActions,
+} from '../features/morning/reflection';
+import type { SheepDetailLoad } from '../features/flock/types';
+import { createMockNightFeed } from './nightFeed';
+import { createMockNightClosing } from './nightClosing';
+import { reflectionReplies } from './reflection';
+export type DemoScenario = 'success' | 'lost-responses';
+function delayed<T>(signal: AbortSignal, action: () => T): Promise<T> {
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) {
+      reject(new ApiError('aborted'));
+      return;
+    }
+    const cleanup = () => {
+      clearTimeout(timer);
+      signal.removeEventListener('abort', abort);
+    };
+    const abort = () => {
+      cleanup();
+      reject(new ApiError('aborted'));
+    };
+    const timer = setTimeout(() => {
+      cleanup();
+      try {
+        resolve(action());
+      } catch (error) {
+        reject(error);
+      }
+    }, 400);
+    signal.addEventListener('abort', abort, { once: true });
+  });
+}
+function conflict(code: string, status = 409): never {
+  throw new ApiError('http', { status, code });
+}
+/** One deterministic, memory-only night for development demonstrations. */
+export function createNightMorningDemo(scenario: DemoScenario = 'success') {
+  const nightId = 'demo-night';
+  const nightDate = '2026-11-12';
+  let draft: WorryDraft | null = null;
+  let count: number | null = null;
+  let cards: Card[] | null = null;
+  let loader: FeedLoad | null = null;
+  let position: FeedPosition = { position: 1, furthestPosition: 1 };
+  let finished: ClosingResult | null = null;
+  let fingerprint: string | null = null;
+  let closingViewed = false;
+  let morningOpen = false;
+  let adopted: Sheep | null = null;
+  let reflection: Reflection | null = null;
+  const failed = new Set<string>();
+  const baseClosing = createMockNightClosing();
+  const failOnce = (key: string) => {
+    if (scenario === 'lost-responses' && !failed.has(key)) {
+      failed.add(key);
+      throw new ApiError('network');
+    }
+  };
+  const checkNight = (id: string) => {
+    if (id !== nightId) conflict('NOT_FOUND', 404);
+  };
+  const candidates = (): MorningCandidate[] => {
+    const items = (cards ?? [])
+      .slice(0, finished?.summary.counted ?? 0)
+      .map((card, index) => ({
+        card,
+        can_adopt: card.available && !!card.content,
+        fluff_saved: false,
+        position: (index + 1) as number | null,
+        sheep_count: count!,
+        last_viewed_at: `${nightDate}T16:12:00Z`,
+      }));
+    if (closingViewed && finished?.closing_card)
+      items.push({
+        card: finished.closing_card,
+        can_adopt:
+          finished.closing_card.available && !!finished.closing_card.content,
+        fluff_saved: false,
+        position: null,
+        sheep_count: count!,
+        last_viewed_at: `${nightDate}T16:13:00Z`,
+      });
+    return items;
+  };
+  const reflectionActions: ReflectionActions = {
+    load: (id, signal) =>
+      delayed(signal, () => {
+        checkNight(id);
+        if (!morningOpen) conflict('MORNING_NOT_OPEN');
+        return {
+          night: {
+            id: nightId,
+            night_date: nightDate,
+            category_id: draft!.category_id,
+            worry_text: draft!.worry_text,
+            worry_saved_at: draft!.worry_text ? `${nightDate}T16:12:00Z` : null,
+            entrusted: false,
+          },
+          reflection,
+        };
+      }),
+    save: (id, answer, signal) =>
+      delayed(signal, () => {
+        checkNight(id);
+        if (!morningOpen || draft?.category_id === 'none' || !draft?.worry_text)
+          conflict('REFLECTION_NOT_AVAILABLE');
+        reflection = { answer, message: reflectionReplies[answer] };
+        return reflection;
+      }),
+  };
+  const loadSheep: SheepDetailLoad = (id, signal) =>
+    delayed(signal, () => {
+      if (!morningOpen || !adopted || adopted.id !== id)
+        conflict('NOT_FOUND', 404);
+      const sheep = adopted;
+      const candidate = candidates().find(
+        (item) => item.card.id === sheep.card_id,
+      )!;
+      return {
+        sheep: adopted,
+        card: candidate.card,
+        position: candidate.position,
+        sheep_count: count,
+        night: {
+          night_date: nightDate,
+          category_id: draft!.category_id,
+          worry_text: draft!.worry_text,
+          reflection,
+        },
+      };
+    });
+  const morning: MorningActions & {
+    reflection: ReflectionActions;
+    loadSheep: SheepDetailLoad;
+  } = {
+    reflection: reflectionActions,
+    loadSheep,
+    loadMorning: (signal) =>
+      delayed(signal, () => {
+        if (!morningOpen) conflict('MORNING_NOT_OPEN');
+        const items = candidates();
+        const warm = items.filter(
+          (item) => item.can_adopt && item.card.tone === 'warm',
+        );
+        const eligible = items.filter((item) => item.can_adopt);
+        return {
+          night: { id: nightId, night_date: nightDate },
+          counted_sheep: finished!.summary.counted,
+          candidate_cards: items,
+          default_card_id: (warm.at(-1) ?? eligible.at(-1))?.card.id ?? null,
+          adoption: adopted,
+        };
+      }),
+    adopt: (id, cardId, signal) =>
+      delayed(signal, () => {
+        checkNight(id);
+        if (!morningOpen) conflict('MORNING_NOT_OPEN');
+        if (adopted) {
+          if (adopted.card_id !== cardId)
+            conflict('ADOPTION_ALREADY_FINALIZED');
+          return adopted;
+        }
+        const item = candidates().find(
+          (item) => item.card.id === cardId && item.can_adopt,
+        );
+        if (!item) conflict('INVALID_ADOPTION_CARD', 422);
+        adopted = {
+          id: 'demo-sheep',
+          night_id: nightId,
+          night_date: nightDate,
+          card_id: cardId,
+          color_key: item.card.category_id,
+        };
+        failOnce('adopt');
+        return adopted;
+      }),
+    loadFlock: (signal) => delayed(signal, () => (adopted ? [adopted] : [])),
+  };
+  const entry: NightEntryActions = {
+    checkWorry: (value, signal) =>
+      delayed(signal, () => {
+        if (count !== null) conflict('SESSION_ALREADY_STARTED');
+        if (validateWorry(value.category_id, value.worry_text ?? '', 200))
+          conflict('INVALID_WORRY', 422);
+        draft = {
+          category_id: value.category_id,
+          worry_text:
+            value.category_id === 'none' ? null : value.worry_text!.trim(),
+        };
+      }),
+    startCounting: (value, signal) =>
+      delayed(signal, () => {
+        if (!draft || !Number.isInteger(value) || value < 3 || value > 30)
+          conflict('INVALID_SESSION', 422);
+        if (count !== null) {
+          if (count !== value) conflict('SESSION_ALREADY_STARTED');
+          return;
+        }
+        count = value;
+        loader = createMockNightFeed(value);
+      }),
+  };
+  const loadFeed: FeedLoad = async (signal) => {
+    if (!loader) conflict('SESSION_NOT_STARTED');
+    if (cards) return delayed(signal, () => cards!);
+    const loaded = await loader(signal);
+    if (signal.aborted) throw new ApiError('aborted');
+    cards = loaded.map((card) => ({
+      ...card,
+      category_id: card.category_id === null ? null : draft!.category_id,
+    }));
+    return cards;
+  };
+  const closing: ClosingActions = {
+    finish: async (input, key, signal) => {
+      if (
+        !cards ||
+        input.sheepCount !== count ||
+        input.position !== position.position ||
+        input.furthestPosition !== position.furthestPosition
+      )
+        conflict('INVALID_PROGRESS', 422);
+      const next = JSON.stringify(input);
+      if (fingerprint && next !== fingerprint)
+        conflict('SESSION_ALREADY_FINISHED');
+      if (finished) return delayed(signal, () => finished!);
+      const result = await baseClosing.finish(input, key, signal);
+      if (signal.aborted) throw new ApiError('aborted');
+      fingerprint = next;
+      finished = result;
+      failOnce('finish');
+      return result;
+    },
+    markViewed: (id, _key, signal) =>
+      delayed(signal, () => {
+        if (!finished?.closing_card || finished.closing_card.id !== id)
+          conflict('INVALID_CARD', 422);
+        closingViewed = true;
+      }),
+    chooseWriting: (choice, _key, signal) =>
+      delayed(signal, () => {
+        if (!finished) conflict('SESSION_NOT_FINISHED');
+        finished = {
+          ...finished,
+          writing_offer: { state: choice === 'now' ? 'writing' : 'deferred' },
+        };
+      }),
+  };
+  return {
+    nightId,
+    entry,
+    loadFeed,
+    closing,
+    morning,
+    getProgress: () => ({ ...position }),
+    progress: (next: FeedPosition) => {
+      if (!count || finished) return;
+      if (
+        !Number.isInteger(next.position) ||
+        !Number.isInteger(next.furthestPosition) ||
+        next.position < 1 ||
+        next.position > next.furthestPosition ||
+        next.furthestPosition > count
+      )
+        throw new Error('Invalid demo progress');
+      position = {
+        position: next.position,
+        furthestPosition: Math.max(
+          position.furthestPosition,
+          next.furthestPosition,
+        ),
+      };
+    },
+    advanceMorning: () => {
+      if (!finished) throw new Error('Finish the demo night first');
+      morningOpen = true;
+    },
+  };
+}

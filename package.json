@@ -21,9 +21,12 @@
     "test:ci": "jest --ci --runInBand"
   },
   "dependencies": {
+    "@expo-google-fonts/noto-sans-kr": "0.4.4",
     "expo": "~58.0.24",
     "expo-constants": "~58.0.16",
     "expo-dev-client": "~58.0.19",
+    "expo-font": "~58.0.12",
+    "expo-image": "~58.0.18",
     "expo-linking": "~58.0.17",
     "expo-router": "~58.0.31",
     "expo-status-bar": "~58.0.5",

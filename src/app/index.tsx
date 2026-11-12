@@ -1,5 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
+import { Button } from '../ui/Button';
 
 export default function StartScreen() {
   return (
@@ -9,6 +11,12 @@ export default function StartScreen() {
           양 세는 밤
         </Text>
         <Text style={styles.description}>잠이 안 오는 밤, 양을 같이 세요.</Text>
+        {__DEV__ && (
+          <Button
+            label="로그인 화면 미리보기"
+            onPress={() => router.push('/dev/login')}
+          />
+        )}
       </View>
     </SafeAreaView>
   );

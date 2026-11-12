@@ -41,18 +41,22 @@ export function NightEntryScreen({
   worryLimit = PREVIEW_WORRY_LIMIT,
   createFeed,
   closingActions,
+  onStarted,
+  initialCount = 15,
 }: {
   actions: NightEntryActions;
   onBack: () => void;
   worryLimit?: number;
   createFeed?: (count: number) => FeedLoad;
   closingActions?: ClosingActions;
+  onStarted?: () => void;
+  initialCount?: number;
 }) {
   const [feedLoad, setFeedLoad] = useState<FeedLoad | null>(null);
   const [step, setStep] = useState<'worry' | 'count'>('worry');
   const [categoryId, setCategoryId] = useState<CategoryId | null>(null);
   const [text, setText] = useState('');
-  const [count, setCount] = useState(15);
+  const [count, setCount] = useState(initialCount);
   const [status, setStatus] = useState<'idle' | 'pending' | 'error' | 'done'>(
     'idle',
   );
@@ -118,7 +122,10 @@ export function NightEntryScreen({
       } else {
         await actions.startCounting(count, controller.signal);
         if (controller.signal.aborted) return;
-        if (createFeed) {
+        if (onStarted) {
+          setStatus('done');
+          onStarted();
+        } else if (createFeed) {
           const load = createFeed(count);
           setFeedLoad(() => load);
           setStatus('idle');

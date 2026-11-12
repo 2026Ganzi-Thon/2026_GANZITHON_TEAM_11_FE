@@ -30,11 +30,20 @@ export function FeedScreen({
   load,
   onBack,
   closingActions,
+  initialPosition,
+  onProgress,
+  onFinish,
 }: {
   load: FeedLoad;
   onBack: () => void;
   closingActions?: ClosingActions;
+  initialPosition?: FeedPosition;
+  onProgress?: (position: FeedPosition) => void;
+  onFinish?: (request: ClosingRequest) => void;
 }) {
+  const [start] = useState(
+    () => initialPosition ?? { position: 1, furthestPosition: 1 },
+  );
   const [response, setResponse] = useState<{
     source: FeedLoad;
     attempt: number;
@@ -72,7 +81,14 @@ export function FeedScreen({
         const result = await load(request.signal);
         if (request.signal.aborted) return;
         setResponse({ source: load, attempt, cards: result, error: false });
-        current.current = { position: 1, furthestPosition: 1 };
+        current.current = {
+          position: Math.max(1, Math.min(start.position, result.length)),
+          furthestPosition: Math.max(
+            1,
+            Math.min(start.furthestPosition, result.length),
+          ),
+        };
+        if (result.length) onProgress?.(current.current);
         setPosition(current.current);
         setDone(false);
       } catch {
@@ -84,7 +100,7 @@ export function FeedScreen({
       request.abort();
       cancel();
     };
-  }, [load, attempt, cancel]);
+  }, [load, attempt, cancel, start, onProgress]);
   const back = useCallback(() => {
     controller.current?.abort();
     cancel();
@@ -109,16 +125,19 @@ export function FeedScreen({
       run(delta, () => {
         current.current = next;
         setPosition(next);
+        onProgress?.(next);
         body.current?.scrollTo({ y: 0, animated: false });
       });
     },
-    [cards.length, run, status],
+    [cards.length, run, status, onProgress],
   );
   const card = cards[position.position - 1];
   const finish = (reason: ClosingRequest['reason']) => {
     if (moving || status !== 'ready' || !card || closingRequest) return;
     cancel();
-    if (closingActions)
+    if (onFinish)
+      onFinish({ reason, ...current.current, sheepCount: cards.length });
+    else if (closingActions)
       setClosingRequest({
         reason,
         ...current.current,
@@ -134,7 +153,8 @@ export function FeedScreen({
         onExit={back}
       />
     );
-  const canFinish = !!closingActions && status === 'ready' && !!card;
+  const canFinish =
+    !!(closingActions || onFinish) && status === 'ready' && !!card;
   return (
     <NightScreen>
       <View style={styles.topbar}>
@@ -233,7 +253,7 @@ export function FeedScreen({
               <Button
                 label={
                   position.position === cards.length
-                    ? closingActions
+                    ? closingActions || onFinish
                       ? '마무리하기'
                       : '미리보기 마치기'
                     : '다음 양'

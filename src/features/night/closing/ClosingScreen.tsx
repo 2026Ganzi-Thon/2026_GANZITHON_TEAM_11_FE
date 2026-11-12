@@ -20,10 +20,12 @@ export function ClosingScreen({
   input,
   actions,
   onExit,
+  onRest,
 }: {
   input: ClosingRequest;
   actions: ClosingActions;
   onExit: () => void;
+  onRest?: () => void;
 }) {
   const flow = useClosingFlow(input, actions, onExit);
   const { state, request, exit } = flow;
@@ -130,7 +132,14 @@ export function ClosingScreen({
             onPress={() => flow.choose('morning')}
           />
         )}
-        <Button label="미리보기로 돌아가기" onPress={flow.exit} />
+        <Button
+          label={
+            onRest && state.step === 'rest'
+              ? '밤 마무리 확인'
+              : '미리보기로 돌아가기'
+          }
+          onPress={onRest && state.step === 'rest' ? onRest : flow.exit}
+        />
       </View>
     );
   return (

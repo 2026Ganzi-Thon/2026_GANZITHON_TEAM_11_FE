@@ -72,17 +72,19 @@ function NightRecord({ detail }: { detail: SheepDetail }) {
   const hasWorry = night.category_id !== 'none' && !!night.worry_text?.trim();
   return (
     <>
-      <Text style={styles.metadata}>
-        {dateLabel(night.night_date, true)} 밤
-        {category
-          ? ` · ${category.label}${category.id === 'none' ? '' : ' 고민'}`
-          : ''}
-        {order}
-      </Text>
-      <Text accessibilityRole="header" style={styles.sectionTitle}>
-        그 밤의 고민
-      </Text>
+      <View style={styles.metadataPanel}>
+        <Text style={styles.metadata}>
+          {dateLabel(night.night_date, true)} 밤
+          {category
+            ? ` · ${category.label}${category.id === 'none' ? '' : ' 고민'}`
+            : ''}
+          {order}
+        </Text>
+      </View>
       <View style={styles.record}>
+        <Text accessibilityRole="header" style={styles.sectionTitle}>
+          그 밤의 고민
+        </Text>
         <Text style={styles.recordText}>
           {night.category_id === 'none'
             ? '고민 없이 쉬어 간 밤이에요.'
@@ -92,17 +94,15 @@ function NightRecord({ detail }: { detail: SheepDetail }) {
         </Text>
       </View>
       {hasWorry && night.reflection && (
-        <>
+        <View style={styles.record}>
           <Text accessibilityRole="header" style={styles.sectionTitle}>
             그날의 돌아보기
           </Text>
-          <View style={styles.record}>
-            <Text style={[styles.recordText, styles.answer]}>
-              {reflectionLabels[night.reflection.answer]}
-            </Text>
-            <Text style={styles.recordText}>{night.reflection.message}</Text>
-          </View>
-        </>
+          <Text style={[styles.recordText, styles.answer]}>
+            {reflectionLabels[night.reflection.answer]}
+          </Text>
+          <Text style={styles.recordText}>{night.reflection.message}</Text>
+        </View>
       )}
     </>
   );
@@ -246,6 +246,11 @@ const styles = StyleSheet.create({
     color: '#4A5290',
     fontSize: 15,
     lineHeight: 23,
+  },
+  metadataPanel: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
   metadata: {
     fontFamily: theme.font,

@@ -25,6 +25,10 @@ export default function StartScreen() {
               label="피드 화면 미리보기"
               onPress={() => router.push('/dev/night-feed')}
             />
+            <Button
+              label="밤 마무리 미리보기"
+              onPress={() => router.push('/dev/night-closing')}
+            />
           </>
         )}
       </View>

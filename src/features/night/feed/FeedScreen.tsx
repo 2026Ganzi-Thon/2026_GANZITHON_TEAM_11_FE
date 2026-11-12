@@ -20,6 +20,8 @@ import { NightScreen } from '../../../ui/NightScreen';
 import { Notice } from '../../../ui/Notice';
 import { theme } from '../../../ui/theme';
 import { FeedCard } from './FeedCard';
+import { ClosingScreen } from '../closing/ClosingScreen';
+import type { ClosingActions, ClosingRequest } from '../closing/types';
 import { movePosition, type FeedLoad, type FeedPosition } from './model';
 import { SheepStage } from './SheepStage';
 import { useFeedMotion } from './useFeedMotion';
@@ -27,9 +29,11 @@ import { useFeedMotion } from './useFeedMotion';
 export function FeedScreen({
   load,
   onBack,
+  closingActions,
 }: {
   load: FeedLoad;
   onBack: () => void;
+  closingActions?: ClosingActions;
 }) {
   const [response, setResponse] = useState<{
     source: FeedLoad;
@@ -38,6 +42,9 @@ export function FeedScreen({
     error: boolean;
   } | null>(null);
   const [done, setDone] = useState(false);
+  const [closingRequest, setClosingRequest] = useState<ClosingRequest | null>(
+    null,
+  );
   const [attempt, setAttempt] = useState(0);
   const matches = response?.source === load && response.attempt === attempt;
   const cards = matches ? response.cards : [];
@@ -84,6 +91,7 @@ export function FeedScreen({
     onBack();
   }, [cancel, onBack]);
   useEffect(() => {
+    if (closingRequest) return;
     const subscription = BackHandler.addEventListener(
       'hardwareBackPress',
       () => {
@@ -92,7 +100,7 @@ export function FeedScreen({
       },
     );
     return () => subscription.remove();
-  }, [back]);
+  }, [back, closingRequest]);
   const move = useCallback(
     (delta: -1 | 1) => {
       if (status !== 'ready' || !cards.length) return;
@@ -107,6 +115,26 @@ export function FeedScreen({
     [cards.length, run, status],
   );
   const card = cards[position.position - 1];
+  const finish = (reason: ClosingRequest['reason']) => {
+    if (moving || status !== 'ready' || !card || closingRequest) return;
+    cancel();
+    if (closingActions)
+      setClosingRequest({
+        reason,
+        ...current.current,
+        sheepCount: cards.length,
+      });
+    else setDone(true);
+  };
+  if (closingRequest && closingActions)
+    return (
+      <ClosingScreen
+        input={closingRequest}
+        actions={closingActions}
+        onExit={back}
+      />
+    );
+  const canFinish = !!closingActions && status === 'ready' && !!card;
   return (
     <NightScreen>
       <View style={styles.topbar}>
@@ -124,11 +152,17 @@ export function FeedScreen({
         </View>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="미리보기 나가기"
-          onPress={back}
+          accessibilityLabel={
+            canFinish ? '그만 세고 싶어요' : '미리보기 나가기'
+          }
+          disabled={canFinish && moving}
+          accessibilityState={{ disabled: canFinish && moving }}
+          onPress={canFinish ? () => finish('leave') : back}
           style={styles.exit}
         >
-          <Text style={styles.exitLabel}>미리보기 나가기</Text>
+          <Text style={styles.exitLabel}>
+            {canFinish ? '그만 세고 싶어요' : '미리보기 나가기'}
+          </Text>
         </Pressable>
       </View>
       {status === 'loading' ? (
@@ -199,12 +233,14 @@ export function FeedScreen({
               <Button
                 label={
                   position.position === cards.length
-                    ? '미리보기 마치기'
+                    ? closingActions
+                      ? '마무리하기'
+                      : '미리보기 마치기'
                     : '다음 양'
                 }
                 disabled={moving}
                 onPress={() => {
-                  if (position.position === cards.length) setDone(true);
+                  if (position.position === cards.length) finish('completed');
                   else move(1);
                 }}
               />

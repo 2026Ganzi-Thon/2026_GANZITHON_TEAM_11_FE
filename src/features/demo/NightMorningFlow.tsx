@@ -13,9 +13,11 @@ type Page = 'entry' | 'feed' | 'closing' | 'paused' | 'rest' | 'morning';
 export function NightMorningFlow({
   demo,
   onExit,
+  initialCount = 3,
 }: {
   demo: ReturnType<typeof createNightMorningDemo>;
   onExit: () => void;
+  initialCount?: number;
 }) {
   const [page, setPage] = useState<Page>('entry');
   const [resume, setResume] = useState<'feed' | 'closing'>('feed');
@@ -39,7 +41,7 @@ export function NightMorningFlow({
       <NightEntryScreen
         actions={demo.entry}
         onBack={onExit}
-        initialCount={3}
+        initialCount={initialCount}
         onStarted={() => setPage('feed')}
       />
     );
@@ -47,6 +49,7 @@ export function NightMorningFlow({
     return (
       <FeedScreen
         load={demo.loadFeed}
+        songs={demo.songs}
         initialPosition={demo.getProgress()}
         onProgress={demo.progress}
         onFinish={(input) => {

@@ -1,3 +1,4 @@
+import type { SongActions } from '../features/songs/types';
 import type { Card } from '../api/contracts';
 import { ApiError } from '../api/errors';
 import type { NightEntryActions, WorryDraft } from '../features/night/entry';
@@ -20,8 +21,12 @@ import type { SheepDetailLoad } from '../features/flock/types';
 import { createMockNightFeed } from './nightFeed';
 import { createMockNightClosing } from './nightClosing';
 import { reflectionReplies } from './reflection';
-export type DemoScenario = 'success' | 'lost-responses';
-function delayed<T>(signal: AbortSignal, action: () => T): Promise<T> {
+export type DemoScenario = 'success' | 'lost-responses' | 'slow-songs';
+function delayed<T>(
+  signal: AbortSignal,
+  action: () => T,
+  delayMs = 400,
+): Promise<T> {
   return new Promise((resolve, reject) => {
     if (signal.aborted) {
       reject(new ApiError('aborted'));
@@ -42,7 +47,7 @@ function delayed<T>(signal: AbortSignal, action: () => T): Promise<T> {
       } catch (error) {
         reject(error);
       }
-    }, 400);
+    }, delayMs);
     signal.addEventListener('abort', abort, { once: true });
   });
 }
@@ -64,6 +69,7 @@ export function createNightMorningDemo(scenario: DemoScenario = 'success') {
   let morningOpen = false;
   let adopted: Sheep | null = null;
   let reflection: Reflection | null = null;
+  const savedSongs = new Map<string, string>();
   const failed = new Set<string>();
   const baseClosing = createMockNightClosing();
   const failOnce = (key: string) => {
@@ -145,11 +151,43 @@ export function createNightMorningDemo(scenario: DemoScenario = 'success') {
         },
       };
     });
+  const songs: SongActions = {
+    load: (signal) =>
+      delayed(signal, () => {
+        if (!morningOpen) conflict('MORNING_NOT_OPEN');
+        return [...savedSongs].flatMap(([id, saved_at]) => {
+          const card = cards?.find((item) => item.id === id);
+          return card?.kind === 'song' && card.available && card.content
+            ? [{ card_id: id, track: card.content.track, saved_at }]
+            : [];
+        });
+      }),
+    set: (id, saved, signal) =>
+      delayed(
+        signal,
+        () => {
+          const index = cards?.findIndex((item) => item.id === id) ?? -1;
+          const card = cards?.[index];
+          if (!card || card.kind !== 'song') conflict('NOT_SONG_CARD', 422);
+          if (index >= position.furthestPosition)
+            conflict('CARD_NOT_VIEWED', 422);
+          if (!card.available || !card.content) conflict('CARD_UNAVAILABLE');
+          if (saved && morningOpen) conflict('NIGHT_CLOSED');
+          if (saved) savedSongs.set(id, `${nightDate}T16:12:00Z`);
+          else savedSongs.delete(id);
+          card.viewer.song_saved = saved;
+          return saved;
+        },
+        scenario === 'slow-songs' ? 5000 : 400,
+      ),
+  };
   const morning: MorningActions & {
     reflection: ReflectionActions;
+    songs: SongActions;
     loadSheep: SheepDetailLoad;
   } = {
     reflection: reflectionActions,
+    songs,
     loadSheep,
     loadMorning: (signal) =>
       delayed(signal, () => {
@@ -264,6 +302,7 @@ export function createNightMorningDemo(scenario: DemoScenario = 'success') {
   };
   return {
     nightId,
+    songs,
     entry,
     loadFeed,
     closing,

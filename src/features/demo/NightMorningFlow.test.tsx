@@ -142,4 +142,57 @@ describe('night to morning demo', () => {
     await tick();
     expect(screen.getByText('오늘은 1마리까지 셌어요')).toBeTruthy();
   });
+  it('keeps a draft across modal close, submits from the same night and reaches morning without another offer', async () => {
+    const demo = createNightMorningDemo();
+    const submit = jest.spyOn(demo.textCards, 'submit');
+    await render(<NightMorningFlow demo={demo} onExit={() => {}} />);
+    await start();
+    await press('다음 양');
+    await press('다음 양');
+    await press('마무리하기');
+    await tick();
+    await press('다음');
+    await press('지금 쓸래요');
+    await tick();
+    await fireEvent.press(screen.getByRole('radio', { name: '학업' }));
+    await press('다음');
+    await fireEvent.changeText(
+      screen.getByLabelText('짧은 글'),
+      '천천히 쉬어 가도 괜찮아요.',
+    );
+    await press('이전');
+    await fireEvent(screen.getByTestId('text-card-modal'), 'requestClose');
+    expect(screen.getByText('초안을 잠깐 접어뒀어요')).toBeTruthy();
+    await press('카드 이어 쓰기');
+    expect(screen.getByDisplayValue('천천히 쉬어 가도 괜찮아요.')).toBeTruthy();
+    await press('검수 요청하기');
+    await tick();
+    expect(submit.mock.calls[0][0].source_night_id).toBe(demo.nightId);
+    expect(screen.getByText('카드를 맡겼어요')).toBeTruthy();
+    await fireEvent(screen.getByTestId('text-card-modal'), 'requestClose');
+    expect(screen.getByText('밤 마무리를 확인했어요')).toBeTruthy();
+    await press('다음 아침으로 이동');
+    await tick();
+    expect(screen.getByText(/어젯밤 양 3마리/)).toBeTruthy();
+    expect(screen.queryByText('천천히 쉬어 가도 괜찮아요.')).toBeNull();
+  });
+  it('lets an unfinished writer close and defer without submitting the draft', async () => {
+    const demo = createNightMorningDemo();
+    const submit = jest.spyOn(demo.textCards, 'submit');
+    await render(<NightMorningFlow demo={demo} onExit={() => {}} />);
+    await start();
+    await press('다음 양');
+    await press('다음 양');
+    await press('마무리하기');
+    await tick();
+    await press('다음');
+    await press('지금 쓸래요');
+    await tick();
+    await press('이전');
+    await press('아침에 쓸게요');
+    await tick();
+    await press('밤 마무리 확인');
+    expect(screen.getByText('밤 마무리를 확인했어요')).toBeTruthy();
+    expect(submit).not.toHaveBeenCalled();
+  });
 });

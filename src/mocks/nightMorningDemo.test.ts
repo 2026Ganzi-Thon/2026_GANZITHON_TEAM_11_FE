@@ -158,4 +158,60 @@ describe('one-night demo records', () => {
     await settle(d.entry.startCounting(4, signal()));
     expect(await settle(d.loadFeed(signal()))).toHaveLength(4);
   });
+  it('accepts one pending text card only after choosing now, fulfills the offer and keeps it out of morning candidates', async () => {
+    jest.useFakeTimers();
+    const d = createNightMorningDemo();
+    const value = {
+      kind: 'text' as const,
+      category_id: 'study' as const,
+      content: { text: '조금 쉬어도 괜찮아요.' },
+      source_night_id: d.nightId,
+    };
+    const denied = expect(
+      d.textCards.submit(value, 'before', signal()),
+    ).rejects.toMatchObject({ code: 'WRITING_ENTRY_REQUIRED' });
+    await jest.runAllTimersAsync();
+    await denied;
+    await settle(
+      d.entry.checkWorry(
+        { category_id: 'study', worry_text: '시험 걱정' },
+        signal(),
+      ),
+    );
+    await settle(d.entry.startCounting(3, signal()));
+    await settle(d.loadFeed(signal()));
+    d.progress({ position: 3, furthestPosition: 3 });
+    const input = {
+      reason: 'completed' as const,
+      position: 3,
+      furthestPosition: 3,
+      sheepCount: 3,
+    };
+    await settle(d.closing.finish(input, 'finish', signal()));
+    await settle(d.closing.chooseWriting('now', 'now', signal()));
+    const receipt = await settle(d.textCards.submit(value, 'draft', signal()));
+    expect(receipt.moderation_status).toBe('pending');
+    expect(await settle(d.textCards.submit(value, 'draft', signal()))).toEqual(
+      receipt,
+    );
+    expect(
+      (await settle(d.closing.finish(input, 'resume', signal()))).writing_offer
+        .state,
+    ).toBe('fulfilled');
+    const repeat = expect(
+      d.closing.chooseWriting('morning', 'defer', signal()),
+    ).rejects.toMatchObject({ code: 'OFFER_ALREADY_DECIDED' });
+    await jest.runAllTimersAsync();
+    await repeat;
+    const second = expect(
+      d.textCards.submit(value, 'another-key', signal()),
+    ).rejects.toMatchObject({ code: 'WRITING_ENTRY_REQUIRED' });
+    await jest.runAllTimersAsync();
+    await second;
+    d.advanceMorning();
+    const morning = await settle(d.morning.loadMorning(signal()));
+    expect(
+      morning.candidate_cards.some((item) => item.card.id === receipt.id),
+    ).toBe(false);
+  });
 });

@@ -21,16 +21,21 @@ export function ClosingScreen({
   actions,
   onExit,
   onRest,
+  onWrite,
 }: {
   input: ClosingRequest;
   actions: ClosingActions;
   onExit: () => void;
   onRest?: () => void;
+  onWrite?: () => void;
 }) {
   const flow = useClosingFlow(input, actions, onExit);
   const { state, request, exit } = flow;
   const summary = state.result?.summary;
   const card = state.result?.closing_card;
+  useEffect(() => {
+    if (state.step === 'writing') onWrite?.();
+  }, [state.step, onWrite]);
   useEffect(() => {
     const subscription = BackHandler.addEventListener(
       'hardwareBackPress',
@@ -117,15 +122,22 @@ export function ClosingScreen({
         <Notice
           title={
             state.step === 'writing'
-              ? '카드 작성 화면은 준비 중이에요'
+              ? onWrite
+                ? '초안을 잠깐 접어뒀어요'
+                : '카드 작성 화면은 준비 중이에요'
               : '편안한 밤 보내요'
           }
           description={
             state.step === 'writing'
-              ? '지금 쓰기 선택까지만 확인했어요. 실제 카드는 작성되거나 저장되지 않았어요.'
+              ? onWrite
+                ? '이 시연 안에서 글을 이어 쓰거나 아침으로 미룰 수 있어요.'
+                : '지금 쓰기 선택까지만 확인했어요. 실제 카드는 작성되거나 저장되지 않았어요.'
               : '마무리 미리보기를 마쳤어요. 실제 종료 기록과 아침 작성 예약은 저장하지 않았어요.'
           }
         />
+        {state.step === 'writing' && onWrite && (
+          <Button label="카드 이어 쓰기" onPress={onWrite} />
+        )}
         {state.step === 'writing' && (
           <Button
             label="아침에 쓸게요"

@@ -30,17 +30,22 @@ import {
 } from './entry';
 import { SheepCountPicker } from './SheepCountPicker';
 import { WorryPaper } from './WorryPaper';
+import { FeedScreen } from './feed/FeedScreen';
+import type { FeedLoad } from './feed/model';
 
-/** Transient preview flow. No persistence, safety decision, or feed navigation. */
+/** Transient preview flow. No persistence or safety decision; feed loading is explicitly injected. */
 export function NightEntryScreen({
   actions,
   onBack,
   worryLimit = PREVIEW_WORRY_LIMIT,
+  createFeed,
 }: {
   actions: NightEntryActions;
   onBack: () => void;
   worryLimit?: number;
+  createFeed?: (count: number) => FeedLoad;
 }) {
+  const [feedLoad, setFeedLoad] = useState<FeedLoad | null>(null);
   const [step, setStep] = useState<'worry' | 'count'>('worry');
   const [categoryId, setCategoryId] = useState<CategoryId | null>(null);
   const [text, setText] = useState('');
@@ -70,6 +75,7 @@ export function NightEntryScreen({
     else onBack();
   }, [onBack, step]);
   useEffect(() => {
+    if (feedLoad) return;
     const subscription = BackHandler.addEventListener(
       'hardwareBackPress',
       () => {
@@ -78,7 +84,7 @@ export function NightEntryScreen({
       },
     );
     return () => subscription.remove();
-  }, [back]);
+  }, [back, feedLoad]);
   useEffect(() => {
     scroll.current?.scrollTo({ y: 0, animated: false });
   }, [step]);
@@ -109,7 +115,11 @@ export function NightEntryScreen({
       } else {
         await actions.startCounting(count, controller.signal);
         if (controller.signal.aborted) return;
-        setStatus('done');
+        if (createFeed) {
+          const load = createFeed(count);
+          setFeedLoad(() => load);
+          setStatus('idle');
+        } else setStatus('done');
       }
     } catch {
       if (!controller.signal.aborted) setStatus('error');
@@ -124,6 +134,9 @@ export function NightEntryScreen({
   const missing =
     step === 'worry' &&
     (!categoryId || (categoryId !== 'none' && !text.trim()));
+
+  if (feedLoad)
+    return <FeedScreen load={feedLoad} onBack={() => setFeedLoad(null)} />;
 
   return (
     <NightScreen>

@@ -43,7 +43,7 @@ npm run test:ci        # Jest 실행
 npm run bundle:android # Android JavaScript 번들 생성
 ```
 
-현재는 초기 화면과 개발 환경만 구성되어 있어 기능 테스트가 없습니다. `test:ci`는 이 단계에 한해 테스트 파일이 없어도 종료하며, 첫 기능 테스트를 추가할 때 `--passWithNoTests`를 제거합니다. 번들 검사는 APK 빌드나 실제 기기 검증을 대신하지 않습니다.
+Jest는 API 요청·오류·취소 처리와 mock 응답 연동을 검사합니다. 테스트 파일이 없으면 `test:ci`가 실패합니다. 자동 테스트와 번들 검사는 실제 서버 연동, APK 빌드, 기기 검증을 대신하지 않습니다.
 
 PR에서는 위 검사를 GitHub Actions로 실행합니다. 변경한 화면은 Android에서도 확인하고, PR에 검증 결과와 남은 제한 사항을 기록합니다. 코드 포맷은 `npm run format`으로 적용합니다.
 
@@ -51,8 +51,43 @@ PR에서는 위 검사를 GitHub Actions로 실행합니다. 변경한 화면은
 
 ```text
 src/app/       Expo Router 화면과 공통 레이아웃
+src/api/       HTTP 클라이언트, 오류, 인증·앱 시작 응답 타입
+src/mocks/     명시적으로 주입하는 mock 전송 함수와 응답 예시
 app.json       앱 및 네이티브 설정
 .github/       CI와 PR 템플릿
 ```
 
-API 연결은 아직 구현하지 않았습니다. `.env.example`의 `EXPO_PUBLIC_API_BASE_URL`은 후속 연동을 위한 예시이며 현재 앱에서는 사용하지 않습니다. `EXPO_PUBLIC_*` 값은 앱에 포함되므로 비밀 키를 넣지 않습니다.
+## API 사용
+
+`.env.example`을 `.env`로 복사하고 `EXPO_PUBLIC_API_BASE_URL`에 `/api/v1`을 포함한 개발 서버 주소를 지정합니다. `EXPO_PUBLIC_*` 값은 앱에 포함되므로 비밀 키를 넣지 않습니다. 현재 초기 화면에서는 API를 호출하지 않습니다.
+
+```ts
+import { createApiClient } from './src/api/client';
+import { getApiBaseUrl } from './src/api/config';
+import type { Bootstrap } from './src/api/contracts';
+
+const api = createApiClient({ baseUrl: getApiBaseUrl() });
+// accessToken은 인증 흐름에서 전달받습니다.
+const bootstrap = await api.request<Bootstrap>('/bootstrap', { accessToken });
+```
+
+요청 경로는 `/bootstrap`처럼 기본 API 경로에 상대적으로 지정합니다. JSON 요청은 `body`, 인증은 `accessToken`, 멱등키는 `idempotencyKey`로 전달합니다. 204 또는 빈 성공 응답은 `undefined`입니다. 응답의 제네릭 타입은 런타임 검증이 아니므로, 화면 연결 시 필수 필드와 허용 상태를 검증해야 합니다.
+
+`ApiError.kind`로 서버 오류(`http`), 연결 실패(`network`), 시간초과(`timeout`), 취소(`aborted`), 잘못된 JSON(`invalid-response`), 잘못된 설정(`configuration`)을 구분합니다. 서버 오류에는 `status`, `code`, `fields`, `requestId`, `retryAfter`가 제공될 수 있습니다. `serverMessage`와 `fields`에는 민감한 내용이 포함될 수 있으므로 오류 객체 전체를 로그에 남기거나 그대로 사용자에게 표시하지 않습니다.
+
+기본 시간제한은 10초이며 `timeoutMs`로 변경할 수 있습니다. 자동 재시도·토큰 갱신·토큰 저장은 아직 포함하지 않습니다. 변경 요청을 재시도할 때는 같은 작업의 멱등키와 본문을 유지하고, 새로운 작업에는 새 키를 전달해야 합니다.
+
+mock은 `createMockFetch`를 클라이언트의 `fetch` 옵션에 직접 주입할 때만 사용합니다. 동일한 클라이언트와 오류 처리를 거치며, 미등록 경로는 501 `MOCK_ROUTE_NOT_FOUND`를 반환하고 실제 네트워크에 연결하지 않습니다. 경로 매칭은 메서드와 전체 pathname 기준이며 query에 따른 응답 분기는 제공하지 않습니다. mock 검증은 실제 인증·서버 구현 검증을 의미하지 않습니다.
+
+```ts
+import { createApiClient } from './src/api/client';
+import { createMockFetch } from './src/mocks/transport';
+import { bootstrapFixture } from './src/mocks/fixtures';
+
+const api = createApiClient({
+  baseUrl: 'https://mock.invalid/api/v1',
+  fetch: createMockFetch([
+    { method: 'GET', path: '/api/v1/bootstrap', body: bootstrapFixture },
+  ]),
+});
+```

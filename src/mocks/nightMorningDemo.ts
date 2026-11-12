@@ -1,3 +1,4 @@
+import { createMockYarn } from './yarn';
 import type { SongActions } from '../features/songs/types';
 import type { Card } from '../api/contracts';
 import { ApiError } from '../api/errors';
@@ -21,7 +22,8 @@ import type { SheepDetailLoad } from '../features/flock/types';
 import { createMockNightFeed } from './nightFeed';
 import { createMockNightClosing } from './nightClosing';
 import { reflectionReplies } from './reflection';
-export type DemoScenario = 'success' | 'lost-responses' | 'slow-songs';
+export type DemoScenario =
+  'success' | 'lost-responses' | 'slow-songs' | 'slow-yarn';
 function delayed<T>(
   signal: AbortSignal,
   action: () => T,
@@ -61,6 +63,10 @@ export function createNightMorningDemo(scenario: DemoScenario = 'success') {
   let draft: WorryDraft | null = null;
   let count: number | null = null;
   let cards: Card[] | null = null;
+  const yarn = createMockYarn(
+    () => cards ?? [],
+    scenario === 'slow-yarn' ? 'slow' : 'success',
+  );
   let loader: FeedLoad | null = null;
   let position: FeedPosition = { position: 1, furthestPosition: 1 };
   let finished: ClosingResult | null = null;
@@ -302,6 +308,7 @@ export function createNightMorningDemo(scenario: DemoScenario = 'success') {
   };
   return {
     nightId,
+    yarn,
     songs,
     entry,
     loadFeed,

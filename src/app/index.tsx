@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Button } from '../ui/Button';
@@ -6,7 +6,7 @@ import { Button } from '../ui/Button';
 export default function StartScreen() {
   return (
     <SafeAreaView style={styles.screen}>
-      <View style={styles.content}>
+      <ScrollView contentContainerStyle={styles.content}>
         <Text accessibilityRole="header" style={styles.title}>
           양 세는 밤
         </Text>
@@ -29,9 +29,13 @@ export default function StartScreen() {
               label="밤 마무리 미리보기"
               onPress={() => router.push('/dev/night-closing')}
             />
+            <Button
+              label="아침·양떼 미리보기"
+              onPress={() => router.push('/dev/morning')}
+            />
           </>
         )}
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -42,7 +46,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#242460',
   },
   content: {
-    flex: 1,
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 16,

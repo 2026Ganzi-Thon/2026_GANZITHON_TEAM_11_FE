@@ -12,10 +12,16 @@ export default function StartScreen() {
         </Text>
         <Text style={styles.description}>잠이 안 오는 밤, 양을 같이 세요.</Text>
         {__DEV__ && (
-          <Button
-            label="로그인 화면 미리보기"
-            onPress={() => router.push('/dev/login')}
-          />
+          <>
+            <Button
+              label="로그인 화면 미리보기"
+              onPress={() => router.push('/dev/login')}
+            />
+            <Button
+              label="오늘 밤 화면 미리보기"
+              onPress={() => router.push('/dev/night-entry')}
+            />
+          </>
         )}
       </View>
     </SafeAreaView>

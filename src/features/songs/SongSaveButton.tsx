@@ -6,6 +6,8 @@ export function SongSaveButton(props: {
   cardId: string;
   saved: boolean;
   actions: SongActions;
+  disabled?: boolean;
+  onPendingChange?: (pending: boolean) => void;
 }) {
   return <SaveControl key={props.cardId} {...props} />;
 }
@@ -13,10 +15,14 @@ function SaveControl({
   cardId,
   saved,
   actions,
+  disabled = false,
+  onPendingChange,
 }: {
   cardId: string;
   saved: boolean;
   actions: SongActions;
+  disabled?: boolean;
+  onPendingChange?: (pending: boolean) => void;
 }) {
   const [state, setState] = useState({
     api: actions,
@@ -38,12 +44,14 @@ function SaveControl({
       alive.current = false;
       active.current?.abort();
       active.current = null;
+      onPendingChange?.(false);
     };
-  }, [actions]);
+  }, [actions, onPendingChange]);
   const change = async () => {
-    if (active.current || !alive.current) return;
+    if (disabled || active.current || !alive.current) return;
     const controller = new AbortController();
     active.current = controller;
+    onPendingChange?.(true);
     setState({ api: actions, value, busy: true, notice: '', failure: false });
     const target = !value;
     try {
@@ -68,11 +76,20 @@ function SaveControl({
         });
       }
     } finally {
-      if (active.current === controller) active.current = null;
+      if (active.current === controller) {
+        active.current = null;
+        onPendingChange?.(false);
+      }
     }
   };
   return (
     <View style={styles.panel}>
+      {busy && (
+        <Text style={styles.text} accessibilityLiveRegion="polite">
+          양 이동은 변경을 마치면 가능해요. 피드를 나가거나 그만 세면 진행 중인
+          요청을 취소해요.
+        </Text>
+      )}
       {notice ? (
         <Text
           accessibilityRole={failure ? 'alert' : undefined}
@@ -85,8 +102,12 @@ function SaveControl({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={value ? '노래 담기 취소' : '노래 담기'}
-        accessibilityState={{ disabled: busy, selected: value }}
-        disabled={busy}
+        accessibilityState={{
+          disabled: busy || disabled,
+          busy,
+          selected: value,
+        }}
+        disabled={busy || disabled}
         onPress={() => void change()}
         style={styles.button}
       >

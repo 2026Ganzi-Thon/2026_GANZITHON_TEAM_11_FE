@@ -54,6 +54,12 @@ export function FeedScreen({
     cards: Card[];
     error: boolean;
   } | null>(null);
+  const [songPending, setSongPending] = useState(false);
+  const songPendingRef = useRef(false);
+  const onSongPendingChange = useCallback((pending: boolean) => {
+    songPendingRef.current = pending;
+    setSongPending(pending);
+  }, []);
   const [done, setDone] = useState(false);
   const [closingRequest, setClosingRequest] = useState<ClosingRequest | null>(
     null,
@@ -123,7 +129,7 @@ export function FeedScreen({
   }, [back, closingRequest]);
   const move = useCallback(
     (delta: -1 | 1) => {
-      if (status !== 'ready' || !cards.length) return;
+      if (songPendingRef.current || status !== 'ready' || !cards.length) return;
       const next = movePosition(current.current, delta, cards.length);
       if (next.position === current.current.position) return;
       run(delta, () => {
@@ -137,7 +143,14 @@ export function FeedScreen({
   );
   const card = cards[position.position - 1];
   const finish = (reason: ClosingRequest['reason']) => {
-    if (moving || status !== 'ready' || !card || closingRequest) return;
+    if (
+      moving ||
+      (reason === 'completed' && songPendingRef.current) ||
+      status !== 'ready' ||
+      !card ||
+      closingRequest
+    )
+      return;
     cancel();
     if (onFinish)
       onFinish({ reason, ...current.current, sheepCount: cards.length });
@@ -244,6 +257,8 @@ export function FeedScreen({
                   cardId={card.id}
                   saved={card.viewer.song_saved}
                   actions={songs}
+                  disabled={moving}
+                  onPendingChange={onSongPendingChange}
                 />
               )}
           </ScrollView>
@@ -251,14 +266,15 @@ export function FeedScreen({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="이전 양"
-              disabled={moving || position.position === 1}
+              disabled={moving || songPending || position.position === 1}
               accessibilityState={{
-                disabled: moving || position.position === 1,
+                disabled: moving || songPending || position.position === 1,
               }}
               onPress={() => move(-1)}
               style={[
                 styles.previous,
-                (moving || position.position === 1) && styles.disabled,
+                (moving || songPending || position.position === 1) &&
+                  styles.disabled,
               ]}
             >
               <Text style={styles.previousLabel}>← 이전 양</Text>
@@ -272,7 +288,7 @@ export function FeedScreen({
                       : '미리보기 마치기'
                     : '다음 양'
                 }
-                disabled={moving}
+                disabled={moving || songPending}
                 onPress={() => {
                   if (position.position === cards.length) finish('completed');
                   else move(1);

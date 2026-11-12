@@ -21,8 +21,12 @@ import type { SheepDetailLoad } from '../features/flock/types';
 import { createMockNightFeed } from './nightFeed';
 import { createMockNightClosing } from './nightClosing';
 import { reflectionReplies } from './reflection';
-export type DemoScenario = 'success' | 'lost-responses';
-function delayed<T>(signal: AbortSignal, action: () => T): Promise<T> {
+export type DemoScenario = 'success' | 'lost-responses' | 'slow-songs';
+function delayed<T>(
+  signal: AbortSignal,
+  action: () => T,
+  delayMs = 400,
+): Promise<T> {
   return new Promise((resolve, reject) => {
     if (signal.aborted) {
       reject(new ApiError('aborted'));
@@ -43,7 +47,7 @@ function delayed<T>(signal: AbortSignal, action: () => T): Promise<T> {
       } catch (error) {
         reject(error);
       }
-    }, 400);
+    }, delayMs);
     signal.addEventListener('abort', abort, { once: true });
   });
 }
@@ -159,19 +163,23 @@ export function createNightMorningDemo(scenario: DemoScenario = 'success') {
         });
       }),
     set: (id, saved, signal) =>
-      delayed(signal, () => {
-        const index = cards?.findIndex((item) => item.id === id) ?? -1;
-        const card = cards?.[index];
-        if (!card || card.kind !== 'song') conflict('NOT_SONG_CARD', 422);
-        if (index >= position.furthestPosition)
-          conflict('CARD_NOT_VIEWED', 422);
-        if (!card.available || !card.content) conflict('CARD_UNAVAILABLE');
-        if (saved && morningOpen) conflict('NIGHT_CLOSED');
-        if (saved) savedSongs.set(id, `${nightDate}T16:12:00Z`);
-        else savedSongs.delete(id);
-        card.viewer.song_saved = saved;
-        return saved;
-      }),
+      delayed(
+        signal,
+        () => {
+          const index = cards?.findIndex((item) => item.id === id) ?? -1;
+          const card = cards?.[index];
+          if (!card || card.kind !== 'song') conflict('NOT_SONG_CARD', 422);
+          if (index >= position.furthestPosition)
+            conflict('CARD_NOT_VIEWED', 422);
+          if (!card.available || !card.content) conflict('CARD_UNAVAILABLE');
+          if (saved && morningOpen) conflict('NIGHT_CLOSED');
+          if (saved) savedSongs.set(id, `${nightDate}T16:12:00Z`);
+          else savedSongs.delete(id);
+          card.viewer.song_saved = saved;
+          return saved;
+        },
+        scenario === 'slow-songs' ? 5000 : 400,
+      ),
   };
   const morning: MorningActions & {
     reflection: ReflectionActions;

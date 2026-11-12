@@ -29,18 +29,27 @@ const scenarios: readonly [SongScenario, string][] = [
   ['external-fail', '연결·복사 실패 안내'],
 ];
 export default function SavedSongsPreview() {
-  const [scenario, setScenario] = useState<SongScenario | 'flow' | null>(null);
+  const [scenario, setScenario] = useState<
+    SongScenario | 'flow' | 'slow-flow' | null
+  >(null);
   const demo = useMemo(
-    () => (scenario === 'flow' ? createNightMorningDemo() : null),
+    () =>
+      scenario === 'flow' || scenario === 'slow-flow'
+        ? createNightMorningDemo(
+            scenario === 'slow-flow' ? 'slow-songs' : 'success',
+          )
+        : null,
     [scenario],
   );
   const actions = useMemo(
     () =>
-      scenario && scenario !== 'flow' ? createMockSavedSongs(scenario) : null,
+      scenario && scenario !== 'flow' && scenario !== 'slow-flow'
+        ? createMockSavedSongs(scenario)
+        : null,
     [scenario],
   );
   if (!__DEV__) return <Redirect href="/" />;
-  if (scenario === 'flow' && demo)
+  if (demo)
     return (
       <NightMorningFlow
         demo={demo}
@@ -66,6 +75,10 @@ export default function SavedSongsPreview() {
         <Button
           label="밤부터 노래 담기 시연"
           onPress={() => setScenario('flow')}
+        />
+        <Button
+          label="느린 노래 담기 시연"
+          onPress={() => setScenario('slow-flow')}
         />
         {scenarios.map(([value, label]) => (
           <Button

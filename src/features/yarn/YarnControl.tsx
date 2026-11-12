@@ -38,13 +38,7 @@ export function YarnControl({
           style={state.sent ? styles.sent : styles.icon}
         />
       </View>
-      <Text
-        style={[
-          styles.label,
-          warm && styles.pale,
-          state.sent && !warm && styles.selected,
-        ]}
-      >
+      <Text style={[styles.label, warm && styles.pale]}>
         {state.pending
           ? state.target
             ? '보내는 중'
@@ -70,6 +64,5 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
     textAlign: 'center',
   },
-  selected: { color: '#B98A2E' },
   pale: { color: theme.color.muted },
 });

@@ -20,10 +20,12 @@ export function DeferredWritingSection({
   nightId,
   writing,
   loadMorning,
+  onVisibilityChange,
 }: {
   nightId: string;
   writing: CardWritingActions;
   loadMorning: MorningActions['loadMorning'];
+  onVisibilityChange?: (open: boolean) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [accepted, setAccepted] = useState(false);
@@ -41,6 +43,7 @@ export function DeferredWritingSection({
       request.current?.abort();
     };
   }, []);
+  useEffect(() => () => onVisibilityChange?.(false), [onVisibilityChange]);
   const refresh = async () => {
     if (!active.current || request.current) return;
     const controller = new AbortController();
@@ -108,7 +111,10 @@ export function DeferredWritingSection({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="미뤄 둔 카드 쓰기"
-            onPress={() => setOpen(true)}
+            onPress={() => {
+              onVisibilityChange?.(true);
+              setOpen(true);
+            }}
             style={styles.writeTouch}
           >
             <View style={styles.write}>
@@ -123,11 +129,15 @@ export function DeferredWritingSection({
           actions={writing}
           sourceNightId={nightId}
           entryContext="morning_banner"
-          onBack={() => setOpen(false)}
+          onBack={() => {
+            setOpen(false);
+            onVisibilityChange?.(false);
+          }}
           onDone={() => {
             if (confirmed.current) return;
             confirmed.current = true;
             setOpen(false);
+            onVisibilityChange?.(false);
             setAccepted(true);
             void refresh();
           }}

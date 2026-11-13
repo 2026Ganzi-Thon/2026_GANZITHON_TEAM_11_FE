@@ -1,4 +1,5 @@
 import { createMockYarn } from './yarn';
+import { createMockTextCards } from './textCards';
 import type { SongActions } from '../features/songs/types';
 import type { Card } from '../api/contracts';
 import { ApiError } from '../api/errors';
@@ -70,6 +71,14 @@ export function createNightMorningDemo(scenario: DemoScenario = 'success') {
   let loader: FeedLoad | null = null;
   let position: FeedPosition = { position: 1, furthestPosition: 1 };
   let finished: ClosingResult | null = null;
+  const textCards = createMockTextCards('success', {
+    sourceNightId: nightId,
+    canSubmit: () => finished?.writing_offer.state === 'writing',
+    onSubmitted: () => {
+      if (finished)
+        finished = { ...finished, writing_offer: { state: 'fulfilled' } };
+    },
+  });
   let fingerprint: string | null = null;
   let closingViewed = false;
   let morningOpen = false;
@@ -300,6 +309,8 @@ export function createNightMorningDemo(scenario: DemoScenario = 'success') {
     chooseWriting: (choice, _key, signal) =>
       delayed(signal, () => {
         if (!finished) conflict('SESSION_NOT_FINISHED');
+        if (finished.writing_offer.state === 'fulfilled')
+          conflict('OFFER_ALREADY_DECIDED');
         finished = {
           ...finished,
           writing_offer: { state: choice === 'now' ? 'writing' : 'deferred' },
@@ -309,6 +320,7 @@ export function createNightMorningDemo(scenario: DemoScenario = 'success') {
   return {
     nightId,
     yarn,
+    textCards,
     songs,
     entry,
     loadFeed,

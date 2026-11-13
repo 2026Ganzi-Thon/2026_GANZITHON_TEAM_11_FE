@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { TextCardScreen } from '../cards/TextCardScreen';
+import { useCallback, useEffect, useState } from 'react';
 import { BackHandler, ScrollView, StyleSheet } from 'react-native';
 import { NightEntryScreen } from '../night/NightEntryScreen';
 import { FeedScreen } from '../night/feed/FeedScreen';
@@ -19,6 +20,8 @@ export function NightMorningFlow({
   onExit: () => void;
   initialCount?: number;
 }) {
+  const [writingOpen, setWritingOpen] = useState(false);
+  const openWriting = useCallback(() => setWritingOpen(true), []);
   const [page, setPage] = useState<Page>('entry');
   const [resume, setResume] = useState<'feed' | 'closing'>('feed');
   const [request, setRequest] = useState<ClosingRequest | null>(null);
@@ -62,12 +65,27 @@ export function NightMorningFlow({
     );
   if (page === 'closing' && request)
     return (
-      <ClosingScreen
-        input={request}
-        actions={demo.closing}
-        onExit={() => pause('closing')}
-        onRest={() => setPage('rest')}
-      />
+      <>
+        <ClosingScreen
+          input={request}
+          actions={demo.closing}
+          onExit={() => pause('closing')}
+          onRest={() => setPage('rest')}
+          onWrite={openWriting}
+        />
+        {writingOpen && (
+          <TextCardScreen
+            modal
+            actions={demo.textCards}
+            sourceNightId={demo.nightId}
+            onBack={() => setWritingOpen(false)}
+            onDone={() => {
+              setWritingOpen(false);
+              setPage('rest');
+            }}
+          />
+        )}
+      </>
     );
   if (page === 'morning')
     return (

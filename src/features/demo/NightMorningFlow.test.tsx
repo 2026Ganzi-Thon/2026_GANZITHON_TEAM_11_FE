@@ -142,11 +142,18 @@ describe('night to morning demo', () => {
     await tick();
     expect(screen.getByText('오늘은 1마리까지 셌어요')).toBeTruthy();
   });
-  it('keeps a draft across modal close, submits from the same night and reaches morning without another offer', async () => {
+  it('retains yarn through draft close/resume and excludes the pending submission from morning', async () => {
     const demo = createNightMorningDemo();
     const submit = jest.spyOn(demo.textCards, 'submit');
     await render(<NightMorningFlow demo={demo} onExit={() => {}} />);
     await start();
+    await press('털실 보내기');
+    await tick();
+    await press('다음 양');
+    await press('이전 양');
+    expect(
+      screen.getByRole('button', { name: '털실 보내기 취소' }),
+    ).toBeSelected();
     await press('다음 양');
     await press('다음 양');
     await press('마무리하기');
@@ -175,6 +182,17 @@ describe('night to morning demo', () => {
     await tick();
     expect(screen.getByText(/어젯밤 양 3마리/)).toBeTruthy();
     expect(screen.queryByText('천천히 쉬어 가도 괜찮아요.')).toBeNull();
+    await act(async () => {
+      const result = demo.morning.loadMorning(new AbortController().signal);
+      await jest.runAllTimersAsync();
+      const morning = await result;
+      expect(morning.candidate_cards.map((item) => item.card.id)).toEqual([
+        'preview-card-1',
+        'preview-card-2',
+        'preview-card-3',
+      ]);
+      expect(morning.candidate_cards[0].card.viewer.yarn_sent).toBe(true);
+    });
   });
   it('lets an unfinished writer close and defer without submitting the draft', async () => {
     const demo = createNightMorningDemo();

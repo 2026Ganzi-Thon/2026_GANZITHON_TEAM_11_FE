@@ -1,4 +1,7 @@
 import { YarnFeedback } from '../../yarn/YarnFeedback';
+import { FluffFeedback } from '../../fluff/FluffFeedback';
+import { useFluffBookmarks } from '../../fluff/useFluffBookmarks';
+import type { FluffActions } from '../../fluff/types';
 import type { YarnActions } from '../../yarn/types';
 import { useYarnReactions } from '../../yarn/useYarnReactions';
 import { SongSaveButton } from '../../songs/SongSaveButton';
@@ -40,6 +43,7 @@ export function FeedScreen({
   onFinish,
   songs,
   yarn,
+  fluff,
 }: {
   load: FeedLoad;
   onBack: () => void;
@@ -49,6 +53,7 @@ export function FeedScreen({
   onFinish?: (request: ClosingRequest) => void;
   songs?: SongActions;
   yarn?: YarnActions;
+  fluff?: FluffActions;
 }) {
   const [start] = useState(
     () => initialPosition ?? { position: 1, furthestPosition: 1 },
@@ -85,6 +90,17 @@ export function FeedScreen({
     status === 'ready' && !closingRequest,
   );
   const { stop: stopYarn } = yarnFlow;
+  const fluffFlow = useFluffBookmarks(
+    fluff,
+    load,
+    status === 'ready' && !closingRequest,
+  );
+  const { stop: stopFluff } = fluffFlow;
+  const fluffPending = fluffFlow.hasPending();
+  const [feedback, setFeedback] = useState<{
+    cardId: string;
+    kind: 'yarn' | 'fluff';
+  } | null>(null);
   const [position, setPosition] = useState<FeedPosition>({
     position: 1,
     furthestPosition: 1,
@@ -126,8 +142,9 @@ export function FeedScreen({
     controller.current?.abort();
     cancel();
     stopYarn();
+    stopFluff();
     onBack();
-  }, [cancel, onBack, stopYarn]);
+  }, [cancel, onBack, stopYarn, stopFluff]);
   useEffect(() => {
     if (closingRequest) return;
     const subscription = BackHandler.addEventListener(
@@ -155,13 +172,21 @@ export function FeedScreen({
   );
   const card = cards[position.position - 1];
   const yarnState = card ? yarnFlow.stateFor(card) : null;
+  const fluffState = card ? fluffFlow.stateFor(card) : null;
+  const isCardAvailable = (target: Card) =>
+    target.available &&
+    !!target.content &&
+    yarnFlow.stateFor(target).error !== 'unavailable' &&
+    fluffFlow.stateFor(target).error !== 'unavailable';
   const visibleCard =
-    card && yarnState?.error === 'unavailable'
+    card && !isCardAvailable(card)
       ? { ...card, available: false, content: null }
       : card;
+  const reactionsVisible = !!visibleCard?.available && !!visibleCard.content;
   const finish = (reason: ClosingRequest['reason']) => {
     if (
       moving ||
+      fluffFlow.hasPending() ||
       (reason === 'completed' && songPendingRef.current) ||
       status !== 'ready' ||
       !card ||
@@ -170,6 +195,7 @@ export function FeedScreen({
       return;
     cancel();
     stopYarn();
+    stopFluff();
     if (onFinish)
       onFinish({ reason, ...current.current, sheepCount: cards.length });
     else if (closingActions)
@@ -210,14 +236,28 @@ export function FeedScreen({
           accessibilityLabel={
             canFinish ? '그만 세고 싶어요' : '미리보기 나가기'
           }
-          disabled={canFinish && moving}
-          accessibilityState={{ disabled: canFinish && moving }}
+          accessibilityHint={
+            fluffPending
+              ? canFinish
+                ? '솜털 변경을 확인한 뒤 밤을 마칠 수 있어요.'
+                : '나가면 남은 솜털 요청을 취소해요.'
+              : undefined
+          }
+          disabled={canFinish && (moving || fluffPending)}
+          accessibilityState={{
+            disabled: canFinish && (moving || fluffPending),
+          }}
           onPress={canFinish ? () => finish('leave') : back}
           style={styles.exit}
         >
           <Text style={styles.exitLabel}>
             {canFinish ? '그만 세고 싶어요' : '미리보기 나가기'}
           </Text>
+          {fluffPending && (
+            <Text style={styles.preview} accessibilityLiveRegion="polite">
+              솜털 확인 중
+            </Text>
+          )}
         </Pressable>
       </View>
       {status === 'loading' ? (
@@ -274,13 +314,66 @@ export function FeedScreen({
                   yarn && yarnState
                     ? {
                         state: yarnState,
-                        onToggle: () => yarnFlow.toggle(card),
+                        onToggle: () => {
+                          if (!isCardAvailable(card)) return;
+                          setFeedback({ cardId: card.id, kind: 'yarn' });
+                          yarnFlow.toggle(card);
+                        },
+                      }
+                    : undefined
+                }
+                fluff={
+                  fluff && fluffState
+                    ? {
+                        state: fluffState,
+                        onToggle: () => {
+                          if (!isCardAvailable(card)) return;
+                          setFeedback({ cardId: card.id, kind: 'fluff' });
+                          fluffFlow.toggle(card);
+                        },
                       }
                     : undefined
                 }
                 isLast={position.position === cards.length}
               />
-              {yarnState?.error === 'failed' && (
+              {reactionsVisible && fluffState?.error === 'failed' && (
+                <View
+                  style={styles.yarnStatus}
+                  onLayout={(event) =>
+                    body.current?.scrollTo({
+                      y: event.nativeEvent.layout.y,
+                      animated: false,
+                    })
+                  }
+                >
+                  <Notice
+                    error
+                    title="솜털 변경을 확인하지 못했어요"
+                    description={
+                      fluffState.target
+                        ? '붙이기를 확인하지 못했어요. 마지막으로 확인한 표시를 유지해요.'
+                        : '떼기를 확인하지 못했어요. 마지막으로 확인한 표시를 유지해요.'
+                    }
+                  />
+                  <Button
+                    label="솜털 다시 시도"
+                    onPress={() => {
+                      if (!isCardAvailable(card)) return;
+                      setFeedback({ cardId: card.id, kind: 'fluff' });
+                      fluffFlow.retry(card);
+                    }}
+                  />
+                </View>
+              )}
+              {reactionsVisible && fluffState?.pending && (
+                <View style={styles.yarnStatus}>
+                  <Text style={styles.message}>
+                    다른 양은 볼 수 있어요. 밤 마무리는 솜털 확인 후 가능하며,
+                    뒤로 나가면 남은 요청을 취소해요.
+                  </Text>
+                </View>
+              )}
+              {reactionsVisible && yarnState?.error === 'failed' && (
                 <View
                   style={styles.yarnStatus}
                   onLayout={(event) =>
@@ -301,11 +394,15 @@ export function FeedScreen({
                   />
                   <Button
                     label="털실 다시 시도"
-                    onPress={() => yarnFlow.retry(card)}
+                    onPress={() => {
+                      if (!isCardAvailable(card)) return;
+                      setFeedback({ cardId: card.id, kind: 'yarn' });
+                      yarnFlow.retry(card);
+                    }}
                   />
                 </View>
               )}
-              {yarnState?.pending && (
+              {reactionsVisible && yarnState?.pending && (
                 <View style={styles.yarnStatus}>
                   <Text style={styles.message} accessibilityLiveRegion="polite">
                     {yarnState.target
@@ -329,7 +426,18 @@ export function FeedScreen({
                   />
                 )}
             </ScrollView>
-            {yarnState?.notice &&
+            {feedback?.cardId === card.id &&
+              feedback.kind === 'fluff' &&
+              fluffState?.notice &&
+              visibleCard.available &&
+              visibleCard.content && (
+                <View style={styles.yarnFeedback} pointerEvents="none">
+                  <FluffFeedback saved={fluffState.notice === 'saved'} />
+                </View>
+              )}
+            {feedback?.cardId === card.id &&
+              feedback.kind === 'yarn' &&
+              yarnState?.notice &&
               visibleCard.available &&
               visibleCard.content && (
                 <View style={styles.yarnFeedback} pointerEvents="none">
@@ -340,6 +448,19 @@ export function FeedScreen({
                 </View>
               )}
           </View>
+          {fluffFlow.isClosed() && (
+            <View style={styles.fluffStatus}>
+              <Text
+                style={styles.fluffMessage}
+                accessibilityLiveRegion="polite"
+              >
+                솜털을 바꿀 수 없는 밤이에요
+              </Text>
+              <Text style={styles.fluffMessage}>
+                마지막으로 확인한 표시를 유지했어요.
+              </Text>
+            </View>
+          )}
           <View style={styles.navigation}>
             <Pressable
               accessibilityRole="button"
@@ -366,7 +487,11 @@ export function FeedScreen({
                       : '미리보기 마치기'
                     : '다음 양'
                 }
-                disabled={moving || songPending}
+                disabled={
+                  moving ||
+                  songPending ||
+                  (position.position === cards.length && fluffPending)
+                }
                 onPress={() => {
                   if (position.position === cards.length) finish('completed');
                   else move(1);
@@ -380,6 +505,17 @@ export function FeedScreen({
   );
 }
 const styles = StyleSheet.create({
+  fluffStatus: {
+    paddingHorizontal: 20,
+    paddingVertical: 6,
+    backgroundColor: theme.color.background,
+  },
+  fluffMessage: {
+    fontFamily: theme.font,
+    color: theme.color.text,
+    fontSize: 11,
+    lineHeight: 18,
+  },
   feedViewport: { flex: 1 },
   feedScroll: { flex: 1 },
   yarnFeedback: {

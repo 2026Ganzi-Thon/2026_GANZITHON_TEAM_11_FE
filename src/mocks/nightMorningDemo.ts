@@ -1,4 +1,5 @@
 import { createMockYarn } from './yarn';
+import { createMockFluff } from './fluff';
 import { createMockTextCards } from './textCards';
 import type { SongActions } from '../features/songs/types';
 import type { Card } from '../api/contracts';
@@ -24,7 +25,7 @@ import { createMockNightFeed } from './nightFeed';
 import { createMockNightClosing } from './nightClosing';
 import { reflectionReplies } from './reflection';
 export type DemoScenario =
-  'success' | 'lost-responses' | 'slow-songs' | 'slow-yarn';
+  'success' | 'lost-responses' | 'slow-songs' | 'slow-yarn' | 'slow-fluff';
 function delayed<T>(
   signal: AbortSignal,
   action: () => T,
@@ -82,8 +83,28 @@ export function createNightMorningDemo(scenario: DemoScenario = 'success') {
   let fingerprint: string | null = null;
   let closingViewed = false;
   let morningOpen = false;
+  const fluff = createMockFluff(
+    {
+      cards: () => cards ?? [],
+      viewed: (id) =>
+        (cards ?? [])
+          .slice(0, position.furthestPosition)
+          .some((c) => c.id === id),
+      isOpen: () => !morningOpen,
+    },
+    scenario === 'slow-fluff' ? 'slow' : 'success',
+  );
   let adopted: Sheep | null = null;
   let reflection: Reflection | null = null;
+  const viewedAt = new Map<string, string>();
+  let viewSequence = 0;
+  const stamp = (card: Card) =>
+    viewedAt.set(
+      card.id,
+      new Date(
+        Date.parse(`${nightDate}T16:12:00Z`) + ++viewSequence * 1000,
+      ).toISOString(),
+    );
   const savedSongs = new Map<string, string>();
   const failed = new Set<string>();
   const baseClosing = createMockNightClosing();
@@ -102,10 +123,11 @@ export function createNightMorningDemo(scenario: DemoScenario = 'success') {
       .map((card, index) => ({
         card,
         can_adopt: card.available && !!card.content,
-        fluff_saved: false,
+        fluff_saved:
+          card.available && !!card.content && card.viewer.fluff_saved,
         position: (index + 1) as number | null,
         sheep_count: count!,
-        last_viewed_at: `${nightDate}T16:12:00Z`,
+        last_viewed_at: viewedAt.get(card.id) ?? `${nightDate}T16:12:00Z`,
       }));
     if (closingViewed && finished?.closing_card)
       items.push({
@@ -115,9 +137,10 @@ export function createNightMorningDemo(scenario: DemoScenario = 'success') {
         fluff_saved: false,
         position: null,
         sheep_count: count!,
-        last_viewed_at: `${nightDate}T16:13:00Z`,
+        last_viewed_at:
+          viewedAt.get(finished.closing_card.id) ?? `${nightDate}T16:13:00Z`,
       });
-    return items;
+    return [...new Map(items.map((item) => [item.card.id, item])).values()];
   };
   const reflectionActions: ReflectionActions = {
     load: (id, signal) =>
@@ -207,16 +230,23 @@ export function createNightMorningDemo(scenario: DemoScenario = 'success') {
     loadMorning: (signal) =>
       delayed(signal, () => {
         if (!morningOpen) conflict('MORNING_NOT_OPEN');
-        const items = candidates();
-        const warm = items.filter(
+        const recent = candidates().sort(
+          (a, b) =>
+            b.last_viewed_at.localeCompare(a.last_viewed_at) ||
+            (a.card.id < b.card.id ? -1 : a.card.id > b.card.id ? 1 : 0),
+        );
+        const items = [...recent].sort(
+          (a, b) => Number(b.fluff_saved) - Number(a.fluff_saved),
+        );
+        const warm = recent.filter(
           (item) => item.can_adopt && item.card.tone === 'warm',
         );
-        const eligible = items.filter((item) => item.can_adopt);
+        const eligible = recent.filter((item) => item.can_adopt);
         return {
           night: { id: nightId, night_date: nightDate },
           counted_sheep: finished!.summary.counted,
           candidate_cards: items,
-          default_card_id: (warm.at(-1) ?? eligible.at(-1))?.card.id ?? null,
+          default_card_id: (warm[0] ?? eligible[0])?.card.id ?? null,
           adoption: adopted,
         };
       }),
@@ -278,6 +308,7 @@ export function createNightMorningDemo(scenario: DemoScenario = 'success') {
       ...card,
       category_id: card.category_id === null ? null : draft!.category_id,
     }));
+    stamp(cards[0]);
     return cards;
   };
   const closing: ClosingActions = {
@@ -295,6 +326,18 @@ export function createNightMorningDemo(scenario: DemoScenario = 'success') {
       if (finished) return delayed(signal, () => finished!);
       const result = await baseClosing.finish(input, key, signal);
       if (signal.aborted) throw new ApiError('aborted');
+      result.summary = {
+        ...result.summary,
+        fluff_count: new Set(
+          cards
+            .slice(0, input.furthestPosition)
+            .filter(
+              (card) =>
+                card.available && card.content && card.viewer.fluff_saved,
+            )
+            .map((card) => card.id),
+        ).size,
+      };
       fingerprint = next;
       finished = result;
       failOnce('finish');
@@ -305,6 +348,7 @@ export function createNightMorningDemo(scenario: DemoScenario = 'success') {
         if (!finished?.closing_card || finished.closing_card.id !== id)
           conflict('INVALID_CARD', 422);
         closingViewed = true;
+        stamp(finished.closing_card);
       }),
     chooseWriting: (choice, _key, signal) =>
       delayed(signal, () => {
@@ -319,6 +363,7 @@ export function createNightMorningDemo(scenario: DemoScenario = 'success') {
   };
   return {
     nightId,
+    fluff,
     yarn,
     textCards,
     songs,
@@ -337,6 +382,9 @@ export function createNightMorningDemo(scenario: DemoScenario = 'success') {
         next.furthestPosition > count
       )
         throw new Error('Invalid demo progress');
+      for (let i = position.furthestPosition; i < next.furthestPosition; i++)
+        if (cards?.[i]) stamp(cards[i]);
+      if (cards?.[next.position - 1]) stamp(cards[next.position - 1]);
       position = {
         position: next.position,
         furthestPosition: Math.max(

@@ -187,11 +187,15 @@ describe('night to morning demo', () => {
       await jest.runAllTimersAsync();
       const morning = await result;
       expect(morning.candidate_cards.map((item) => item.card.id)).toEqual([
-        'preview-card-1',
-        'preview-card-2',
         'preview-card-3',
+        'preview-card-2',
+        'preview-card-1',
       ]);
-      expect(morning.candidate_cards[0].card.viewer.yarn_sent).toBe(true);
+      expect(
+        morning.candidate_cards.find(
+          (item) => item.card.id === 'preview-card-1',
+        )?.card.viewer.yarn_sent,
+      ).toBe(true);
     });
   });
   it('lets an unfinished writer close and defer without submitting the draft', async () => {

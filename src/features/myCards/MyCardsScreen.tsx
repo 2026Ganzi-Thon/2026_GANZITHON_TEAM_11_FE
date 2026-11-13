@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ComponentRef,
+} from 'react';
 import {
   ActivityIndicator,
   BackHandler,
@@ -14,7 +20,13 @@ import { Notice } from '../../ui/Notice';
 import { Button } from '../../ui/Button';
 import { theme } from '../../ui/theme';
 import { useMyCards } from './useMyCards';
-import type { MyCardsActions, MyCardsFilter, Submission } from './types';
+import { CardDeleteDialog } from './CardDeleteDialog';
+import type {
+  MyCardsActions,
+  MyCardDeleteActions,
+  MyCardsFilter,
+  Submission,
+} from './types';
 
 const filters = [
   ['all', '전체'],
@@ -33,13 +45,21 @@ const date = new Intl.DateTimeFormat('en-US', {
 });
 export function MyCardsScreen({
   actions,
+  deletions,
   onBack,
 }: {
   actions: MyCardsActions;
+  deletions?: MyCardDeleteActions;
   onBack: () => void;
 }) {
   const [filter, setFilter] = useState<MyCardsFilter>('all');
+  const [selection, setSelection] = useState<{
+    source: MyCardsActions;
+    deletions: MyCardDeleteActions;
+    item: Submission;
+  } | null>(null);
   const list = useMyCards(actions, filter);
+  const body = useRef<ComponentRef<typeof ScrollView>>(null);
   const closed = useRef(false);
   const { cancel } = list;
   const back = useCallback(() => {
@@ -62,7 +82,7 @@ export function MyCardsScreen({
     <NightScreen
       background={require('../../../assets/images/my-cards/background.svg')}
     >
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView ref={body} contentContainerStyle={styles.content}>
         <View style={styles.headingRow}>
           <Text accessibilityRole="header" style={styles.heading}>
             내 카드
@@ -116,21 +136,56 @@ export function MyCardsScreen({
               <View style={styles.panel}>
                 <Notice
                   title={
-                    filter === 'all'
-                      ? '아직 쓴 카드가 없어요'
-                      : filter === 'pending'
-                        ? '검수 중인 카드가 없어요'
-                        : '반려된 카드가 없어요'
+                    list.loading
+                      ? '카드 목록을 다시 확인하고 있어요'
+                      : list.error === 'refresh'
+                        ? '남은 카드를 확인해 주세요'
+                        : list.hasMore
+                          ? '이어서 불러올 카드가 있어요'
+                          : filter === 'all'
+                            ? '아직 쓴 카드가 없어요'
+                            : filter === 'pending'
+                              ? '검수 중인 카드가 없어요'
+                              : '반려된 카드가 없어요'
                   }
-                  description="작성한 카드와 검수 상태를 여기에서 확인할 수 있어요."
+                  description={
+                    list.hasMore
+                      ? '더 불러오기를 눌러 다음 카드를 확인해 주세요.'
+                      : '작성한 카드와 검수 상태를 여기에서 확인할 수 있어요.'
+                  }
                 />
               </View>
             ) : (
               list.items.map((item) => (
-                <SubmissionRow key={item.id} item={item} />
+                <SubmissionRow
+                  key={item.id}
+                  item={item}
+                  onDelete={
+                    deletions
+                      ? () => setSelection({ source: actions, deletions, item })
+                      : undefined
+                  }
+                />
               ))
             )}
-            {list.error === 'more' ? (
+            {list.error === 'refresh' ? (
+              <View
+                style={styles.panel}
+                onLayout={(event) =>
+                  body.current?.scrollTo({
+                    y: event.nativeEvent.layout.y,
+                    animated: false,
+                  })
+                }
+              >
+                <Notice
+                  title="목록을 다시 확인하지 못했어요"
+                  description="확인된 삭제는 유지했어요. 남은 카드를 다시 불러와 주세요."
+                  error
+                />
+                <Button label="목록 다시 확인" onPress={list.retry} />
+              </View>
+            ) : list.error === 'more' ? (
               <View style={styles.panel}>
                 <Notice
                   title="추가 카드를 불러오지 못했어요"
@@ -180,12 +235,36 @@ export function MyCardsScreen({
           <Text style={styles.caption}>설정 · 준비 중</Text>
         </Pressable>
       </View>
+      {selection &&
+        selection.source === actions &&
+        selection.deletions === deletions && (
+          <CardDeleteDialog
+            key={selection.item.id}
+            item={selection.item}
+            actions={selection.deletions}
+            onCancel={() => setSelection(null)}
+            onDeleted={() => {
+              list.confirmDeleted(selection.item.id);
+              setSelection(null);
+            }}
+          />
+        )}
     </NightScreen>
   );
 }
-function SubmissionRow({ item }: { item: Submission }) {
+function SubmissionRow({
+  item,
+  onDelete,
+}: {
+  item: Submission;
+  onDelete?: () => void;
+}) {
   const badge = badges[item.moderation_status];
   const { fontScale } = useWindowDimensions();
+  const title =
+    item.kind === 'text'
+      ? item.content.text
+      : `${item.content.track.title} · ${item.content.track.artist}`;
   return (
     <View style={styles.panel}>
       <View style={styles.headingRow}>
@@ -208,9 +287,7 @@ function SubmissionRow({ item }: { item: Submission }) {
         style={styles.summary}
         numberOfLines={fontScale > 1.3 ? undefined : 2}
       >
-        {item.kind === 'text'
-          ? item.content.text
-          : `${item.content.track.title} · ${item.content.track.artist}`}
+        {title}
       </Text>
       <View style={styles.divider} />
       <Text style={styles.caption}>
@@ -223,6 +300,16 @@ function SubmissionRow({ item }: { item: Submission }) {
             {item.rejection_reason || '반려 사유를 확인하고 있어요.'}
           </Text>
         </View>
+      )}
+      {onDelete && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`카드 삭제: ${title}`}
+          onPress={onDelete}
+          style={styles.delete}
+        >
+          <Text style={[styles.caption, styles.deleteLabel]}>삭제</Text>
+        </Pressable>
       )}
     </View>
   );
@@ -332,4 +419,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#4A55B8',
   },
   disabled: { opacity: 0.6 },
+  delete: {
+    minHeight: 48,
+    minWidth: 48,
+    alignSelf: 'flex-end',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+  },
+  deleteLabel: { textDecorationLine: 'underline' },
 });

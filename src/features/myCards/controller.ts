@@ -2,20 +2,19 @@ import { ApiError } from '../../api/errors';
 import type { MyCardsActions, MyCardsFilter, Submission } from './types';
 
 interface Snapshot {
+  filter: MyCardsFilter | null;
   items: Submission[];
   nextCursor: string | null;
   loaded: boolean;
   loading: boolean;
-  error: 'initial' | 'more' | null;
+  error: 'initial' | 'more' | 'refresh' | null;
 }
-/** Owns a single filtered, paginated list independently of React renders. */
-export function createMyCardsController(
-  actions: MyCardsActions,
-  filter: MyCardsFilter,
-) {
+/** Owns filtered pages and confirmed deletions for one data source. */
+export function createMyCardsController(actions: MyCardsActions) {
   let active = false;
   let request: AbortController | null = null;
   let data: Snapshot = {
+    filter: null,
     items: [],
     nextCursor: null,
     loaded: false,
@@ -23,13 +22,15 @@ export function createMyCardsController(
     error: null,
   };
   const cursors = new Set<string | null>();
+  const deleted = new Set<string>();
   const listeners = new Set<() => void>();
   const publish = (next: Snapshot) => {
     data = next;
     listeners.forEach((listener) => listener());
   };
   async function load(cursor: string | null) {
-    if (!active || request) return;
+    if (!active || request || data.filter === null) return;
+    const filter = data.filter;
     const pending = new AbortController();
     request = pending;
     publish({ ...data, loading: true, error: null });
@@ -55,9 +56,10 @@ export function createMyCardsController(
             (item) => [item.id, item],
           ),
         ).values(),
-      ];
+      ].filter((item) => !deleted.has(item.id));
       cursors.add(cursor);
       publish({
+        filter,
         items,
         nextCursor: page.next_cursor,
         loaded: true,
@@ -69,7 +71,7 @@ export function createMyCardsController(
         publish({
           ...data,
           loading: false,
-          error: cursor === null ? 'initial' : 'more',
+          error: cursor !== null ? 'more' : data.loaded ? 'refresh' : 'initial',
         });
     } finally {
       if (request === pending) request = null;
@@ -85,6 +87,36 @@ export function createMyCardsController(
     },
     start() {
       active = true;
+      if (data.filter !== null && data.loading) void load(null);
+    },
+    selectFilter(filter: MyCardsFilter) {
+      if (!active || data.filter === filter) return;
+      request?.abort();
+      request = null;
+      cursors.clear();
+      publish({
+        filter,
+        items: [],
+        nextCursor: null,
+        loaded: false,
+        loading: true,
+        error: null,
+      });
+      void load(null);
+    },
+    confirmDeleted(id: string) {
+      if (!active) return;
+      deleted.add(id);
+      request?.abort();
+      request = null;
+      cursors.clear();
+      publish({
+        ...data,
+        items: data.items.filter((item) => item.id !== id),
+        nextCursor: null,
+        loading: true,
+        error: null,
+      });
       void load(null);
     },
     stop() {

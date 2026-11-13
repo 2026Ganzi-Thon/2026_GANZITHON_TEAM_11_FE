@@ -3,10 +3,7 @@ import { createMyCardsController } from './controller';
 import type { MyCardsActions, MyCardsFilter } from './types';
 
 export function useMyCards(actions: MyCardsActions, filter: MyCardsFilter) {
-  const controller = useMemo(
-    () => createMyCardsController(actions, filter),
-    [actions, filter],
-  );
+  const controller = useMemo(() => createMyCardsController(actions), [actions]);
   const data = useSyncExternalStore(
     controller.subscribe,
     controller.getSnapshot,
@@ -16,9 +13,22 @@ export function useMyCards(actions: MyCardsActions, filter: MyCardsFilter) {
     controller.start();
     return controller.stop;
   }, [controller]);
+  useEffect(() => controller.selectFilter(filter), [controller, filter]);
+  const current =
+    data.filter === filter
+      ? data
+      : {
+          ...data,
+          items: [],
+          loaded: false,
+          loading: true,
+          error: null,
+          nextCursor: null,
+        };
   return {
-    ...data,
-    hasMore: data.loaded && data.nextCursor !== null,
+    ...current,
+    hasMore: current.loaded && current.nextCursor !== null,
+    confirmDeleted: controller.confirmDeleted,
     loadMore: controller.loadMore,
     retry: controller.retry,
     cancel: controller.stop,

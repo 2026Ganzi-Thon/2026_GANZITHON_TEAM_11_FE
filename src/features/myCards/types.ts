@@ -34,3 +34,8 @@ export interface MyCardsQuery {
 export interface MyCardsActions {
   load(query: MyCardsQuery, signal: AbortSignal): Promise<SubmissionPage>;
 }
+
+/** DELETE /me/cards/{id}: confirmed success has no response body. */
+export interface MyCardDeleteActions {
+  remove(cardId: string, signal: AbortSignal): Promise<void>;
+}

@@ -10,7 +10,7 @@ import {
 } from './songTypes';
 export function useSongCardWriting(
   actions: SongCardActions,
-  sourceNightId: string,
+  sourceNightId: string | undefined,
   onBack: () => void,
   onDone: () => void,
 ) {
@@ -56,7 +56,9 @@ export function useSongCardWriting(
     const body: SongCardRequest = {
       kind: 'song',
       category_id: draft.category_id!,
-      source_night_id: sourceNightId,
+      ...(sourceNightId === undefined
+        ? {}
+        : { source_night_id: sourceNightId }),
       content: {
         recommendation: draft.recommendation.trim(),
         ...(selection.mode === 'search'

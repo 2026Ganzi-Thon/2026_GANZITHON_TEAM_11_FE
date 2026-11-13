@@ -26,6 +26,15 @@ export interface CardWritingActions {
   readChoice(): CardChoice | null;
   choose(value: CardChoice): void;
 }
+type CardWritingProps = {
+  actions: CardWritingActions;
+  onBack: () => void;
+  onDone: () => void;
+  modal?: boolean;
+} & (
+  | { entryContext: 'my_cards'; sourceNightId?: never }
+  | { entryContext?: 'night_offer' | 'morning_banner'; sourceNightId: string }
+);
 export function CardWritingScreen(
   props: Parameters<typeof CardWritingSession>[0],
 ) {
@@ -53,17 +62,14 @@ function CardWritingSession({
   onDone,
   modal = false,
   entryContext = 'night_offer',
-}: {
-  actions: CardWritingActions;
-  sourceNightId: string;
-  onBack: () => void;
-  onDone: () => void;
-  modal?: boolean;
-  entryContext?: 'night_offer' | 'morning_banner';
-}) {
-  const [completionLabel] = useState(() =>
-    entryContext === 'morning_banner' ? '아침 홈으로' : '이제 잘게요',
-  );
+}: CardWritingProps) {
+  const [context] = useState(entryContext);
+  const completionLabel =
+    context === 'my_cards'
+      ? '내 카드로'
+      : context === 'morning_banner'
+        ? '아침 홈으로'
+        : '이제 잘게요';
   const [choice, setChoice] = useState(() => actions.readChoice());
   const [category, setCategory] = useState<TextCardCategory | null>(
     choice?.category_id ?? null,
@@ -85,6 +91,8 @@ function CardWritingSession({
     onDone,
     modal,
     completionLabel,
+    conflictTitle:
+      context === 'my_cards' ? '작성 상태를 확인해 주세요' : undefined,
     onBack: () => setPage('choose'),
   };
   if (page === 'text')

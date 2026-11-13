@@ -36,14 +36,16 @@ export function TextCardScreen({
   modal = false,
   externalCategory = false,
   completionLabel = '이제 잘게요',
+  conflictTitle = '작성할 수 있는 밤을 확인해 주세요',
 }: {
   actions: TextCardActions;
-  sourceNightId: string;
+  sourceNightId?: string;
   onBack: () => void;
   onDone: () => void;
   modal?: boolean;
   externalCategory?: boolean;
   completionLabel?: string;
+  conflictTitle?: string;
 }) {
   const flow = useTextCardWriting(
     actions,
@@ -239,7 +241,7 @@ export function TextCardScreen({
                 <View style={styles.panel} accessibilityRole="alert">
                   <Text style={styles.section}>
                     {conflict
-                      ? '작성할 수 있는 밤을 확인해 주세요'
+                      ? conflictTitle
                       : error.code === 'SAFETY_CHECK_UNAVAILABLE'
                         ? '지금은 검수를 요청할 수 없어요'
                         : '접수를 확인하지 못했어요'}

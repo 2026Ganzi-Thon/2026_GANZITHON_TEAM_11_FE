@@ -10,7 +10,7 @@ import {
 type Step = 'category' | 'write' | 'support' | 'complete';
 export function useTextCardWriting(
   actions: TextCardActions,
-  sourceNightId: string,
+  sourceNightId: string | undefined,
   onBack: () => void,
   onDone: () => void,
   externalCategory = false,
@@ -75,7 +75,9 @@ export function useTextCardWriting(
       kind: 'text',
       category_id: draft.category_id!,
       content: { text: draft.text.trim() },
-      source_night_id: sourceNightId,
+      ...(sourceNightId === undefined
+        ? {}
+        : { source_night_id: sourceNightId }),
     };
     try {
       const receipt = await actions.submit(

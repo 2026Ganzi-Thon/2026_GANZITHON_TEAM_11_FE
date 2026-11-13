@@ -63,10 +63,12 @@ export function createMockSongCards(
     sourceNightId = 'preview-night',
     canSubmit = () => true,
     onSubmitted = () => {},
+    namespace = 'preview',
   }: {
-    sourceNightId?: string;
+    sourceNightId?: string | null;
     canSubmit?: () => boolean;
     onSubmitted?: (receipt: SongCardSubmission) => void;
+    namespace?: string;
   } = {},
 ): SongCardActions {
   let version = 0;
@@ -75,7 +77,7 @@ export function createMockSongCards(
     query: '',
     selection: null,
     recommendation: '',
-    operationKey: 'preview-song-0',
+    operationKey: `${namespace}-song-0`,
   };
   const catalog =
     scenario === 'long'
@@ -120,7 +122,7 @@ export function createMockSongCards(
     readDraft: () => clone(draft),
     writeDraft(value) {
       if (fingerprint(value) !== fingerprint(draft)) version++;
-      draft = clone({ ...value, operationKey: `preview-song-${version}` });
+      draft = clone({ ...value, operationKey: `${namespace}-song-${version}` });
       return clone(draft);
     },
     search: (query, signal) =>
@@ -160,7 +162,7 @@ export function createMockSongCards(
           }
           if (
             accepted.size > 0 ||
-            body.source_night_id !== sourceNightId ||
+            body.source_night_id !== (sourceNightId ?? undefined) ||
             !canSubmit() ||
             scenario === 'entry-required'
           )
@@ -239,7 +241,7 @@ export function createMockSongCards(
               });
           }
           const receipt: SongCardSubmission = {
-            id: `preview-song-card-${accepted.size + 1}`,
+            id: `${namespace}-song-card-${accepted.size + 1}`,
             kind: 'song',
             category_id: body.category_id,
             content: {

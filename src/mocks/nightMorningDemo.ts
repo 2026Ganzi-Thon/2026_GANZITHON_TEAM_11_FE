@@ -1,3 +1,5 @@
+import { createMockSongCards } from './songCards';
+import { createMockCardWriting } from './cardWriting';
 import { createMockYarn } from './yarn';
 import { createMockFluff } from './fluff';
 import { createMockTextCards } from './textCards';
@@ -80,6 +82,15 @@ export function createNightMorningDemo(scenario: DemoScenario = 'success') {
         finished = { ...finished, writing_offer: { state: 'fulfilled' } };
     },
   });
+  const songCards = createMockSongCards('success', {
+    sourceNightId: nightId,
+    canSubmit: () => finished?.writing_offer.state === 'writing',
+    onSubmitted: () => {
+      if (finished)
+        finished = { ...finished, writing_offer: { state: 'fulfilled' } };
+    },
+  });
+  const cardWriting = createMockCardWriting(textCards, songCards);
   let fingerprint: string | null = null;
   let closingViewed = false;
   let morningOpen = false;
@@ -366,6 +377,8 @@ export function createNightMorningDemo(scenario: DemoScenario = 'success') {
     fluff,
     yarn,
     textCards,
+    songCards,
+    cardWriting,
     songs,
     entry,
     loadFeed,

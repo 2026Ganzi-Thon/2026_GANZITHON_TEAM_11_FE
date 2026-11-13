@@ -344,3 +344,50 @@ it('does not overwrite a committed pending card when the user edits after a lost
     moderation_status: 'pending',
   });
 });
+it.each([
+  ['content.text', '글 내용을 다시 확인해 주세요.', '글 내용'],
+  ['category_id', '고민 분류를 다시 골라 주세요.', '고민 분류'],
+] as const)(
+  'shows %s errors beside the submit action, preserves edits and clears the summary after correction',
+  async (field, message, label) => {
+    const actions = createMockMyCards();
+    jest
+      .spyOn(actions, 'resubmit')
+      .mockRejectedValueOnce(
+        new ApiError('http', { status: 422, fields: { [field]: message } }),
+      );
+    const view = await render(
+      <ResubmitTextCardScreen
+        item={original}
+        actions={actions}
+        onClose={() => {}}
+        onRefresh={() => {}}
+      />,
+    );
+    await edit('고친 글은 오류가 나도 유지해요.');
+    await press('다시 검수 요청');
+    const summary = screen.getByTestId('resubmit-error-summary');
+    expect(
+      within(summary).getByText('수정할 내용을 확인해 주세요'),
+    ).toBeTruthy();
+    expect(within(summary).getByText(`${label} · ${message}`)).toBeTruthy();
+    const button = screen.getByRole('button', { name: '다시 검수 요청' });
+    expect(summary.parent).toBe(button.parent);
+    expect(summary.parent?.parent?.type).toMatch(/ScrollView/);
+    const siblings = summary.parent!.children;
+    expect(siblings.indexOf(button)).toBe(siblings.indexOf(summary) + 1);
+    expect(screen.getByLabelText('짧은 글 수정')).toHaveDisplayValue(
+      '고친 글은 오류가 나도 유지해요.',
+    );
+    expect(actions.readDraft(original).text).toBe(
+      '고친 글은 오류가 나도 유지해요.',
+    );
+    if (field === 'category_id') {
+      await press('분류 변경');
+      await fireEvent.press(screen.getByRole('radio', { name: '학업' }));
+      expect(actions.readDraft(original).category_id).toBe('study');
+    } else await edit('다시 고친 글');
+    expect(screen.queryByTestId('resubmit-error-summary')).toBeNull();
+    await view.unmount();
+  },
+);

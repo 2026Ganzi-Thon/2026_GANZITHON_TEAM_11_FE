@@ -31,6 +31,7 @@ export type MyCardsScenario =
   | 'resubmit-approved'
   | 'resubmit-deleted'
   | 'resubmit-field'
+  | 'resubmit-category-field'
   | 'resubmit-safety'
   | 'resubmit-support'
   | 'resubmit-refresh-retry';
@@ -281,6 +282,11 @@ export function createMockMyCards(
             throw new ApiError('http', {
               status: 422,
               fields: { 'content.text': '글 내용을 다시 확인해 주세요.' },
+            });
+          if (scenario === 'resubmit-category-field')
+            throw new ApiError('http', {
+              status: 422,
+              fields: { category_id: '고민 분류를 다시 골라 주세요.' },
             });
           if (scenario === 'resubmit-safety')
             throw new ApiError('http', {

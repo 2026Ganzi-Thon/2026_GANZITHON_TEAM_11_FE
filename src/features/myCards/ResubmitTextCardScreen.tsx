@@ -164,11 +164,6 @@ export function ResubmitTextCardScreen({
                   >
                     {flow.length} / {PREVIEW_TEXT_CARD_LIMIT}
                   </Text>
-                  {!!textError && (
-                    <Text style={styles.paperError} accessibilityRole="alert">
-                      {textError}
-                    </Text>
-                  )}
                 </View>
                 <View style={styles.panel}>
                   <View style={styles.paperHeader}>
@@ -227,11 +222,6 @@ export function ResubmitTextCardScreen({
                         ))}
                     </View>
                   )}
-                  {!!categoryError && (
-                    <Text style={styles.error} accessibilityRole="alert">
-                      {categoryError}
-                    </Text>
-                  )}
                 </View>
                 <View style={[styles.panel, styles.info]}>
                   <Image
@@ -244,10 +234,11 @@ export function ResubmitTextCardScreen({
                     고친 뒤 다시 검수해요. 수정은 반려된 카드만 가능해요.
                   </Text>
                 </View>
-                {error && !textError && !categoryError && (
+                {error && (
                   <View
                     style={styles.panel}
                     accessibilityRole="alert"
+                    testID="resubmit-error-summary"
                     onLayout={(e) =>
                       scroll.current?.scrollTo({
                         y: e.nativeEvent.layout.y,
@@ -258,10 +249,20 @@ export function ResubmitTextCardScreen({
                     <Text style={styles.section}>
                       {flow.blocked
                         ? '카드의 최신 상태를 확인해 주세요'
-                        : error.code === 'SAFETY_CHECK_UNAVAILABLE'
-                          ? '지금은 검수를 요청할 수 없어요'
-                          : '접수를 확인하지 못했어요'}
+                        : textError || categoryError
+                          ? '수정할 내용을 확인해 주세요'
+                          : error.code === 'SAFETY_CHECK_UNAVAILABLE'
+                            ? '지금은 검수를 요청할 수 없어요'
+                            : '접수를 확인하지 못했어요'}
                     </Text>
+                    {!!textError && (
+                      <Text style={styles.error}>글 내용 · {textError}</Text>
+                    )}
+                    {!!categoryError && (
+                      <Text style={styles.error}>
+                        고민 분류 · {categoryError}
+                      </Text>
+                    )}
                     <Text style={styles.body}>
                       {flow.blocked
                         ? '카드가 삭제되었거나 상태가 바뀌었을 수 있어요. 최신 목록에서 확인해 주세요.'

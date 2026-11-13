@@ -24,6 +24,7 @@ const scenarios = [
   ['resubmit-approved', '편집 중 게시 상태로 변경'],
   ['resubmit-deleted', '편집 중 카드 삭제'],
   ['resubmit-field', '재제출 입력 오류'],
+  ['resubmit-category-field', '재제출 분류 오류'],
   ['resubmit-safety', '재제출 검수 일시 불가'],
   ['resubmit-support', '재제출 도움 안내·초안 복귀'],
   ['resubmit-refresh-retry', '재제출 후 목록 조회 실패'],

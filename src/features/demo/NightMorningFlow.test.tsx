@@ -41,6 +41,41 @@ async function rest() {
   await tick();
 }
 describe('night to morning demo', () => {
+  it('connects a deferred night offer to morning writing and returns to the same home after acceptance', async () => {
+    const demo = createNightMorningDemo();
+    await render(<NightMorningFlow demo={demo} onExit={() => {}} />);
+    await start();
+    await press('다음 양');
+    await press('다음 양');
+    await press('마무리하기');
+    await tick();
+    await rest();
+    expect(
+      screen.queryByRole('button', { name: '미뤄 둔 카드 쓰기' }),
+    ).toBeNull();
+    await press('이 양 데려오기');
+    await tick();
+    await press('미뤄 둔 카드 쓰기');
+    await fireEvent.press(screen.getByRole('radio', { name: '학업' }));
+    await press('다음');
+    await fireEvent.changeText(
+      screen.getByLabelText('짧은 글'),
+      '오늘도 내 속도로 걸어가요.',
+    );
+    await press('검수 요청하기');
+    await tick();
+    await press('아침 홈으로');
+    await tick();
+    expect(screen.getByText('나의 양떼')).toBeTruthy();
+    expect(screen.queryByText('밤 마무리를 확인했어요')).toBeNull();
+    await press('미리보기 나가기');
+    await press('아침 다시 보기');
+    await tick();
+    expect(screen.getByText('나의 양떼')).toBeTruthy();
+    expect(
+      screen.queryByRole('button', { name: '미뤄 둔 카드 쓰기' }),
+    ).toBeNull();
+  });
   it('finishes three sheep, adopts the displayed card, writes reflection and shows the same worry and answer in detail', async () => {
     const demo = createNightMorningDemo();
     await render(<NightMorningFlow demo={demo} onExit={() => {}} />);

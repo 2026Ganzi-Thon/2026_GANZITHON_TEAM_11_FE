@@ -59,6 +59,39 @@ afterEach(() => {
   jest.restoreAllMocks();
   jest.useRealTimers();
 });
+it.each([
+  ['text', 'night_offer', 'morning_banner', '이제 잘게요'],
+  ['song', 'morning_banner', 'night_offer', '아침 홈으로'],
+] as const)(
+  'keeps the original %s completion route when the surrounding time context changes',
+  async (kind, initial, changed, label) => {
+    jest.useFakeTimers();
+    const actions = source('same-night', kind),
+      onDone = jest.fn();
+    const view = await render(
+      <CardWritingScreen
+        actions={actions}
+        sourceNightId="same-night"
+        entryContext={initial}
+        onBack={() => {}}
+        onDone={onDone}
+      />,
+    );
+    await press('검수 요청하기');
+    await view.rerender(
+      <CardWritingScreen
+        actions={actions}
+        sourceNightId="same-night"
+        entryContext={changed}
+        onBack={() => {}}
+        onDone={onDone}
+      />,
+    );
+    await tick();
+    await press(label);
+    expect(onDone).toHaveBeenCalledTimes(1);
+  },
+);
 it.each(['actions-and-night', 'actions-only', 'night-only'] as const)(
   'reads the new source draft/key before submitting after %s replacement',
   async (replacement) => {

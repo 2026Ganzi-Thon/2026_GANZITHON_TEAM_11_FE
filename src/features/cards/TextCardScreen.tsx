@@ -34,14 +34,22 @@ export function TextCardScreen({
   onBack,
   onDone,
   modal = false,
+  externalCategory = false,
 }: {
   actions: TextCardActions;
   sourceNightId: string;
   onBack: () => void;
   onDone: () => void;
   modal?: boolean;
+  externalCategory?: boolean;
 }) {
-  const flow = useTextCardWriting(actions, sourceNightId, onBack, onDone);
+  const flow = useTextCardWriting(
+    actions,
+    sourceNightId,
+    onBack,
+    onDone,
+    externalCategory,
+  );
   const { draft, step, error, pending, back } = flow;
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {

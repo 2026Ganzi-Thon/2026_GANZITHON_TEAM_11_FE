@@ -168,7 +168,7 @@ describe('night to morning demo', () => {
       '천천히 쉬어 가도 괜찮아요.',
     );
     await press('이전');
-    await fireEvent(screen.getByTestId('text-card-modal'), 'requestClose');
+    await fireEvent(screen.getByTestId('card-writing-modal'), 'requestClose');
     expect(screen.getByText('초안을 잠깐 접어뒀어요')).toBeTruthy();
     await press('카드 이어 쓰기');
     expect(screen.getByDisplayValue('천천히 쉬어 가도 괜찮아요.')).toBeTruthy();
@@ -217,4 +217,66 @@ describe('night to morning demo', () => {
     expect(screen.getByText('밤 마무리를 확인했어요')).toBeTruthy();
     expect(submit).not.toHaveBeenCalled();
   });
+});
+
+it('offers a song card after the night writing offer', async () => {
+  const demo = createNightMorningDemo();
+  await render(<NightMorningFlow demo={demo} onExit={() => {}} />);
+  await start();
+  await press('다음 양');
+  await press('다음 양');
+  await press('마무리하기');
+  await tick();
+  await press('다음');
+  await press('지금 쓸래요');
+  await tick();
+  expect(screen.getByRole('radio', { name: '노래 추천' })).toBeTruthy();
+});
+it('submits a song using the night offer and leaves the pending recommendation out of morning candidates', async () => {
+  const demo = createNightMorningDemo(),
+    submit = jest.spyOn(demo.songCards, 'submit');
+  await render(<NightMorningFlow demo={demo} onExit={() => {}} />);
+  await start();
+  await press('다음 양');
+  await press('다음 양');
+  await press('마무리하기');
+  await tick();
+  await press('다음');
+  await press('지금 쓸래요');
+  await tick();
+  await fireEvent.press(screen.getByRole('radio', { name: '학업' }));
+  await fireEvent.press(screen.getByRole('radio', { name: '노래 추천' }));
+  await press('다음');
+  await fireEvent.changeText(
+    screen.getByLabelText('곡 이름 또는 가수 검색'),
+    '밤편지',
+  );
+  await tick();
+  await fireEvent.press(screen.getByRole('radio', { name: '밤편지 · 아이유' }));
+  await fireEvent.changeText(
+    screen.getByLabelText('추천 한 줄'),
+    '밤에 기대기 좋은 노래',
+  );
+  await press('이전');
+  await fireEvent(screen.getByTestId('card-writing-modal'), 'requestClose');
+  await press('카드 이어 쓰기');
+  expect(screen.getByDisplayValue('밤에 기대기 좋은 노래')).toBeTruthy();
+  await press('검수 요청하기');
+  await tick();
+  expect(submit.mock.calls[0][0].source_night_id).toBe(demo.nightId);
+  expect(screen.getByText('카드를 맡겼어요')).toBeTruthy();
+  await press('이제 잘게요');
+  await press('다음 아침으로 이동');
+  await tick();
+  await act(async () => {
+    const result = demo.morning.loadMorning(new AbortController().signal);
+    await jest.runAllTimersAsync();
+    const morning = await result;
+    expect(morning.candidate_cards.map((c) => c.card.id)).toEqual([
+      'preview-card-3',
+      'preview-card-2',
+      'preview-card-1',
+    ]);
+  });
+  expect(screen.queryByText('밤에 기대기 좋은 노래')).toBeNull();
 });

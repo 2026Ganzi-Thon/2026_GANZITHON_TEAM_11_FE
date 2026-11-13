@@ -13,6 +13,7 @@ export function useTextCardWriting(
   sourceNightId: string,
   onBack: () => void,
   onDone: () => void,
+  externalCategory = false,
 ) {
   const [draft, setDraft] = useState(() => actions.readDraft());
   const [step, setStep] = useState<Step>(() =>
@@ -47,11 +48,15 @@ export function useTextCardWriting(
       return;
     }
     if (step === 'write') {
+      if (externalCategory) {
+        onBack();
+        return;
+      }
       setStep('category');
       return;
     }
     onBack();
-  }, [cancel, step, onBack, onDone]);
+  }, [cancel, step, onBack, onDone, externalCategory]);
   function update(value: Partial<Pick<TextCardDraft, 'category_id' | 'text'>>) {
     if (active.current) return;
     setDraft(actions.writeDraft({ ...draft, ...value }));

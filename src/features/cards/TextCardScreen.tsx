@@ -35,6 +35,7 @@ export function TextCardScreen({
   onDone,
   modal = false,
   externalCategory = false,
+  completionLabel = '이제 잘게요',
 }: {
   actions: TextCardActions;
   sourceNightId: string;
@@ -42,6 +43,7 @@ export function TextCardScreen({
   onDone: () => void;
   modal?: boolean;
   externalCategory?: boolean;
+  completionLabel?: string;
 }) {
   const flow = useTextCardWriting(
     actions,
@@ -105,7 +107,7 @@ export function TextCardScreen({
                   전송되지 않았어요.
                 </Text>
               </View>
-              <Button label="이제 잘게요" onPress={onDone} />
+              <Button label={completionLabel} onPress={onDone} />
             </>
           ) : step === 'support' ? (
             <>

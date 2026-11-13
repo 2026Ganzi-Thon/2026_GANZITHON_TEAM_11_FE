@@ -55,12 +55,14 @@ function SongCardSession({
   onBack,
   onDone,
   modal = false,
+  completionLabel = '이제 잘게요',
 }: {
   actions: SongCardActions;
   sourceNightId: string;
   onBack: () => void;
   onDone: () => void;
   modal?: boolean;
+  completionLabel?: string;
 }) {
   const flow = useSongCardWriting(actions, sourceNightId, onBack, onDone),
     { draft, pending, step, error } = flow;
@@ -133,7 +135,7 @@ function SongCardSession({
                 </Text>
               </View>
               <View style={styles.spacer} />
-              <Button label="이제 잘게요" onPress={flow.back} />
+              <Button label={completionLabel} onPress={flow.back} />
             </>
           ) : step === 'support' ? (
             <>

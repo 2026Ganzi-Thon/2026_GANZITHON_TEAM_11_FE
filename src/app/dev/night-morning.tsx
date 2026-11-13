@@ -34,6 +34,18 @@ export default function NightMorningPreview() {
           onPress={() => setScenario('lost-responses')}
         />
         <Button
+          label="아침 작성 접수 실패·재시도"
+          onPress={() => setScenario('writing-retry')}
+        />
+        <Button
+          label="아침 작성 응답 유실"
+          onPress={() => setScenario('writing-lost-response')}
+        />
+        <Button
+          label="아침 작성 후 상태 조회 실패"
+          onPress={() => setScenario('writing-refresh-retry')}
+        />
+        <Button
           label="시작 화면으로"
           onPress={() =>
             router.canGoBack() ? router.back() : router.replace('/')

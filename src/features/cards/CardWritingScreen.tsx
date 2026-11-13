@@ -52,13 +52,18 @@ function CardWritingSession({
   onBack,
   onDone,
   modal = false,
+  entryContext = 'night_offer',
 }: {
   actions: CardWritingActions;
   sourceNightId: string;
   onBack: () => void;
   onDone: () => void;
   modal?: boolean;
+  entryContext?: 'night_offer' | 'morning_banner';
 }) {
+  const [completionLabel] = useState(() =>
+    entryContext === 'morning_banner' ? '아침 홈으로' : '이제 잘게요',
+  );
   const [choice, setChoice] = useState(() => actions.readChoice());
   const [category, setCategory] = useState<TextCardCategory | null>(
     choice?.category_id ?? null,
@@ -79,6 +84,7 @@ function CardWritingSession({
     sourceNightId,
     onDone,
     modal,
+    completionLabel,
     onBack: () => setPage('choose'),
   };
   if (page === 'text')

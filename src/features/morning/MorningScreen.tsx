@@ -18,6 +18,7 @@ import { canAdopt, useMorningFlow } from './useMorningFlow';
 import type { MorningActions, MorningCandidate } from './types';
 import { SheepDetailScreen } from '../flock/SheepDetailScreen';
 import type { SheepDetailLoad } from '../flock/types';
+import { DeferredWritingSection } from './DeferredWritingSection';
 
 function Action({
   label,
@@ -77,7 +78,13 @@ function CandidateDetail({ item }: { item: MorningCandidate }) {
     </View>
   );
 }
-export function MorningScreen({
+export function MorningScreen(props: Parameters<typeof MorningSession>[0]) {
+  const [source, setSource] = useState({ actions: props.actions, version: 0 });
+  if (source.actions !== props.actions)
+    setSource({ actions: props.actions, version: source.version + 1 });
+  return <MorningSession key={source.version} {...props} />;
+}
+function MorningSession({
   actions,
   onExit,
   loadDetail,
@@ -95,7 +102,7 @@ export function MorningScreen({
     !!morning?.night && morning.candidate_cards.some(canAdopt);
   return (
     <DayScreen home={flow.page === 'home'}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView key={flow.page} contentContainerStyle={styles.content}>
         {flow.page === 'home' ? (
           <>
             <Text
@@ -105,6 +112,16 @@ export function MorningScreen({
               나의 양떼
             </Text>
             <Text style={styles.text}>밤을 함께 보낸 양들이 쉬고 있어요.</Text>
+            {morning?.night &&
+              morning.writing_offer?.state === 'deferred' &&
+              actions.writing && (
+                <DeferredWritingSection
+                  key={morning.night.id}
+                  nightId={morning.night.id}
+                  writing={actions.writing}
+                  loadMorning={actions.loadMorning}
+                />
+              )}
             {flow.newId && (
               <Text
                 accessibilityLiveRegion="polite"

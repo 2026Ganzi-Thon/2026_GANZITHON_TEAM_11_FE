@@ -1,6 +1,7 @@
 import { afterEach, expect, it, jest } from '@jest/globals';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { AccessibilityInfo } from 'react-native';
+import { ApiError } from '../../api/errors';
 import { FeedScreen } from '../night/feed/FeedScreen';
 import { NightMorningFlow } from '../demo/NightMorningFlow';
 import { createFluffPreview } from '../../mocks/fluff';
@@ -126,6 +127,49 @@ it('hides both reactions and cached content when fluff reports a deleted card', 
   ).toBeNull();
   expect(screen.getByText('지금은 볼 수 없는 카드예요')).toBeTruthy();
 });
+it.each(['yarn', 'fluff'] as const)(
+  'removes a failed %s retry when the other reaction reports deletion without further requests',
+  async (failed) => {
+    const demo = createFluffPreview();
+    const yarnSet = jest.spyOn(demo.yarn, 'set');
+    const fluffSet = jest.spyOn(demo.fluff, 'set');
+    const first = failed === 'yarn' ? yarnSet : fluffSet;
+    const second = failed === 'yarn' ? fluffSet : yarnSet;
+    first.mockRejectedValueOnce(new ApiError('network'));
+    second.mockRejectedValueOnce(
+      new ApiError('http', { status: 409, code: 'CARD_UNAVAILABLE' }),
+    );
+    await open(demo);
+    await press(failed === 'yarn' ? '털실 보내기' : '솜털 붙이기');
+    await tick();
+    expect(
+      screen.getByRole('button', {
+        name: failed === 'yarn' ? '털실 다시 시도' : '솜털 다시 시도',
+      }),
+    ).toBeEnabled();
+    await press(failed === 'yarn' ? '솜털 붙이기' : '털실 보내기');
+    await tick();
+    expect(screen.getByText('지금은 볼 수 없는 카드예요')).toBeTruthy();
+    expect(screen.queryByText('털실 변경을 확인하지 못했어요')).toBeNull();
+    expect(screen.queryByText('솜털 변경을 확인하지 못했어요')).toBeNull();
+    expect(
+      screen.queryByRole('button', {
+        name: /털실 다시 시도|솜털 다시 시도|털실 보내기|솜털 붙이기/,
+      }),
+    ).toBeNull();
+    await press('다음 양');
+    await press('이전 양');
+    await tick();
+    expect(yarnSet).toHaveBeenCalledTimes(1);
+    expect(fluffSet).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('지금은 볼 수 없는 카드예요')).toBeTruthy();
+    expect(
+      screen.queryByRole('button', {
+        name: /털실 다시 시도|솜털 다시 시도|털실 보내기|솜털 붙이기/,
+      }),
+    ).toBeNull();
+  },
+);
 it('disables every fluff card after night-close and permits ending without endless retry', async () => {
   await open(createFluffPreview('closed'));
   await press('솜털 붙이기');

@@ -173,11 +173,16 @@ export function FeedScreen({
   const card = cards[position.position - 1];
   const yarnState = card ? yarnFlow.stateFor(card) : null;
   const fluffState = card ? fluffFlow.stateFor(card) : null;
+  const isCardAvailable = (target: Card) =>
+    target.available &&
+    !!target.content &&
+    yarnFlow.stateFor(target).error !== 'unavailable' &&
+    fluffFlow.stateFor(target).error !== 'unavailable';
   const visibleCard =
-    card &&
-    (yarnState?.error === 'unavailable' || fluffState?.error === 'unavailable')
+    card && !isCardAvailable(card)
       ? { ...card, available: false, content: null }
       : card;
+  const reactionsVisible = !!visibleCard?.available && !!visibleCard.content;
   const finish = (reason: ClosingRequest['reason']) => {
     if (
       moving ||
@@ -310,6 +315,7 @@ export function FeedScreen({
                     ? {
                         state: yarnState,
                         onToggle: () => {
+                          if (!isCardAvailable(card)) return;
                           setFeedback({ cardId: card.id, kind: 'yarn' });
                           yarnFlow.toggle(card);
                         },
@@ -321,6 +327,7 @@ export function FeedScreen({
                     ? {
                         state: fluffState,
                         onToggle: () => {
+                          if (!isCardAvailable(card)) return;
                           setFeedback({ cardId: card.id, kind: 'fluff' });
                           fluffFlow.toggle(card);
                         },
@@ -329,7 +336,7 @@ export function FeedScreen({
                 }
                 isLast={position.position === cards.length}
               />
-              {fluffState?.error === 'failed' && (
+              {reactionsVisible && fluffState?.error === 'failed' && (
                 <View
                   style={styles.yarnStatus}
                   onLayout={(event) =>
@@ -351,13 +358,14 @@ export function FeedScreen({
                   <Button
                     label="솜털 다시 시도"
                     onPress={() => {
+                      if (!isCardAvailable(card)) return;
                       setFeedback({ cardId: card.id, kind: 'fluff' });
                       fluffFlow.retry(card);
                     }}
                   />
                 </View>
               )}
-              {fluffState?.pending && (
+              {reactionsVisible && fluffState?.pending && (
                 <View style={styles.yarnStatus}>
                   <Text style={styles.message}>
                     다른 양은 볼 수 있어요. 밤 마무리는 솜털 확인 후 가능하며,
@@ -365,7 +373,7 @@ export function FeedScreen({
                   </Text>
                 </View>
               )}
-              {yarnState?.error === 'failed' && (
+              {reactionsVisible && yarnState?.error === 'failed' && (
                 <View
                   style={styles.yarnStatus}
                   onLayout={(event) =>
@@ -387,13 +395,14 @@ export function FeedScreen({
                   <Button
                     label="털실 다시 시도"
                     onPress={() => {
+                      if (!isCardAvailable(card)) return;
                       setFeedback({ cardId: card.id, kind: 'yarn' });
                       yarnFlow.retry(card);
                     }}
                   />
                 </View>
               )}
-              {yarnState?.pending && (
+              {reactionsVisible && yarnState?.pending && (
                 <View style={styles.yarnStatus}>
                   <Text style={styles.message} accessibilityLiveRegion="polite">
                     {yarnState.target

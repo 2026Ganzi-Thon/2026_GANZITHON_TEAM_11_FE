@@ -128,3 +128,82 @@ it('rejects repeated page cursors while preserving confirmed rows', async () => 
   expect(result.current.items.map((card) => card.id)).toEqual(['a']);
   expect(result.current.error).toBe('more');
 });
+it('resets pagination after deletion and never restores the card from a stale page or filter', async () => {
+  const oldPage = deferred();
+  const load = jest
+    .fn<MyCardsActions['load']>()
+    .mockResolvedValueOnce({
+      items: [item('a'), item('b')],
+      next_cursor: 'page-2',
+    })
+    .mockReturnValueOnce(oldPage.promise)
+    .mockResolvedValueOnce({
+      items: [item('a'), item('b'), item('c')],
+      next_cursor: 'page-3',
+    })
+    .mockResolvedValueOnce({
+      items: [item('a'), item('e')],
+      next_cursor: null,
+    });
+  const actions = { load };
+  const { result, rerender } = await renderHook(
+    ({ filter }: { filter: 'all' | 'pending' }) => useMyCards(actions, filter),
+    { initialProps: { filter: 'all' } },
+  );
+  await act(async () => result.current.loadMore());
+  await act(async () => result.current.confirmDeleted('a'));
+  expect(load.mock.calls[1][1].aborted).toBe(true);
+  expect(load.mock.calls[2][0]).toEqual({});
+  expect(result.current.items.map((card) => card.id)).toEqual(['b', 'c']);
+  await act(async () =>
+    oldPage.resolve({ items: [item('a'), item('old')], next_cursor: null }),
+  );
+  expect(result.current.items.map((card) => card.id)).toEqual(['b', 'c']);
+  expect(result.current.nextCursor).toBe('page-3');
+  await rerender({ filter: 'pending' });
+  expect(result.current.items.map((card) => card.id)).toEqual(['e']);
+  expect(load.mock.calls[3][0]).toEqual({ status: 'pending' });
+});
+it('keeps remaining rows when post-delete refresh fails and retries page one', async () => {
+  const actions = {
+    load: jest
+      .fn<MyCardsActions['load']>()
+      .mockResolvedValueOnce({
+        items: [item('a'), item('b')],
+        next_cursor: 'old-cursor',
+      })
+      .mockRejectedValueOnce(new Error('refresh failed'))
+      .mockResolvedValueOnce({
+        items: [item('a'), item('b'), item('c')],
+        next_cursor: null,
+      }),
+  };
+  const { result } = await renderHook(() => useMyCards(actions, 'all'));
+  await act(async () => result.current.confirmDeleted('a'));
+  expect(result.current.items.map((card) => card.id)).toEqual(['b']);
+  expect(result.current.error).toBe('refresh');
+  expect(result.current.hasMore).toBe(false);
+  await act(async () => result.current.retry());
+  expect(actions.load).toHaveBeenLastCalledWith({}, expect.any(AbortSignal));
+  expect(result.current.items.map((card) => card.id)).toEqual(['b', 'c']);
+});
+it('does not carry a confirmed deletion into a replacement account source', async () => {
+  const a = {
+    load: jest
+      .fn<MyCardsActions['load']>()
+      .mockResolvedValue({ items: [item('a')], next_cursor: null }),
+  };
+  const b = {
+    load: jest
+      .fn<MyCardsActions['load']>()
+      .mockResolvedValue({ items: [item('a')], next_cursor: null }),
+  };
+  const { result, rerender } = await renderHook(
+    ({ actions }: { actions: MyCardsActions }) => useMyCards(actions, 'all'),
+    { initialProps: { actions: a } },
+  );
+  await act(async () => result.current.confirmDeleted('a'));
+  expect(result.current.items).toEqual([]);
+  await rerender({ actions: b });
+  expect(result.current.items.map((card) => card.id)).toEqual(['a']);
+});

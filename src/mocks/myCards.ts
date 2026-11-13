@@ -1,11 +1,25 @@
 import { ApiError } from '../api/errors';
-import type { MyCardsActions, Submission } from '../features/myCards/types';
+import type {
+  MyCardsActions,
+  MyCardDeleteActions,
+  Submission,
+} from '../features/myCards/types';
 
 export type MyCardsScenario =
-  'success' | 'empty' | 'load-retry' | 'more-retry' | 'slow' | 'long';
+  | 'success'
+  | 'empty'
+  | 'load-retry'
+  | 'more-retry'
+  | 'slow'
+  | 'long'
+  | 'delete-retry'
+  | 'slow-delete'
+  | 'lost-delete'
+  | 'delete-refresh-retry'
+  | 'single';
 export function createMockMyCards(
   scenario: MyCardsScenario = 'success',
-): MyCardsActions {
+): MyCardsActions & MyCardDeleteActions {
   const base = {
     category_id: 'career',
     rejection_reason: null,
@@ -83,6 +97,7 @@ export function createMockMyCards(
             created_at: '2026-11-03T01:00:00Z',
           },
         ];
+  if (scenario === 'single') records.splice(1);
   if (scenario === 'long') {
     records[0] = {
       ...records[0],
@@ -111,56 +126,78 @@ export function createMockMyCards(
       );
   }
   const failures = new Set<string>();
+  const deleted = new Set<string>();
+  let refreshFailure = false;
+  function request<T>(
+    signal: AbortSignal,
+    key: 'load' | 'more' | 'delete',
+    job: () => T,
+  ): Promise<T> {
+    return new Promise((resolve, reject) => {
+      if (signal.aborted) {
+        reject(new ApiError('aborted'));
+        return;
+      }
+      const cleanup = () => {
+        clearTimeout(timer);
+        signal.removeEventListener('abort', abort);
+      };
+      const abort = () => {
+        cleanup();
+        reject(new ApiError('aborted'));
+      };
+      const timer = setTimeout(
+        () => {
+          cleanup();
+          try {
+            if (scenario === `${key}-retry` && !failures.has(key)) {
+              failures.add(key);
+              throw new ApiError('network');
+            }
+            resolve(job());
+          } catch (error) {
+            reject(error);
+          }
+        },
+        scenario === 'slow-delete' && key === 'delete'
+          ? 5000
+          : scenario === 'slow'
+            ? 2500
+            : 400,
+      );
+      signal.addEventListener('abort', abort, { once: true });
+    });
+  }
   return {
     load: (query, signal) =>
-      new Promise((resolve, reject) => {
-        if (signal.aborted) {
-          reject(new ApiError('aborted'));
-          return;
+      request(signal, query.cursor ? 'more' : 'load', () => {
+        if (refreshFailure) {
+          refreshFailure = false;
+          throw new ApiError('network');
         }
-        const cleanup = () => {
-          clearTimeout(timer);
-          signal.removeEventListener('abort', abort);
-        };
-        const abort = () => {
-          cleanup();
-          reject(new ApiError('aborted'));
-        };
-        const timer = setTimeout(
-          () => {
-            cleanup();
-            try {
-              const key = query.cursor ? 'more' : 'load';
-              if (scenario === `${key}-retry` && !failures.has(key)) {
-                failures.add(key);
-                throw new ApiError('network');
-              }
-              const items = records.filter(
-                (item) =>
-                  !query.status || item.moderation_status === query.status,
-              );
-              const offset = query.cursor ? Number(query.cursor) : 0;
-              if (
-                !Number.isInteger(offset) ||
-                offset < 0 ||
-                offset > items.length
-              )
-                throw new ApiError('http', {
-                  status: 422,
-                  code: 'INVALID_CURSOR',
-                });
-              resolve({
-                items: items.slice(offset, offset + 3),
-                next_cursor:
-                  offset + 3 < items.length ? String(offset + 3) : null,
-              });
-            } catch (error) {
-              reject(error);
-            }
-          },
-          scenario === 'slow' ? 2500 : 400,
+        const items = records.filter(
+          (item) =>
+            !deleted.has(item.id) &&
+            (!query.status || item.moderation_status === query.status),
         );
-        signal.addEventListener('abort', abort, { once: true });
+        const offset = query.cursor ? Number(query.cursor) : 0;
+        if (!Number.isInteger(offset) || offset < 0 || offset > items.length)
+          throw new ApiError('http', { status: 422, code: 'INVALID_CURSOR' });
+        return {
+          items: items.slice(offset, offset + 3),
+          next_cursor: offset + 3 < items.length ? String(offset + 3) : null,
+        };
+      }),
+    remove: (id, signal) =>
+      request(signal, 'delete', () => {
+        if (!records.some((item) => item.id === id))
+          throw new ApiError('http', { status: 404, code: 'CARD_NOT_FOUND' });
+        deleted.add(id);
+        if (scenario === 'lost-delete' && !failures.has('lost-delete')) {
+          failures.add('lost-delete');
+          throw new ApiError('network');
+        }
+        if (scenario === 'delete-refresh-retry') refreshFailure = true;
       }),
   };
 }

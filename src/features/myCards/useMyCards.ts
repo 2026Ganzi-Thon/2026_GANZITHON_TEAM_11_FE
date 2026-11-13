@@ -29,6 +29,7 @@ export function useMyCards(actions: MyCardsActions, filter: MyCardsFilter) {
     ...current,
     hasMore: current.loaded && current.nextCursor !== null,
     confirmDeleted: controller.confirmDeleted,
+    refresh: controller.refresh,
     loadMore: controller.loadMore,
     retry: controller.retry,
     cancel: controller.stop,

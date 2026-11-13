@@ -119,6 +119,20 @@ export function createMyCardsController(actions: MyCardsActions) {
       });
       void load(null);
     },
+    refresh(id: string) {
+      if (!active) return;
+      request?.abort();
+      request = null;
+      cursors.clear();
+      publish({
+        ...data,
+        items: data.items.filter((item) => item.id !== id),
+        nextCursor: null,
+        loading: true,
+        error: null,
+      });
+      void load(null);
+    },
     stop() {
       active = false;
       request?.abort();

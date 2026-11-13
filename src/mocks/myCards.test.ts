@@ -106,3 +106,66 @@ it('accepts the same delete after a committed but lost response', async () => {
     'my-text-4',
   ]);
 });
+it('replays a resubmission only for the same card/key/body and preserves ID, counts and creation time', async () => {
+  jest.useFakeTimers();
+  const actions = createMockMyCards();
+  const body = {
+    kind: 'text' as const,
+    category_id: 'study' as const,
+    content: { text: '잠깐 쉬어도 괜찮아요.' },
+  };
+  const first = await wait(
+    actions.resubmit('my-text-3', body, 'key', new AbortController().signal),
+  );
+  const replay = await wait(
+    actions.resubmit('my-text-3', body, 'key', new AbortController().signal),
+  );
+  expect(replay).toEqual(first);
+  const changed = actions.resubmit(
+    'my-text-3',
+    { ...body, content: { text: '다른 글' } },
+    'key',
+    new AbortController().signal,
+  );
+  const conflict = expect(changed).rejects.toMatchObject({
+    status: 409,
+    code: 'IDEMPOTENCY_CONFLICT',
+  });
+  await jest.runAllTimersAsync();
+  await conflict;
+  const page = await wait(actions.load({}, new AbortController().signal));
+  expect(page.items.find((item) => item.id === first.id)).toMatchObject({
+    id: 'my-text-3',
+    revision: 2,
+    yarn_count: 0,
+    created_at: '2026-11-05T01:00:00Z',
+    rejection_reason: null,
+    moderation_status: 'pending',
+  });
+});
+it('aborts pending resubmission without changing the card and cleans listeners on abort/success', async () => {
+  jest.useFakeTimers();
+  const actions = createMockMyCards('slow-resubmit'),
+    controller = new AbortController();
+  const cleaned = jest.spyOn(controller.signal, 'removeEventListener');
+  const body = {
+    kind: 'text' as const,
+    category_id: 'career' as const,
+    content: { text: '내 경험' },
+  };
+  const result = actions.resubmit('my-text-3', body, 'key', controller.signal);
+  const failure = expect(result).rejects.toMatchObject({ kind: 'aborted' });
+  controller.abort();
+  await failure;
+  expect(jest.getTimerCount()).toBe(0);
+  expect(cleaned).toHaveBeenCalledWith('abort', expect.any(Function));
+  const page = await wait(
+    actions.load({ status: 'rejected' }, new AbortController().signal),
+  );
+  expect(page.items).toHaveLength(1);
+  const done = new AbortController(),
+    doneCleanup = jest.spyOn(done.signal, 'removeEventListener');
+  await wait(actions.resubmit('my-text-3', body, 'key', done.signal));
+  expect(jest.getTimerCount()).toBe(0);
+  expect(doneCleanup).toHaveBeenCalledWith('abort', expect.any(Function));
+});

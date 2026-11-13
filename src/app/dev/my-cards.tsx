@@ -18,6 +18,15 @@ const scenarios = [
   ['lost-delete', '삭제 응답 유실·재시도'],
   ['delete-refresh-retry', '삭제 후 목록 조회 실패'],
   ['single', '마지막 카드 삭제'],
+  ['resubmit-retry', '재제출 실패·초안 유지'],
+  ['lost-resubmit', '재제출 응답 유실·재시도'],
+  ['slow-resubmit', '느린 재제출·중복 방지'],
+  ['resubmit-approved', '편집 중 게시 상태로 변경'],
+  ['resubmit-deleted', '편집 중 카드 삭제'],
+  ['resubmit-field', '재제출 입력 오류'],
+  ['resubmit-safety', '재제출 검수 일시 불가'],
+  ['resubmit-support', '재제출 도움 안내·초안 복귀'],
+  ['resubmit-refresh-retry', '재제출 후 목록 조회 실패'],
 ] as const;
 export default function MyCardsPreview() {
   const [scenario, setScenario] = useState<MyCardsScenario | null>(null);
@@ -31,6 +40,7 @@ export default function MyCardsPreview() {
       <MyCardsScreen
         actions={actions}
         deletions={actions}
+        resubmissions={actions}
         onBack={() => setScenario(null)}
       />
     );
@@ -39,7 +49,7 @@ export default function MyCardsPreview() {
       <ScrollView contentContainerStyle={styles.content}>
         <Notice
           title="내 카드와 검수 상태"
-          description="메모리 예시 목록과 삭제예요. 같은 시연의 조회 결과에 반영되며 다시 시작하면 초기화돼요. 실제 작성 기록·검수·털실·피드와 연결되지 않았어요. 재제출·새 글 작성은 후속 범위예요."
+          description="메모리 예시 목록·삭제·반려 글 재제출이에요. 같은 시연의 조회 결과에 반영되며 다시 시작하면 초기화돼요. 실제 작성 기록·검수·털실·피드와 연결되지 않았어요. 반려된 글은 같은 카드로 다시 검수받아요. 새 글·노래 수정은 후속 범위예요."
         />
         {scenarios.map(([value, label]) => (
           <Button

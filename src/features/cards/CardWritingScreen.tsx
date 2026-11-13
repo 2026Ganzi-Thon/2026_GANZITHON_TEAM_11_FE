@@ -26,7 +26,27 @@ export interface CardWritingActions {
   readChoice(): CardChoice | null;
   choose(value: CardChoice): void;
 }
-export function CardWritingScreen({
+export function CardWritingScreen(
+  props: Parameters<typeof CardWritingSession>[0],
+) {
+  const [source, setSource] = useState({
+    actions: props.actions,
+    night: props.sourceNightId,
+    version: 0,
+  });
+  if (
+    source.actions !== props.actions ||
+    source.night !== props.sourceNightId
+  ) {
+    setSource({
+      actions: props.actions,
+      night: props.sourceNightId,
+      version: source.version + 1,
+    });
+  }
+  return <CardWritingSession key={source.version} {...props} />;
+}
+function CardWritingSession({
   actions,
   sourceNightId,
   onBack,

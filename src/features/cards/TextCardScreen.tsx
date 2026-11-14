@@ -18,6 +18,7 @@ import { categories } from '../night/categories';
 import { TextCardArtwork } from './TextCardArtwork';
 import { PREVIEW_TEXT_CARD_LIMIT, type TextCardActions } from './types';
 import { useTextCardWriting } from './useTextCardWriting';
+import { SubmissionRecoveryPanel } from './SubmissionRecoveryPanel';
 function fieldMessage(value: unknown): string | null {
   if (typeof value === 'string') return value;
   if (Array.isArray(value))
@@ -34,14 +35,26 @@ export function TextCardScreen({
   onBack,
   onDone,
   modal = false,
+  externalCategory = false,
+  completionLabel = '이제 잘게요',
+  conflictTitle = '작성할 수 있는 밤을 확인해 주세요',
 }: {
   actions: TextCardActions;
-  sourceNightId: string;
+  sourceNightId?: string;
   onBack: () => void;
   onDone: () => void;
   modal?: boolean;
+  externalCategory?: boolean;
+  completionLabel?: string;
+  conflictTitle?: string;
 }) {
-  const flow = useTextCardWriting(actions, sourceNightId, onBack, onDone);
+  const flow = useTextCardWriting(
+    actions,
+    sourceNightId,
+    onBack,
+    onDone,
+    externalCategory,
+  );
   const { draft, step, error, pending, back } = flow;
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -97,7 +110,7 @@ export function TextCardScreen({
                   전송되지 않았어요.
                 </Text>
               </View>
-              <Button label="이제 잘게요" onPress={onDone} />
+              <Button label={completionLabel} onPress={onDone} />
             </>
           ) : step === 'support' ? (
             <>
@@ -229,7 +242,7 @@ export function TextCardScreen({
                 <View style={styles.panel} accessibilityRole="alert">
                   <Text style={styles.section}>
                     {conflict
-                      ? '작성할 수 있는 밤을 확인해 주세요'
+                      ? conflictTitle
                       : error.code === 'SAFETY_CHECK_UNAVAILABLE'
                         ? '지금은 검수를 요청할 수 없어요'
                         : '접수를 확인하지 못했어요'}
@@ -244,9 +257,16 @@ export function TextCardScreen({
               <Button
                 label="검수 요청하기"
                 busy={pending}
-                disabled={!flow.valid || conflict}
+                disabled={!flow.valid || conflict || flow.recoveryChanged}
                 onPress={() => void flow.submit()}
               />
+              {flow.originalSubmission && (
+                <SubmissionRecoveryPanel
+                  original={flow.originalSubmission.content.text}
+                  pending={pending}
+                  onRecover={flow.recover}
+                />
+              )}
               <Text style={[styles.hint, styles.panel]}>
                 검수 전에는 다른 사람에게 보여 주지 않아요. 초안은 시연을
                 끝내거나 앱을 다시 실행하면 사라져요.

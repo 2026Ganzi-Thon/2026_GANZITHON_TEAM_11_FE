@@ -7,12 +7,21 @@ import {
   type TextCardDraft,
   type TextCardRequest,
 } from './types';
+import {
+  createSubmissionRecovery,
+  submissionWasRejected,
+} from './useSubmissionRecovery';
+const useRecovery = createSubmissionRecovery<{
+  body: TextCardRequest;
+  key: string;
+}>();
 type Step = 'category' | 'write' | 'support' | 'complete';
 export function useTextCardWriting(
   actions: TextCardActions,
-  sourceNightId: string,
+  sourceNightId: string | undefined,
   onBack: () => void,
   onDone: () => void,
+  externalCategory = false,
 ) {
   const [draft, setDraft] = useState(() => actions.readDraft());
   const [step, setStep] = useState<Step>(() =>
@@ -20,6 +29,7 @@ export function useTextCardWriting(
   );
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
+  const recovery = useRecovery(actions, sourceNightId);
   const active = useRef<AbortController | null>(null);
   const closed = useRef(false);
   useEffect(() => {
@@ -47,11 +57,15 @@ export function useTextCardWriting(
       return;
     }
     if (step === 'write') {
+      if (externalCategory) {
+        onBack();
+        return;
+      }
       setStep('category');
       return;
     }
     onBack();
-  }, [cancel, step, onBack, onDone]);
+  }, [cancel, step, onBack, onDone, externalCategory]);
   function update(value: Partial<Pick<TextCardDraft, 'category_id' | 'text'>>) {
     if (active.current) return;
     setDraft(actions.writeDraft({ ...draft, ...value }));
@@ -60,22 +74,29 @@ export function useTextCardWriting(
   const length = textCardLength(draft.text);
   const valid =
     !!draft.category_id && length > 0 && length <= PREVIEW_TEXT_CARD_LIMIT;
-  async function submit() {
-    if (active.current || !valid || closed.current || step !== 'write') return;
+  const body: TextCardRequest = {
+    kind: 'text',
+    category_id: draft.category_id!,
+    content: { text: draft.text.trim() },
+    ...(sourceNightId === undefined ? {} : { source_night_id: sourceNightId }),
+  };
+  const recoveryChanged =
+    recovery.value !== null &&
+    JSON.stringify(body) !== JSON.stringify(recovery.value.body);
+  async function submit(recover = false) {
+    if (active.current || closed.current || step !== 'write') return;
+    if (recover ? !recovery.value : !valid || recoveryChanged) return;
+    const submission = recovery.value ?? { body, key: draft.operationKey };
+    const request = submission.body;
     const controller = new AbortController();
     active.current = controller;
     setPending(true);
     setError(null);
-    const request: TextCardRequest = {
-      kind: 'text',
-      category_id: draft.category_id!,
-      content: { text: draft.text.trim() },
-      source_night_id: sourceNightId,
-    };
+    recovery.remember(submission);
     try {
       const receipt = await actions.submit(
         request,
-        draft.operationKey,
+        submission.key,
         controller.signal,
       );
       if (
@@ -92,6 +113,7 @@ export function useTextCardWriting(
         receipt.moderation_status !== 'pending'
       )
         throw new ApiError('invalid-response');
+      recovery.clear(submission);
       setStep('complete');
     } catch (value) {
       if (
@@ -102,6 +124,7 @@ export function useTextCardWriting(
         return;
       const problem =
         value instanceof ApiError ? value : new ApiError('network');
+      if (submissionWasRejected(problem)) recovery.clear(submission);
       setError(problem);
       if (problem.code === 'SUPPORT_RECOMMENDED') setStep('support');
     } finally {
@@ -118,6 +141,9 @@ export function useTextCardWriting(
     error,
     length,
     valid,
+    recoveryChanged,
+    originalSubmission: recovery.value?.body ?? null,
+    recover: () => void submit(true),
     update,
     submit,
     back,

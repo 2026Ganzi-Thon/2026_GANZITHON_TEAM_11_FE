@@ -1,3 +1,8 @@
+import { createMockWorryDeletion } from './worryDeletion';
+import { createMockSongCards } from './songCards';
+import { createMockReceivedYarn } from './receivedYarn';
+import { createMockFortune } from './fortune';
+import { createMockCardWriting } from './cardWriting';
 import { createMockYarn } from './yarn';
 import { createMockFluff } from './fluff';
 import { createMockTextCards } from './textCards';
@@ -25,7 +30,17 @@ import { createMockNightFeed } from './nightFeed';
 import { createMockNightClosing } from './nightClosing';
 import { reflectionReplies } from './reflection';
 export type DemoScenario =
-  'success' | 'lost-responses' | 'slow-songs' | 'slow-yarn' | 'slow-fluff';
+  | 'success'
+  | 'lost-responses'
+  | 'slow-songs'
+  | 'slow-yarn'
+  | 'slow-fluff'
+  | 'writing-retry'
+  | 'writing-lost-response'
+  | 'writing-refresh-retry'
+  | 'received-yarn'
+  | 'fortune'
+  | 'worry-delete';
 function delayed<T>(
   signal: AbortSignal,
   action: () => T,
@@ -72,17 +87,36 @@ export function createNightMorningDemo(scenario: DemoScenario = 'success') {
   let loader: FeedLoad | null = null;
   let position: FeedPosition = { position: 1, furthestPosition: 1 };
   let finished: ClosingResult | null = null;
-  const textCards = createMockTextCards('success', {
+  let morningOpen = false;
+  const writingScenario =
+    scenario === 'writing-lost-response'
+      ? 'lost-response'
+      : scenario === 'writing-retry'
+        ? 'retry'
+        : 'success';
+  const canSubmit = () =>
+    morningOpen
+      ? finished?.writing_offer.state === 'deferred'
+      : finished?.writing_offer.state === 'writing';
+  const textCards = createMockTextCards(writingScenario, {
     sourceNightId: nightId,
-    canSubmit: () => finished?.writing_offer.state === 'writing',
+    canSubmit,
     onSubmitted: () => {
       if (finished)
         finished = { ...finished, writing_offer: { state: 'fulfilled' } };
     },
   });
+  const songCards = createMockSongCards(writingScenario, {
+    sourceNightId: nightId,
+    canSubmit,
+    onSubmitted: () => {
+      if (finished)
+        finished = { ...finished, writing_offer: { state: 'fulfilled' } };
+    },
+  });
+  const cardWriting = createMockCardWriting(textCards, songCards);
   let fingerprint: string | null = null;
   let closingViewed = false;
-  let morningOpen = false;
   const fluff = createMockFluff(
     {
       cards: () => cards ?? [],
@@ -224,12 +258,33 @@ export function createNightMorningDemo(scenario: DemoScenario = 'success') {
     songs: SongActions;
     loadSheep: SheepDetailLoad;
   } = {
+    worries:
+      scenario === 'worry-delete'
+        ? createMockWorryDeletion((id) => {
+            checkNight(id);
+            if (!morningOpen || !draft) conflict('NOT_FOUND', 404);
+            draft = { ...draft!, worry_text: null };
+          })
+        : undefined,
+    writing: cardWriting,
+    fortune: scenario === 'fortune' ? createMockFortune() : undefined,
+    receivedYarn:
+      scenario === 'received-yarn' ? createMockReceivedYarn() : undefined,
     reflection: reflectionActions,
     songs,
     loadSheep,
-    loadMorning: (signal) =>
+    loadMorning: (signal, requestedNightId) =>
       delayed(signal, () => {
         if (!morningOpen) conflict('MORNING_NOT_OPEN');
+        if (requestedNightId !== undefined) checkNight(requestedNightId);
+        if (
+          scenario === 'writing-refresh-retry' &&
+          finished?.writing_offer.state === 'fulfilled' &&
+          !failed.has('writing-refresh')
+        ) {
+          failed.add('writing-refresh');
+          throw new ApiError('network');
+        }
         const recent = candidates().sort(
           (a, b) =>
             b.last_viewed_at.localeCompare(a.last_viewed_at) ||
@@ -248,6 +303,7 @@ export function createNightMorningDemo(scenario: DemoScenario = 'success') {
           candidate_cards: items,
           default_card_id: (warm[0] ?? eligible[0])?.card.id ?? null,
           adoption: adopted,
+          writing_offer: { ...finished!.writing_offer },
         };
       }),
     adopt: (id, cardId, signal) =>
@@ -366,6 +422,8 @@ export function createNightMorningDemo(scenario: DemoScenario = 'success') {
     fluff,
     yarn,
     textCards,
+    songCards,
+    cardWriting,
     songs,
     entry,
     loadFeed,
@@ -396,6 +454,11 @@ export function createNightMorningDemo(scenario: DemoScenario = 'success') {
     advanceMorning: () => {
       if (!finished) throw new Error('Finish the demo night first');
       morningOpen = true;
+      if (
+        finished.writing_offer.state === 'offered' ||
+        finished.writing_offer.state === 'writing'
+      )
+        finished = { ...finished, writing_offer: { state: 'deferred' } };
     },
   };
 }

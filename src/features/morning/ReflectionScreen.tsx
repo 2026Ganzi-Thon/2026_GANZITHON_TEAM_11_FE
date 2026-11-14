@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import type { WorryDeletions } from '../worries/deletions';
 import {
   ActivityIndicator,
   Pressable,
@@ -23,19 +25,47 @@ function timeLabel(value: string | null) {
     }).format(new Date(value)) + ' · '
   );
 }
-export function ReflectionScreen({
+export function ReflectionScreen(
+  props: Parameters<typeof ReflectionSession>[0],
+) {
+  const [source, setSource] = useState({
+    id: props.nightId,
+    actions: props.actions,
+    worries: props.worries,
+    version: 0,
+  });
+  if (
+    source.id !== props.nightId ||
+    source.actions !== props.actions ||
+    source.worries !== props.worries
+  ) {
+    setSource({
+      id: props.nightId,
+      actions: props.actions,
+      worries: props.worries,
+      version: source.version + 1,
+    });
+  }
+  return <ReflectionSession key={source.version} {...props} />;
+}
+function ReflectionSession({
   nightId,
   actions,
   onBack,
+  worries,
 }: {
   nightId: string;
   actions: ReflectionActions;
   onBack: () => void;
+  worries?: WorryDeletions;
 }) {
-  const flow = useReflection(nightId, actions, onBack);
+  const flow = useReflection(nightId, actions, onBack, worries);
   const night = flow.record?.night;
-  const reflection = flow.available ? flow.record?.reflection : null;
-  const completed = flow.saved && !!reflection;
+  const reflection =
+    flow.phase === 'ready' && night && night.category_id !== 'none'
+      ? flow.record?.reflection
+      : null;
+  const completed = flow.available && flow.saved && !!reflection;
   const matchingReply =
     reflection?.answer === flow.selected ? reflection : null;
   const dirty = !!flow.selected && flow.selected !== reflection?.answer;
@@ -104,6 +134,17 @@ export function ReflectionScreen({
                 ? '고민 없이 쉬어 간 밤이에요.'
                 : '남아 있는 고민 기록이 없어요.'}
             </Text>
+            {reflection && (
+              <View style={styles.reply}>
+                <Text style={styles.text}>
+                  저장된 회고 · {reflectionLabels[reflection.answer]}
+                </Text>
+                <Text style={styles.message}>{reflection.message}</Text>
+                <Text style={styles.text}>
+                  고민 원문이 없어 새 회고는 남길 수 없어요.
+                </Text>
+              </View>
+            )}
           </View>
         ) : (
           <>

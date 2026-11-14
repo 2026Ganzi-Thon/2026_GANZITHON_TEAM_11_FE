@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { maskDeletedWorry, type WorryDeletions } from '../worries/deletions';
 import { ApiError } from '../../api/errors';
 import type { SheepDetail, SheepDetailLoad } from './types';
 
@@ -9,6 +10,7 @@ export function useSheepDetail(
   sheepId: string,
   load: SheepDetailLoad,
   onBack: () => void,
+  worries?: WorryDeletions,
 ) {
   const [attempt, setAttempt] = useState(0);
   const [state, setState] = useState<{
@@ -32,7 +34,17 @@ export function useSheepDetail(
         const detail = await load(sheepId, controller.signal);
         if (controller.signal.aborted) return;
         if (detail.sheep.id !== sheepId) throw new ApiError('invalid-response');
-        publish({ phase: 'ready', detail });
+        publish({
+          phase: 'ready',
+          detail: {
+            ...detail,
+            night: maskDeletedWorry(
+              detail.night,
+              detail.sheep.night_id,
+              worries,
+            ),
+          },
+        });
       } catch (error) {
         const unavailable =
           error instanceof ApiError &&
@@ -47,7 +59,32 @@ export function useSheepDetail(
       controller.abort();
       if (active.current === controller) active.current = null;
     };
-  }, [sheepId, load, attempt]);
+  }, [sheepId, load, attempt, worries]);
+  useEffect(
+    () =>
+      worries?.subscribe((nightId) => {
+        setState((current) =>
+          current.result.phase === 'ready' &&
+          current.result.detail.sheep.night_id === nightId
+            ? {
+                ...current,
+                result: {
+                  phase: 'ready',
+                  detail: {
+                    ...current.result.detail,
+                    night: maskDeletedWorry(
+                      current.result.detail.night,
+                      nightId,
+                      worries,
+                    ),
+                  },
+                },
+              }
+            : current,
+        );
+      }),
+    [worries],
+  );
   const result: Result =
     state.id === sheepId && state.loader === load
       ? state.result

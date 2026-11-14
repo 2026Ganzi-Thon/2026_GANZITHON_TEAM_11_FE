@@ -1,5 +1,6 @@
 import type { Card } from '../../api/contracts';
 import type { TextCardDraft, TextCardSubmission } from '../cards/types';
+import type { CardWritingActions } from '../cards/CardWritingScreen';
 
 export type ModerationStatus = 'pending' | 'approved' | 'rejected';
 export type MyCardsFilter = 'all' | 'pending' | 'rejected';
@@ -39,6 +40,10 @@ export interface MyCardsActions {
 /** DELETE /me/cards/{id}: confirmed success has no response body. */
 export interface MyCardDeleteActions {
   remove(cardId: string, signal: AbortSignal): Promise<void>;
+}
+export interface MyCardsWritingSource
+  extends MyCardsActions, MyCardDeleteActions, MyCardResubmitActions {
+  createWritingSession(): CardWritingActions;
 }
 
 export type RejectedTextCard = Extract<Submission, { kind: 'text' }>;

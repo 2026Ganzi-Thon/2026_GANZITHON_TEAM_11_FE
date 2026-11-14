@@ -1,4 +1,4 @@
-import { TextCardScreen } from '../cards/TextCardScreen';
+import { CardWritingScreen } from '../cards/CardWritingScreen';
 import { useCallback, useEffect, useState } from 'react';
 import { BackHandler, ScrollView, StyleSheet } from 'react-native';
 import { NightEntryScreen } from '../night/NightEntryScreen';
@@ -75,9 +75,9 @@ export function NightMorningFlow({
           onWrite={openWriting}
         />
         {writingOpen && (
-          <TextCardScreen
+          <CardWritingScreen
             modal
-            actions={demo.textCards}
+            actions={demo.cardWriting}
             sourceNightId={demo.nightId}
             onBack={() => setWritingOpen(false)}
             onDone={() => {

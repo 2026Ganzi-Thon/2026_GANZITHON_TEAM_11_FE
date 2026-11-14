@@ -18,6 +18,9 @@ import { canAdopt, useMorningFlow } from './useMorningFlow';
 import type { MorningActions, MorningCandidate } from './types';
 import { SheepDetailScreen } from '../flock/SheepDetailScreen';
 import type { SheepDetailLoad } from '../flock/types';
+import { DeferredWritingSection } from './DeferredWritingSection';
+import { ReceivedYarnSection } from '../yarnSummary/ReceivedYarnSection';
+import { FortuneSection } from '../fortune/FortuneSection';
 
 function Action({
   label,
@@ -77,7 +80,13 @@ function CandidateDetail({ item }: { item: MorningCandidate }) {
     </View>
   );
 }
-export function MorningScreen({
+export function MorningScreen(props: Parameters<typeof MorningSession>[0]) {
+  const [source, setSource] = useState({ actions: props.actions, version: 0 });
+  if (source.actions !== props.actions)
+    setSource({ actions: props.actions, version: source.version + 1 });
+  return <MorningSession key={source.version} {...props} />;
+}
+function MorningSession({
   actions,
   onExit,
   loadDetail,
@@ -89,13 +98,15 @@ export function MorningScreen({
   const [detailId, setDetailId] = useState<string | null>(null);
   const [songsOpen, setSongsOpen] = useState(false);
   const [reflectionOpen, setReflectionOpen] = useState(false);
+  const [deferredWritingOpen, setDeferredWritingOpen] = useState(false);
+  const [fortuneOpen, setFortuneOpen] = useState(false);
   const flow = useMorningFlow(actions, onExit);
   const { morning, busy, failure } = flow;
   const hasCandidates =
     !!morning?.night && morning.candidate_cards.some(canAdopt);
   return (
     <DayScreen home={flow.page === 'home'}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView key={flow.page} contentContainerStyle={styles.content}>
         {flow.page === 'home' ? (
           <>
             <Text
@@ -105,6 +116,29 @@ export function MorningScreen({
               나의 양떼
             </Text>
             <Text style={styles.text}>밤을 함께 보낸 양들이 쉬고 있어요.</Text>
+            {actions.receivedYarn && (
+              <ReceivedYarnSection
+                actions={actions.receivedYarn}
+                blocked={
+                  detailId !== null ||
+                  songsOpen ||
+                  reflectionOpen ||
+                  deferredWritingOpen ||
+                  fortuneOpen
+                }
+              />
+            )}
+            {morning?.night &&
+              morning.writing_offer?.state === 'deferred' &&
+              actions.writing && (
+                <DeferredWritingSection
+                  key={morning.night.id}
+                  nightId={morning.night.id}
+                  writing={actions.writing}
+                  loadMorning={actions.loadMorning}
+                  onVisibilityChange={setDeferredWritingOpen}
+                />
+              )}
             {flow.newId && (
               <Text
                 accessibilityLiveRegion="polite"
@@ -137,6 +171,18 @@ export function MorningScreen({
             )}
             <View style={styles.homeSpacer} />
             <View style={styles.pasture}>
+              {actions.fortune && (
+                <FortuneSection
+                  actions={actions.fortune}
+                  onVisibilityChange={setFortuneOpen}
+                  blocked={
+                    detailId !== null ||
+                    songsOpen ||
+                    reflectionOpen ||
+                    deferredWritingOpen
+                  }
+                />
+              )}
               {flow.items.map((item) => (
                 <Pressable
                   key={item.id}
@@ -336,6 +382,7 @@ export function MorningScreen({
             key={morning.night.id}
             nightId={morning.night.id}
             actions={actions.reflection}
+            worries={actions.worries}
             onBack={() => setReflectionOpen(false)}
           />
         )}
@@ -353,6 +400,7 @@ export function MorningScreen({
             key={detailId}
             sheepId={detailId}
             load={loadDetail}
+            worries={actions.worries}
             onBack={() => setDetailId(null)}
           />
         )}

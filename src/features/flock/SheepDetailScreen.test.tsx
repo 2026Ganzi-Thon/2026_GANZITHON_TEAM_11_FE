@@ -82,7 +82,7 @@ describe('sheep detail read-only flow', () => {
     },
   );
   it.each([null, '   '])(
-    'does not expose a residual reflection if the worry is missing (%s)',
+    'preserves the saved read-only reflection if the worry is missing (%s)',
     async (worry) => {
       await render(
         <SheepDetailScreen
@@ -95,8 +95,8 @@ describe('sheep detail read-only flow', () => {
         />,
       );
       expect(screen.getByText('남아 있는 고민 기록이 없어요.')).toBeTruthy();
-      expect(screen.queryByText('작아졌어요')).toBeNull();
-      expect(screen.queryByText('조금 작아졌구나.')).toBeNull();
+      expect(screen.getByText('작아졌어요')).toBeTruthy();
+      expect(screen.getByText('조금 작아졌구나.')).toBeTruthy();
       expect(screen.getByText('카드 내용')).toBeTruthy();
     },
   );

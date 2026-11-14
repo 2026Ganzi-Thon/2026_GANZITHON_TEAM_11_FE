@@ -9,7 +9,7 @@ export interface TextCardRequest {
   kind: 'text';
   category_id: TextCardCategory;
   content: { text: string };
-  source_night_id: string;
+  source_night_id?: string;
 }
 /** Initial POST /cards response projection; pending is not moderation approval. */
 export interface TextCardSubmission {

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Redirect, router } from 'expo-router';
 import { ScrollView, StyleSheet } from 'react-native';
-import { MyCardsScreen } from '../../features/myCards/MyCardsScreen';
+import { MyCardsWritingFlow } from '../../features/myCards/MyCardsWritingFlow';
 import { createMockMyCards, type MyCardsScenario } from '../../mocks/myCards';
 import { NightScreen } from '../../ui/NightScreen';
 import { Notice } from '../../ui/Notice';
@@ -18,6 +18,11 @@ const scenarios = [
   ['lost-delete', '삭제 응답 유실·재시도'],
   ['delete-refresh-retry', '삭제 후 목록 조회 실패'],
   ['single', '마지막 카드 삭제'],
+  ['write-retry', '카드 작성 접수 실패·재시도'],
+  ['write-lost-response', '카드 작성 응답 유실'],
+  ['write-refresh-retry', '작성 후 목록 조회 실패'],
+  ['write-slow', '느린 카드 접수·중복 방지'],
+  ['write-empty-search', '곡 직접 입력 후 목록 반영'],
   ['resubmit-retry', '재제출 실패·초안 유지'],
   ['lost-resubmit', '재제출 응답 유실·재시도'],
   ['slow-resubmit', '느린 재제출·중복 방지'],
@@ -38,19 +43,14 @@ export default function MyCardsPreview() {
   if (!__DEV__) return <Redirect href="/" />;
   if (actions)
     return (
-      <MyCardsScreen
-        actions={actions}
-        deletions={actions}
-        resubmissions={actions}
-        onBack={() => setScenario(null)}
-      />
+      <MyCardsWritingFlow source={actions} onBack={() => setScenario(null)} />
     );
   return (
     <NightScreen>
       <ScrollView contentContainerStyle={styles.content}>
         <Notice
           title="내 카드와 검수 상태"
-          description="메모리 예시 목록·삭제·반려 글 재제출이에요. 같은 시연의 조회 결과에 반영되며 다시 시작하면 초기화돼요. 실제 작성 기록·검수·털실·피드와 연결되지 않았어요. 반려된 글은 같은 카드로 다시 검수받아요. 새 글·노래 수정은 후속 범위예요."
+          description="글·노래 작성, 목록·삭제, 반려 글 수정·재제출을 같은 메모리 예시로 연결해요. 접수한 카드는 검수 중으로 표시돼요. 실제 서버·곡 검색·검수·영속 저장과 연결되지 않으며 시연을 끝내면 초기화돼요. 밤·아침 시연의 기록 통합과 노래 수정·재제출은 후속 범위예요."
         />
         {scenarios.map(([value, label]) => (
           <Button

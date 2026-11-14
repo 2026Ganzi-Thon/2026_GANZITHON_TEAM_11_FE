@@ -14,6 +14,10 @@ export default function StartScreen() {
         {__DEV__ && (
           <>
             <Button
+              label="생년월일 변경 미리보기"
+              onPress={() => router.push('/dev/birth-date')}
+            />
+            <Button
               label="고민 삭제 미리보기"
               onPress={() => router.push('/dev/worry-deletion')}
             />

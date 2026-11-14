@@ -1,7 +1,11 @@
 import { ApiError } from '../api/errors';
+import { createMockTextCards } from './textCards';
+import { createMockSongCards } from './songCards';
+import { createMockCardWriting } from './cardWriting';
+import type { TextCardSubmission } from '../features/cards/types';
+import type { SongCardSubmission } from '../features/cards/songTypes';
 import type {
-  MyCardsActions,
-  MyCardDeleteActions,
+  MyCardsWritingSource,
   Submission,
 } from '../features/myCards/types';
 
@@ -16,10 +20,15 @@ export type MyCardsScenario =
   | 'slow-delete'
   | 'lost-delete'
   | 'delete-refresh-retry'
-  | 'single';
+  | 'single'
+  | 'write-retry'
+  | 'write-lost-response'
+  | 'write-refresh-retry'
+  | 'write-slow'
+  | 'write-empty-search';
 export function createMockMyCards(
   scenario: MyCardsScenario = 'success',
-): MyCardsActions & MyCardDeleteActions {
+): MyCardsWritingSource {
   const base = {
     category_id: 'career',
     rejection_reason: null,
@@ -128,6 +137,7 @@ export function createMockMyCards(
   const failures = new Set<string>();
   const deleted = new Set<string>();
   let refreshFailure = false;
+  let writingSession = 0;
   function request<T>(
     signal: AbortSignal,
     key: 'load' | 'more' | 'delete',
@@ -169,17 +179,67 @@ export function createMockMyCards(
     });
   }
   return {
+    createWritingSession() {
+      let fulfilled = false;
+      const namespace = `my-writing-${String(++writingSession).padStart(6, '0')}`;
+      const onSubmitted = (
+        receipt: TextCardSubmission | SongCardSubmission,
+      ) => {
+        if (fulfilled) return;
+        fulfilled = true;
+        records.unshift({
+          ...receipt,
+          rejection_reason: null,
+          yarn_count: 0,
+          revision: 1,
+          created_at: new Date().toISOString(),
+        });
+        if (scenario === 'write-refresh-retry') refreshFailure = true;
+      };
+      const options = {
+        sourceNightId: null,
+        namespace,
+        canSubmit: () => !fulfilled,
+        onSubmitted,
+      };
+      const writingScenario =
+        scenario === 'write-retry'
+          ? 'retry'
+          : scenario === 'write-lost-response'
+            ? 'lost-response'
+            : 'success';
+      return createMockCardWriting(
+        createMockTextCards(writingScenario, {
+          ...options,
+          delayMs: scenario === 'write-slow' ? 5000 : 400,
+        }),
+        createMockSongCards(
+          scenario === 'write-slow'
+            ? 'slow-submit'
+            : scenario === 'write-empty-search'
+              ? 'empty'
+              : writingScenario,
+          options,
+        ),
+      );
+    },
     load: (query, signal) =>
       request(signal, query.cursor ? 'more' : 'load', () => {
         if (refreshFailure) {
           refreshFailure = false;
           throw new ApiError('network');
         }
-        const items = records.filter(
-          (item) =>
-            !deleted.has(item.id) &&
-            (!query.status || item.moderation_status === query.status),
-        );
+        const items = records
+          .filter(
+            (item) =>
+              !deleted.has(item.id) &&
+              (!query.status || item.moderation_status === query.status),
+          )
+          .sort(
+            (a, b) =>
+              b.created_at.localeCompare(a.created_at) ||
+              (a.id < b.id ? 1 : a.id > b.id ? -1 : 0),
+          );
         const offset = query.cursor ? Number(query.cursor) : 0;
         if (!Number.isInteger(offset) || offset < 0 || offset > items.length)
           throw new ApiError('http', { status: 422, code: 'INVALID_CURSOR' });

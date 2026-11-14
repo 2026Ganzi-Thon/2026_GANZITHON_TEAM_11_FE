@@ -22,17 +22,21 @@ export function createMockTextCards(
     sourceNightId = 'preview-night',
     canSubmit = () => true,
     onSubmitted = () => {},
+    namespace = 'preview',
+    delayMs = 400,
   }: {
-    sourceNightId?: string;
+    sourceNightId?: string | null;
     canSubmit?: () => boolean;
     onSubmitted?: (receipt: TextCardSubmission) => void;
+    namespace?: string;
+    delayMs?: number;
   } = {},
 ): TextCardActions {
   let version = 0;
   let draft: TextCardDraft = {
     category_id: null,
     text: '',
-    operationKey: 'preview-text-0',
+    operationKey: `${namespace}-text-0`,
   };
   let failed = false;
   const accepted = new Map<
@@ -49,7 +53,7 @@ export function createMockTextCards(
     readDraft: () => ({ ...draft }),
     writeDraft(value) {
       if (fingerprint(value) !== fingerprint(draft)) version++;
-      draft = { ...value, operationKey: `preview-text-${version}` };
+      draft = { ...value, operationKey: `${namespace}-text-${version}` };
       return { ...draft };
     },
     submit(value, key, signal) {
@@ -81,7 +85,7 @@ export function createMockTextCards(
               return;
             }
             if (
-              value.source_night_id !== sourceNightId ||
+              value.source_night_id !== (sourceNightId ?? undefined) ||
               !canSubmit() ||
               scenario === 'entry-required'
             )
@@ -133,7 +137,7 @@ export function createMockTextCards(
                 });
             }
             const receipt: TextCardSubmission = {
-              id: `preview-submitted-text-${accepted.size + 1}`,
+              id: `${namespace}-submitted-text-${accepted.size + 1}`,
               kind: 'text',
               category_id: value.category_id,
               content: { text: value.content.text.trim() },
@@ -149,7 +153,7 @@ export function createMockTextCards(
           } catch (error) {
             reject(error);
           }
-        }, 400);
+        }, delayMs);
         signal.addEventListener('abort', abort, { once: true });
       });
     },

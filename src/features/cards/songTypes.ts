@@ -15,7 +15,7 @@ export type SongCardInput = Omit<SongCardDraft, 'operationKey'>;
 export interface SongCardRequest {
   kind: 'song';
   category_id: TextCardCategory;
-  source_night_id: string;
+  source_night_id?: string;
   content: { recommendation: string } & (
     | { track_id: string; manual_track?: never }
     | { manual_track: { title: string; artist: string }; track_id?: never }

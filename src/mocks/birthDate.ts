@@ -3,7 +3,12 @@ import { birthDateError, kstDate, parseDate } from '../features/birthDate/date';
 import type {
   BirthDateActions,
   BirthDateResult,
+  BirthDateSnapshot,
 } from '../features/birthDate/types';
+/** Shared read projection for mock account adapters, not an HTTP endpoint. */
+export interface MockBirthDate extends BirthDateActions {
+  readSnapshot(): BirthDateSnapshot;
+}
 export type BirthDateScenario =
   | 'success'
   | 'exhausted'
@@ -50,7 +55,7 @@ function allowedAge(date: string, today: string): boolean {
 export function createMockBirthDate(
   scenario: BirthDateScenario = 'success',
   now: () => Date = () => new Date('2026-11-14T12:30:00Z'),
-): BirthDateActions {
+): MockBirthDate {
   let record: BirthDateResult = {
     birth_date: '2004-05-14',
     edits_remaining: scenario === 'exhausted' ? 0 : 1,
@@ -93,13 +98,18 @@ export function createMockBirthDate(
       signal.addEventListener('abort', abort, { once: true });
     });
   }
+  const readSnapshot = (): BirthDateSnapshot => ({
+    ...record,
+    today: kstDate(now()),
+  });
   return {
+    readSnapshot,
     load: (signal) =>
       delayed(signal, () => {
         if (scenario === 'load-retry') failOnce('load');
         if (scenario === 'conflict-load-retry' && conflictOccurred)
           failOnce('conflict-load');
-        return { ...record, today: kstDate(now()) };
+        return readSnapshot();
       }),
     save: (date, signal) =>
       delayed(

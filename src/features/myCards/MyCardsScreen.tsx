@@ -21,9 +21,12 @@ import { Button } from '../../ui/Button';
 import { theme } from '../../ui/theme';
 import { useMyCards } from './useMyCards';
 import { CardDeleteDialog } from './CardDeleteDialog';
+import { ResubmitTextCardScreen } from './ResubmitTextCardScreen';
 import type {
   MyCardsActions,
   MyCardDeleteActions,
+  MyCardResubmitActions,
+  RejectedTextCard,
   MyCardsFilter,
   Submission,
 } from './types';
@@ -46,12 +49,14 @@ const date = new Intl.DateTimeFormat('en-US', {
 export function MyCardsScreen({
   actions,
   deletions,
+  resubmissions,
   onBack,
   onWrite,
   submissionConfirmed = false,
 }: {
   actions: MyCardsActions;
   deletions?: MyCardDeleteActions;
+  resubmissions?: MyCardResubmitActions;
   onBack: () => void;
   onWrite?: () => void;
   submissionConfirmed?: boolean;
@@ -62,6 +67,11 @@ export function MyCardsScreen({
     source: MyCardsActions;
     deletions: MyCardDeleteActions;
     item: Submission;
+  } | null>(null);
+  const [editing, setEditing] = useState<{
+    source: MyCardsActions;
+    actions: MyCardResubmitActions;
+    item: RejectedTextCard;
   } | null>(null);
   const list = useMyCards(actions, filter);
   if (confirmNotice && list.loaded) setConfirmNotice(false);
@@ -176,6 +186,18 @@ export function MyCardsScreen({
                 <SubmissionRow
                   key={item.id}
                   item={item}
+                  onEdit={
+                    resubmissions &&
+                    item.kind === 'text' &&
+                    item.moderation_status === 'rejected'
+                      ? () =>
+                          setEditing({
+                            source: actions,
+                            actions: resubmissions,
+                            item,
+                          })
+                      : undefined
+                  }
                   onDelete={
                     deletions
                       ? () => setSelection({ source: actions, deletions, item })
@@ -196,7 +218,7 @@ export function MyCardsScreen({
               >
                 <Notice
                   title="목록을 다시 확인하지 못했어요"
-                  description="확인된 삭제는 유지했어요. 남은 카드를 다시 불러와 주세요."
+                  description="확인된 변경은 유지했어요. 카드를 다시 불러와 주세요."
                   error
                 />
                 <Button label="목록 다시 확인" onPress={list.retry} />
@@ -251,6 +273,20 @@ export function MyCardsScreen({
           <Text style={styles.caption}>설정 · 준비 중</Text>
         </Pressable>
       </View>
+      {editing &&
+        editing.source === actions &&
+        editing.actions === resubmissions && (
+          <ResubmitTextCardScreen
+            key={editing.item.id}
+            item={editing.item}
+            actions={editing.actions}
+            onClose={() => setEditing(null)}
+            onRefresh={() => {
+              list.refresh(editing.item.id);
+              setEditing(null);
+            }}
+          />
+        )}
       {selection &&
         selection.source === actions &&
         selection.deletions === deletions && (
@@ -271,9 +307,11 @@ export function MyCardsScreen({
 function SubmissionRow({
   item,
   onDelete,
+  onEdit,
 }: {
   item: Submission;
   onDelete?: () => void;
+  onEdit?: () => void;
 }) {
   const badge = badges[item.moderation_status];
   const { fontScale } = useWindowDimensions();
@@ -317,6 +355,7 @@ function SubmissionRow({
           </Text>
         </View>
       )}
+      {onEdit && <Button label="고쳐서 다시 내기" onPress={onEdit} />}
       {onDelete && (
         <Pressable
           accessibilityRole="button"

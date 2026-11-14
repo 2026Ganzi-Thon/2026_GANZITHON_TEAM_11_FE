@@ -23,6 +23,16 @@ const scenarios = [
   ['write-refresh-retry', '작성 후 목록 조회 실패'],
   ['write-slow', '느린 카드 접수·중복 방지'],
   ['write-empty-search', '곡 직접 입력 후 목록 반영'],
+  ['resubmit-retry', '재제출 실패·초안 유지'],
+  ['lost-resubmit', '재제출 응답 유실·재시도'],
+  ['slow-resubmit', '느린 재제출·중복 방지'],
+  ['resubmit-approved', '편집 중 게시 상태로 변경'],
+  ['resubmit-deleted', '편집 중 카드 삭제'],
+  ['resubmit-field', '재제출 입력 오류'],
+  ['resubmit-category-field', '재제출 분류 오류'],
+  ['resubmit-safety', '재제출 검수 일시 불가'],
+  ['resubmit-support', '재제출 도움 안내·초안 복귀'],
+  ['resubmit-refresh-retry', '재제출 후 목록 조회 실패'],
 ] as const;
 export default function MyCardsPreview() {
   const [scenario, setScenario] = useState<MyCardsScenario | null>(null);
@@ -40,7 +50,7 @@ export default function MyCardsPreview() {
       <ScrollView contentContainerStyle={styles.content}>
         <Notice
           title="내 카드와 검수 상태"
-          description="글·노래 작성과 목록·삭제를 같은 메모리 예시로 연결해요. 접수한 카드는 검수 중으로 표시돼요. 실제 서버·곡 검색·검수·영속 저장과 연결되지 않으며 시연을 끝내면 초기화돼요. 밤·아침 시연의 기록과 재제출 연결은 후속 범위예요."
+          description="글·노래 작성, 목록·삭제, 반려 글 수정·재제출을 같은 메모리 예시로 연결해요. 접수한 카드는 검수 중으로 표시돼요. 실제 서버·곡 검색·검수·영속 저장과 연결되지 않으며 시연을 끝내면 초기화돼요. 밤·아침 시연의 기록 통합과 노래 수정·재제출은 후속 범위예요."
         />
         {scenarios.map(([value, label]) => (
           <Button

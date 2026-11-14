@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   BackHandler,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -25,6 +26,7 @@ function dateLabel(value: string | null) {
 export function BirthDateScreen(props: {
   actions: BirthDateActions;
   onBack: () => void;
+  modal?: boolean;
 }) {
   const [source, setSource] = useState({ actions: props.actions, version: 0 });
   if (source.actions !== props.actions)
@@ -34,22 +36,25 @@ export function BirthDateScreen(props: {
 function BirthDateSession({
   actions,
   onBack,
+  modal = false,
 }: {
   actions: BirthDateActions;
   onBack: () => void;
+  modal?: boolean;
 }) {
   const flow = useBirthDate(actions, onBack);
   const { back } = flow;
   useEffect(() => {
+    if (modal) return;
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
       back();
       return true;
     });
     return () => sub.remove();
-  }, [back]);
+  }, [back, modal]);
   const { phase, snapshot, draft, result } = flow;
   const busy = phase === 'saving';
-  return (
+  const content = (
     <NightScreen
       background={require('../../../assets/images/birth-date/background.svg')}
     >
@@ -236,6 +241,20 @@ function BirthDateSession({
         ) : null}
       </ScrollView>
     </NightScreen>
+  );
+  return modal ? (
+    <Modal
+      visible
+      animationType="none"
+      onRequestClose={back}
+      testID="birth-date-modal"
+      statusBarTranslucent
+      navigationBarTranslucent
+    >
+      {content}
+    </Modal>
+  ) : (
+    content
   );
 }
 const styles = StyleSheet.create({

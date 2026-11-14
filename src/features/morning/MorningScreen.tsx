@@ -102,6 +102,7 @@ function MorningSession({
   const [deferredWritingOpen, setDeferredWritingOpen] = useState(false);
   const [fortuneOpen, setFortuneOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [fortuneVersion, setFortuneVersion] = useState(0);
   const flow = useMorningFlow(actions, onExit);
   const { morning, busy, failure } = flow;
   const hasCandidates =
@@ -179,6 +180,7 @@ function MorningSession({
             <View style={styles.pasture}>
               {actions.fortune && (
                 <FortuneSection
+                  key={fortuneVersion}
                   actions={actions.fortune}
                   onVisibilityChange={setFortuneOpen}
                   blocked={
@@ -416,7 +418,10 @@ function MorningSession({
         <SettingsScreen
           modal
           actions={actions.settings}
-          onBack={() => setSettingsOpen(false)}
+          onBack={() => {
+            setSettingsOpen(false);
+            setFortuneVersion((value) => value + 1);
+          }}
         />
       )}
     </DayScreen>

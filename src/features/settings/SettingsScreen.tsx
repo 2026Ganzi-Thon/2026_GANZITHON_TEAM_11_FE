@@ -18,6 +18,7 @@ import type { SettingsActions } from './types';
 import { Header } from './Header';
 import { WorryListScreen } from './WorryListScreen';
 import { useSettings } from './useSettings';
+import { BirthDateScreen } from '../birthDate/BirthDateScreen';
 export function SettingsScreen(props: Parameters<typeof SettingsSession>[0]) {
   const [source, setSource] = useState({ actions: props.actions, version: 0 });
   if (source.actions !== props.actions)
@@ -36,6 +37,7 @@ function SettingsSession({
   const flow = useSettings(actions);
   const { refresh } = flow;
   const [list, setList] = useState(false);
+  const [birthDateOpen, setBirthDateOpen] = useState(false);
   const back = () => {
     if (list) {
       setList(false);
@@ -101,6 +103,11 @@ function SettingsSession({
                   <Text accessibilityRole="alert" style={styles.body}>
                     기록 개수를 확인하지 못했어요.
                   </Text>
+                  {actions.birthDate && (
+                    <Text style={styles.body}>
+                      생일 정보도 다시 확인해 주세요.
+                    </Text>
+                  )}
                   <Button label="기록 개수 다시 확인" onPress={flow.retry} />
                 </View>
               )}
@@ -136,6 +143,18 @@ function SettingsSession({
               <View style={styles.panel}>
                 <Row
                   label="생년월일"
+                  value={
+                    flow.loading
+                      ? '생일 확인 중'
+                      : flow.error
+                        ? '생일 확인 필요'
+                        : data.user.birth_date
+                          ? `${data.user.birth_date.replaceAll('-', '.')} · 수정 ${data.user.birth_date_edits_remaining}회`
+                          : '등록된 생일 없음'
+                  }
+                  onPress={
+                    actions.birthDate ? () => setBirthDateOpen(true) : undefined
+                  }
                   icon={require('../../../assets/images/settings/birthday.svg')}
                 />
                 <View style={styles.divider} />
@@ -175,7 +194,7 @@ function SettingsSession({
         </ScrollView>
       </NightScreen>
     );
-  return modal ? (
+  const screen = modal ? (
     <Modal
       visible
       animationType="none"
@@ -191,6 +210,21 @@ function SettingsSession({
     <>
       <StatusBar style="light" />
       {content}
+    </>
+  );
+  return (
+    <>
+      {screen}
+      {birthDateOpen && actions.birthDate && (
+        <BirthDateScreen
+          modal
+          actions={actions.birthDate}
+          onBack={() => {
+            setBirthDateOpen(false);
+            refresh();
+          }}
+        />
+      )}
     </>
   );
 }

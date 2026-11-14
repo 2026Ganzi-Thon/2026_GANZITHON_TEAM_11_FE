@@ -1,4 +1,5 @@
 import { ApiError } from '../../api/errors';
+import { parseDate } from '../birthDate/date';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { SettingsActions, SettingsData } from './types';
 export function useSettings(actions: SettingsActions) {
@@ -28,6 +29,8 @@ export function useSettings(actions: SettingsActions) {
           !data.user.id?.trim() ||
           typeof data.user.email !== 'string' ||
           !data.user.email.trim() ||
+          (data.user.birth_date !== null && !parseDate(data.user.birth_date)) ||
+          ![0, 1].includes(data.user.birth_date_edits_remaining) ||
           !data.user.stats ||
           ![
             data.user.stats.night_count,

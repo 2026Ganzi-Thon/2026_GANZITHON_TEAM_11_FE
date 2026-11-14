@@ -47,11 +47,16 @@ export function MyCardsScreen({
   actions,
   deletions,
   onBack,
+  onWrite,
+  submissionConfirmed = false,
 }: {
   actions: MyCardsActions;
   deletions?: MyCardDeleteActions;
   onBack: () => void;
+  onWrite?: () => void;
+  submissionConfirmed?: boolean;
 }) {
+  const [confirmNotice, setConfirmNotice] = useState(submissionConfirmed);
   const [filter, setFilter] = useState<MyCardsFilter>('all');
   const [selection, setSelection] = useState<{
     source: MyCardsActions;
@@ -59,6 +64,7 @@ export function MyCardsScreen({
     item: Submission;
   } | null>(null);
   const list = useMyCards(actions, filter);
+  if (confirmNotice && list.loaded) setConfirmNotice(false);
   const body = useRef<ComponentRef<typeof ScrollView>>(null);
   const closed = useRef(false);
   const { cancel } = list;
@@ -89,13 +95,14 @@ export function MyCardsScreen({
           </Text>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="카드 쓰기 · 준비 중"
-            accessibilityState={{ disabled: true }}
-            disabled
-            style={[styles.write, styles.disabled]}
+            accessibilityLabel={onWrite ? '카드 쓰기' : '카드 쓰기 · 준비 중'}
+            accessibilityState={{ disabled: !onWrite }}
+            disabled={!onWrite}
+            onPress={onWrite}
+            style={[styles.write, !onWrite && styles.disabled]}
           >
             <Text style={styles.label}>+ 카드 쓰기</Text>
-            <Text style={styles.caption}>준비 중</Text>
+            {!onWrite && <Text style={styles.caption}>준비 중</Text>}
           </Pressable>
         </View>
         <View style={styles.filters} accessibilityRole="tablist">
@@ -116,6 +123,15 @@ export function MyCardsScreen({
             </Pressable>
           ))}
         </View>
+        {confirmNotice && !list.loaded && (
+          <View style={styles.panel}>
+            <Text accessibilityLiveRegion="polite" style={styles.label}>
+              {list.error === 'initial'
+                ? '카드는 접수됐어요. 목록을 다시 불러와 주세요.'
+                : '카드는 접수됐어요. 목록을 불러오고 있어요.'}
+            </Text>
+          </View>
+        )}
         {!list.loaded && list.loading ? (
           <View style={styles.panel} accessibilityLiveRegion="polite">
             <ActivityIndicator color={theme.color.text} />

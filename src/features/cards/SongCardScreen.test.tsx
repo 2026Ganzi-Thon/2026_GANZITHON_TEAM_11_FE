@@ -257,7 +257,7 @@ it('accepts a selected long-title fixture without replacing its metadata', async
   await tick(400);
   expect(screen.getByText('카드를 맡겼어요')).toBeTruthy();
 });
-it('blocks a new edited submission after a prior response was lost but already committed', async () => {
+it('blocks an edited submission while allowing the original lost receipt to be recovered', async () => {
   const { submit } = await setup('lost-response');
   await choose();
   await press('검수 요청하기');
@@ -265,9 +265,33 @@ it('blocks a new edited submission after a prior response was lost but already c
   await change('추천 한 줄', '응답 유실 뒤 바꾼 추천');
   await press('검수 요청하기');
   await tick(400);
-  expect(submit.mock.calls[1][1]).not.toBe(submit.mock.calls[0][1]);
-  expect(screen.getByText('작성할 수 있는 밤을 확인해 주세요')).toBeTruthy();
+  expect(submit).toHaveBeenCalledTimes(1);
+  expect(screen.getByRole('button', { name: '검수 요청하기' })).toBeDisabled();
   expect(screen.queryByText('카드를 맡겼어요')).toBeNull();
+  await press('이전 접수 확인');
+  await tick(400);
+  expect(submit.mock.calls[1].slice(0, 2)).toEqual(
+    submit.mock.calls[0].slice(0, 2),
+  );
+  expect(screen.getByText('카드를 맡겼어요')).toBeTruthy();
+});
+it('checks the original song receipt after the draft selects a different track', async () => {
+  const { submit } = await setup('lost-response');
+  await choose();
+  await press('검수 요청하기');
+  await tick(400);
+  await tick();
+  await fireEvent.press(
+    screen.getByRole('radio', { name: '밤편지 (Live) · 아이유' }),
+  );
+  await change('추천 한 줄', '다른 곡을 고른 편집 초안');
+  await press('이전 접수 확인');
+  await tick(400);
+  expect(submit.mock.calls[1].slice(0, 2)).toEqual(
+    submit.mock.calls[0].slice(0, 2),
+  );
+  expect(submit.mock.calls[1][0].content.track_id).toBe('preview-track-1');
+  expect(screen.getByText('카드를 맡겼어요')).toBeTruthy();
 });
 it('aborts the old submission and starts a fresh draft when its source changes', async () => {
   const { submit, rerender } = await setup('slow-submit');

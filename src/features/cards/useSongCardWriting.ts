@@ -7,10 +7,20 @@ import {
   type SongCardActions,
   type SongCardInput,
   type SongCardRequest,
+  type SongSelection,
 } from './songTypes';
+import {
+  createSubmissionRecovery,
+  submissionWasRejected,
+} from './useSubmissionRecovery';
+const useRecovery = createSubmissionRecovery<{
+  body: SongCardRequest;
+  key: string;
+  selection: Exclude<SongSelection, null>;
+}>();
 export function useSongCardWriting(
   actions: SongCardActions,
-  sourceNightId: string,
+  sourceNightId: string | undefined,
   onBack: () => void,
   onDone: () => void,
 ) {
@@ -18,6 +28,7 @@ export function useSongCardWriting(
   const [step, setStep] = useState<'write' | 'support' | 'complete'>('write');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
+  const recovery = useRecovery(actions, sourceNightId);
   const active = useRef(true),
     request = useRef<AbortController | null>(null);
   useEffect(() => {
@@ -42,41 +53,57 @@ export function useSongCardWriting(
     setDraft(actions.writeDraft({ ...draft, ...value }));
     setError(null);
   }
-  async function submit() {
-    if (
-      !active.current ||
-      request.current ||
-      !valid ||
-      blocked ||
-      step !== 'write' ||
-      !draft.selection
-    )
+  const selection = draft.selection;
+  const body: SongCardRequest | null = selection
+    ? {
+        kind: 'song',
+        category_id: draft.category_id!,
+        ...(sourceNightId === undefined
+          ? {}
+          : { source_night_id: sourceNightId }),
+        content: {
+          recommendation: draft.recommendation.trim(),
+          ...(selection.mode === 'search'
+            ? { track_id: selection.track.id }
+            : {
+                manual_track: {
+                  title: selection.title.trim(),
+                  artist: selection.artist.trim(),
+                },
+              }),
+        },
+      }
+    : null;
+  const recoveryChanged =
+    recovery.value !== null &&
+    JSON.stringify(body) !== JSON.stringify(recovery.value.body);
+  async function submit(recover = false) {
+    if (!active.current || request.current || step !== 'write') return;
+    if (recover ? !recovery.value : !valid || blocked || recoveryChanged)
       return;
-    const selection = draft.selection;
-    const body: SongCardRequest = {
-      kind: 'song',
-      category_id: draft.category_id!,
-      source_night_id: sourceNightId,
-      content: {
-        recommendation: draft.recommendation.trim(),
-        ...(selection.mode === 'search'
-          ? { track_id: selection.track.id }
-          : {
-              manual_track: {
-                title: selection.title.trim(),
-                artist: selection.artist.trim(),
-              },
-            }),
-      },
-    };
+    let submission = recovery.value;
+    if (!submission) {
+      if (!body || !selection) return;
+      submission = {
+        body,
+        key: draft.operationKey,
+        selection:
+          selection.mode === 'search'
+            ? { mode: 'search', track: { ...selection.track } }
+            : { ...selection },
+      };
+    }
+    const original = submission.body;
+    const expected = submission.selection;
     const controller = new AbortController();
     request.current = controller;
     setPending(true);
     setError(null);
+    recovery.remember(submission);
     try {
       const receipt = await actions.submit(
-        body,
-        draft.operationKey,
+        original,
+        submission.key,
         controller.signal,
       );
       if (
@@ -89,18 +116,19 @@ export function useSongCardWriting(
       if (
         !receipt?.id?.trim() ||
         receipt.kind !== 'song' ||
-        receipt.category_id !== body.category_id ||
+        receipt.category_id !== original.category_id ||
         receipt.moderation_status !== 'pending' ||
-        receipt.content?.recommendation !== body.content.recommendation ||
+        receipt.content?.recommendation !== original.content.recommendation ||
         !track?.id?.trim() ||
-        (selection.mode === 'search'
-          ? track.id !== selection.track.id ||
-            track.title !== selection.track.title ||
-            track.artist !== selection.track.artist
-          : track.title !== selection.title.trim() ||
-            track.artist !== selection.artist.trim())
+        (expected.mode === 'search'
+          ? track.id !== expected.track.id ||
+            track.title !== expected.track.title ||
+            track.artist !== expected.track.artist
+          : track.title !== expected.title.trim() ||
+            track.artist !== expected.artist.trim())
       )
         throw new ApiError('invalid-response');
+      recovery.clear(submission);
       setStep('complete');
     } catch (e) {
       if (
@@ -110,6 +138,7 @@ export function useSongCardWriting(
       )
         return;
       const problem = e instanceof ApiError ? e : new ApiError('network');
+      if (submissionWasRejected(problem)) recovery.clear(submission);
       setError(problem);
       if (problem.code === 'SUPPORT_RECOMMENDED') setStep('support');
     } finally {
@@ -138,6 +167,9 @@ export function useSongCardWriting(
     pending,
     error,
     valid,
+    recoveryChanged,
+    originalSubmission: recovery.value,
+    recover: () => void submit(true),
     blocked,
     length,
     update,

@@ -1,8 +1,15 @@
+import type { WorryDeletions } from '../worries/deletions';
 import { useEffect, useMemo, useSyncExternalStore } from 'react';
 import type { WorryListActions } from './types';
 import { createWorryListController } from './worryListController';
-export function useWorryList(actions: WorryListActions) {
-  const source = useMemo(() => createWorryListController(actions), [actions]);
+export function useWorryList(
+  actions: WorryListActions,
+  deletions?: WorryDeletions,
+) {
+  const source = useMemo(
+    () => createWorryListController(actions, deletions),
+    [actions, deletions],
+  );
   const data = useSyncExternalStore(
     source.subscribe,
     source.getSnapshot,

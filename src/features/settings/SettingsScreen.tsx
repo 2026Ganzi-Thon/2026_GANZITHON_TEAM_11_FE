@@ -34,10 +34,13 @@ function SettingsSession({
   modal?: boolean;
 }) {
   const flow = useSettings(actions);
+  const { refresh } = flow;
   const [list, setList] = useState(false);
   const back = () => {
-    if (list) setList(false);
-    else {
+    if (list) {
+      setList(false);
+      refresh();
+    } else {
       flow.cancel();
       onBack();
     }
@@ -45,19 +48,26 @@ function SettingsSession({
   useEffect(() => {
     if (modal) return;
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (list) setList(false);
-      else onBack();
+      if (list) {
+        setList(false);
+        refresh();
+      } else onBack();
       return true;
     });
     return () => sub.remove();
-  }, [list, modal, onBack]);
+  }, [list, modal, onBack, refresh]);
   const data = flow.data;
   const content =
     list && data ? (
       <WorryListScreen
         actions={actions.worries}
-        total={data.user.stats.worry_record_count}
-        onBack={() => setList(false)}
+        total={
+          flow.loading || flow.error ? null : data.user.stats.worry_record_count
+        }
+        totalError={flow.error}
+        onRetryTotal={flow.retry}
+        deletions={actions.deletions}
+        onBack={back}
       />
     ) : (
       <NightScreen
@@ -83,6 +93,17 @@ function SettingsSession({
             </View>
           ) : (
             <>
+              {flow.loading && (
+                <Text style={styles.caption}>기록 개수를 확인하고 있어요.</Text>
+              )}
+              {flow.error && (
+                <View style={[styles.panel, styles.state]}>
+                  <Text accessibilityRole="alert" style={styles.body}>
+                    기록 개수를 확인하지 못했어요.
+                  </Text>
+                  <Button label="기록 개수 다시 확인" onPress={flow.retry} />
+                </View>
+              )}
               <View style={styles.profile}>
                 <View style={styles.sheepBox}>
                   <Image
@@ -120,7 +141,13 @@ function SettingsSession({
                 <View style={styles.divider} />
                 <Row
                   label="고민 기록"
-                  value={`${data.user.stats.worry_record_count}개`}
+                  value={
+                    flow.loading
+                      ? '개수 확인 중'
+                      : flow.error
+                        ? '개수 확인 필요'
+                        : `${data.user.stats.worry_record_count}개`
+                  }
                   icon={require('../../../assets/images/settings/worry.svg')}
                   onPress={() => setList(true)}
                 />

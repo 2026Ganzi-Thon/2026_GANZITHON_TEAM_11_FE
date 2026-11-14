@@ -1,3 +1,4 @@
+import type { WorryDeletions } from '../worries/deletions';
 import type { User } from '../../api/contracts';
 import type { Reflection } from '../morning/reflection';
 /** Read projection; GET /me/worries field mapping awaits server integration. */
@@ -20,6 +21,7 @@ export interface SettingsData {
   reminder: { enabled: boolean; local_time: string | null };
 }
 export interface SettingsActions {
+  deletions?: WorryDeletions;
   loadMe(signal: AbortSignal): Promise<SettingsData>;
   worries: WorryListActions;
 }

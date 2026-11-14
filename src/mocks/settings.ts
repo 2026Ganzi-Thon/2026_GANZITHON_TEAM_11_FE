@@ -1,3 +1,4 @@
+import { createMockWorryRecords, type MockWorryRecords } from './worryRecords';
 import { ApiError } from '../api/errors';
 import type { SettingsActions, WorryRecord } from '../features/settings/types';
 export type SettingsScenario =
@@ -8,14 +9,18 @@ export type SettingsScenario =
   | 'more-retry'
   | 'slow'
   | 'long'
-  | 'paged';
+  | 'paged'
+  | 'delete-retry'
+  | 'delete-lost'
+  | 'delete-slow'
+  | 'refresh-retry'
+  | 'count-retry';
 type StoredRecord = Omit<WorryRecord, 'worry_text'> & {
   worry_text: string | null;
 };
-/** Fixed account samples and read-only pages. No account or worry mutations. */
-export function createMockSettings(
+export function createSettingsWorryRecords(
   scenario: SettingsScenario = 'success',
-): SettingsActions {
+): MockWorryRecords {
   const records: StoredRecord[] = [
     {
       night_id: 'preview-night',
@@ -59,19 +64,53 @@ export function createMockSettings(
       reflection: { answer: 'smaller', message: '원문 없이 남은 회고' },
     },
   ];
-  const visible = () =>
-    scenario === 'empty'
-      ? []
-      : records
-          .filter(
-            (r): r is WorryRecord =>
-              r.category_id !== 'none' && !!r.worry_text?.trim(),
-          )
-          .sort(
-            (a, b) =>
-              b.night_date.localeCompare(a.night_date) ||
-              b.night_id.localeCompare(a.night_id),
-          );
+  const dates = [
+    '2026-11-10',
+    '2026-11-09',
+    '2026-11-08',
+    '2026-11-07',
+    '2026-11-06',
+    '2026-11-05',
+    '2026-11-04',
+  ];
+  return createMockWorryRecords(
+    dates.map((date, index) => {
+      const record = records[index];
+      const text = scenario === 'empty' ? null : (record?.worry_text ?? null);
+      return {
+        id: index === 0 ? 'preview-night' : `preview-earlier-${index - 1}`,
+        night_date: date,
+        category_id: record?.category_id ?? 'none',
+        worry_text: text,
+        worry_saved_at: text ? `${date}T16:12:00Z` : null,
+        entrusted: true,
+        reflection: record?.reflection ?? null,
+      };
+    }),
+  );
+}
+/** Fixed account samples using the same original records as connected screens. */
+export function createMockSettings(
+  scenario: SettingsScenario = 'success',
+  records: MockWorryRecords = createSettingsWorryRecords(scenario),
+): SettingsActions {
+  const visible = (): WorryRecord[] =>
+    records
+      .all()
+      .filter((r) => r.category_id !== 'none' && !!r.worry_text?.trim())
+      .map((r) => ({
+        night_id: r.id,
+        night_date: r.night_date,
+        category_id: r.category_id,
+        worry_text: r.worry_text!,
+        reflection: r.reflection,
+      }))
+      .sort(
+        (a, b) =>
+          b.night_date.localeCompare(a.night_date) ||
+          b.night_id.localeCompare(a.night_id),
+      );
+  const initialCount = visible().length;
   const failed = new Set<string>();
   function delayed<T>(
     signal: AbortSignal,
@@ -98,7 +137,13 @@ export function createMockSettings(
             if (
               ((scenario === 'profile-retry' && key === 'me') ||
                 (scenario === 'list-retry' && key === 'first') ||
-                (scenario === 'more-retry' && key === 'more')) &&
+                (scenario === 'more-retry' && key === 'more') ||
+                (scenario === 'refresh-retry' &&
+                  key === 'first' &&
+                  visible().length < initialCount) ||
+                (scenario === 'count-retry' &&
+                  key === 'me' &&
+                  visible().length < initialCount)) &&
               !failed.has(key)
             ) {
               failed.add(key);

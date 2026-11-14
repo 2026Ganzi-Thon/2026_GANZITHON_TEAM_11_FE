@@ -1,3 +1,4 @@
+import type { WorryDeletions } from '../worries/deletions';
 import { ApiError } from '../../api/errors';
 import { categories } from '../night/categories';
 import { reflectionLabels } from '../morning/reflection';
@@ -7,7 +8,7 @@ interface Snapshot {
   nextCursor: string | null;
   loaded: boolean;
   loading: boolean;
-  error: 'initial' | 'more' | null;
+  error: 'initial' | 'more' | 'refresh' | null;
 }
 function validate(page: WorryPage) {
   if (
@@ -35,7 +36,10 @@ function validate(page: WorryPage) {
   }
 }
 /** One source owns the read-only pages. A later deletion source can invalidate these reads. */
-export function createWorryListController(actions: WorryListActions) {
+export function createWorryListController(
+  actions: WorryListActions,
+  deletions?: WorryDeletions,
+) {
   let active = false,
     request: AbortController | null = null;
   let data: Snapshot = {
@@ -45,6 +49,7 @@ export function createWorryListController(actions: WorryListActions) {
     loading: true,
     error: null,
   };
+  let unsubscribe: (() => void) | undefined;
   const visited = new Set<string | null>();
   const listeners = new Set<() => void>();
   const publish = (next: Snapshot) => {
@@ -77,7 +82,9 @@ export function createWorryListController(actions: WorryListActions) {
       );
       visited.add(cursor);
       publish({
-        items: [...merged.values()],
+        items: [...merged.values()].filter(
+          (item) => !deletions?.isDeleted(item.night_id),
+        ),
         nextCursor: page.next_cursor,
         loaded: true,
         loading: false,
@@ -88,7 +95,7 @@ export function createWorryListController(actions: WorryListActions) {
         publish({
           ...data,
           loading: false,
-          error: cursor === null ? 'initial' : 'more',
+          error: cursor !== null ? 'more' : data.loaded ? 'refresh' : 'initial',
         });
     } finally {
       if (request === controller) request = null;
@@ -103,11 +110,30 @@ export function createWorryListController(actions: WorryListActions) {
       };
     },
     start() {
+      if (active) return;
       active = true;
+      visited.clear();
+      unsubscribe = deletions?.subscribe(() => {
+        if (!active) return;
+        request?.abort();
+        request = null;
+        visited.clear();
+        publish({
+          ...data,
+          items: data.items.filter(
+            (item) => !deletions.isDeleted(item.night_id),
+          ),
+          nextCursor: null,
+          error: null,
+        });
+        void load(null);
+      });
       void load(null);
     },
     stop() {
       active = false;
+      unsubscribe?.();
+      unsubscribe = undefined;
       request?.abort();
       request = null;
     },

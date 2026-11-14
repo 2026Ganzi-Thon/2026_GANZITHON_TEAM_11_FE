@@ -1,3 +1,4 @@
+import { validReminder } from '../reminder/time';
 import { ApiError } from '../../api/errors';
 import { parseDate } from '../birthDate/date';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -26,6 +27,7 @@ export function useSettings(actions: SettingsActions) {
         if (controller.signal.aborted) return;
         if (
           !data?.user ||
+          !validReminder(data.reminder) ||
           !data.user.id?.trim() ||
           typeof data.user.email !== 'string' ||
           !data.user.email.trim() ||

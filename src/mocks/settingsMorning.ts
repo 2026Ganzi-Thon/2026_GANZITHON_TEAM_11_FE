@@ -1,3 +1,4 @@
+import { createMockReminder, type MockReminder } from './reminder';
 import { ApiError } from '../api/errors';
 import type { SettingsData } from '../features/settings/types';
 import { createMockBirthDate, type MockBirthDate } from './birthDate';
@@ -10,6 +11,7 @@ import {
 } from './settings';
 export interface SettingsMorningOptions {
   birthDate?: MockBirthDate;
+  reminder?: MockReminder;
   profileRefreshFailure?: boolean;
   fortuneRefreshFailure?: boolean;
 }
@@ -33,6 +35,7 @@ export function createSettingsMorning(
   );
   const account = options.birthDate ?? createMockBirthDate();
   const initial = account.readSnapshot();
+  const reminder = options.reminder ?? createMockReminder();
   const settings = createMockSettings(scenario, records);
   // Two fixed daily examples; this does not generate or rank real fortunes.
   const taurusFortune = createMockFortune();
@@ -61,6 +64,7 @@ export function createSettingsMorning(
     settings: {
       ...settings,
       birthDate: account,
+      reminder,
       deletions: base.worries,
       loadMe: async (signal: AbortSignal): Promise<SettingsData> => {
         const data = await settings.loadMe(signal);
@@ -75,6 +79,7 @@ export function createSettingsMorning(
         }
         return {
           ...data,
+          reminder: reminder.readSnapshot(),
           user: {
             ...data.user,
             birth_date: profile.birth_date,

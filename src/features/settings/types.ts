@@ -1,4 +1,5 @@
 import type { WorryDeletions } from '../worries/deletions';
+import type { ReminderActions } from '../reminder/types';
 import type { BirthDateActions } from '../birthDate/types';
 import type { User } from '../../api/contracts';
 import type { Reflection } from '../morning/reflection';
@@ -23,6 +24,7 @@ export interface SettingsData {
 }
 export interface SettingsActions {
   birthDate?: BirthDateActions;
+  reminder?: ReminderActions;
   deletions?: WorryDeletions;
   loadMe(signal: AbortSignal): Promise<SettingsData>;
   worries: WorryListActions;

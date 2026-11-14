@@ -93,13 +93,14 @@ export function createDeviceReminder(port: DeviceReminderPort) {
       return { state: 'permission-required', permission: current };
     }
     if (current.channel === 'missing') throw new DeviceReminderError('channel');
-    const existing = await list();
-    if (!existing.some((item) => matchesReminder(item, localTime))) {
-      const id = await perform('schedule', () =>
-        port.schedule({ id: REMINDER_ID, ...time, localTime }),
-      );
-      if (id !== REMINDER_ID) throw new DeviceReminderError('verification');
-    }
+    await list();
+    // Expo stores requests before registering an OS alarm; matching metadata can
+    // survive a failed registration. Reapply the stable ID and require a fresh
+    // native success even after a service restart, without creating a new slot.
+    const id = await perform('schedule', () =>
+      port.schedule({ id: REMINDER_ID, ...time, localTime }),
+    );
+    if (id !== REMINDER_ID) throw new DeviceReminderError('verification');
     // Permission/timezone can change while a native request is pending.
     current = await permission();
     if (!allowed(current) || current.channel === 'missing') {

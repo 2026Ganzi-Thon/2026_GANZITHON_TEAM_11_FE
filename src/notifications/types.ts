@@ -7,7 +7,7 @@ export interface DevicePermission {
   canAskAgain: boolean;
   channel: 'enabled' | 'blocked' | 'missing';
 }
-/** Minimal read projection of the native OS schedule, not account preferences. */
+/** SDK request metadata, not proof of OS alarm registration or account preferences. */
 export interface ScheduledReminder {
   id: string;
   daily: boolean;

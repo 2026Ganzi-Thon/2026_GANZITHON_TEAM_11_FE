@@ -47,9 +47,9 @@ it.each([
   { daily: false },
   { delivery: 'alarmClock' as const },
   { id: 'yangsebam.night-reminder.duplicate' },
-])('does not reuse a stale or incompatible OS request %p', (changed) => {
+])('rejects stale or incompatible SDK request metadata %p', (changed) => {
   expect(matchesReminder({ ...scheduled, ...changed }, '23:15')).toBe(false);
 });
-it('reuses the exact OS request on application restart', () => {
+it('recognizes matching SDK request metadata without proving an OS alarm exists', () => {
   expect(matchesReminder(scheduled, '23:15')).toBe(true);
 });

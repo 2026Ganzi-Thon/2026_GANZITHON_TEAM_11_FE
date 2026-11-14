@@ -2,6 +2,7 @@ import { expect, it, jest } from '@jest/globals';
 import { createDeviceReminder } from './service';
 import { createReminderConnection } from './connection';
 import { fakeDevice } from './__tests__/fakeDevice';
+import { storedDevice } from './__tests__/storedDevice';
 import { ApiError } from '../api/errors';
 import type { ReminderSetting } from './types';
 function account() {
@@ -29,8 +30,10 @@ function account() {
 const on = { enabled: true, local_time: '23:15' };
 it('keeps a committed desired setting successful when scheduling fails, then retries only device reconciliation', async () => {
   const backend = account(),
-    { port, records } = fakeDevice();
-  port.schedule.mockRejectedValueOnce(new Error('native scheduling failed'));
+    { port, records, alarms, registerAlarm } = storedDevice();
+  registerAlarm
+    .mockRejectedValueOnce(new Error('native scheduling failed'))
+    .mockRejectedValueOnce(new Error('native scheduling still failed'));
   const connected = createReminderConnection(
     backend,
     createDeviceReminder(port),
@@ -39,6 +42,13 @@ it('keeps a committed desired setting successful when scheduling fails, then ret
     connected.save(on, new AbortController().signal),
   ).resolves.toEqual(on);
   expect(connected.device.getSnapshot().phase).toBe('error');
+  expect(records.size).toBe(1);
+  expect(alarms.size).toBe(0);
+  await connected.device.refresh();
+  expect(connected.device.getSnapshot()).toMatchObject({ phase: 'error' });
+  expect(connected.device.getSnapshot().state).toBeUndefined();
+  expect(alarms.size).toBe(0);
+  await expect(backend.load(new AbortController().signal)).resolves.toEqual(on);
   await connected.device.refresh();
   expect(connected.device.getSnapshot()).toMatchObject({
     phase: 'ready',
@@ -46,6 +56,8 @@ it('keeps a committed desired setting successful when scheduling fails, then ret
   });
   expect(backend.save).toHaveBeenCalledTimes(1);
   expect(records.size).toBe(1);
+  expect(alarms.size).toBe(1);
+  expect(port.schedule).toHaveBeenCalledTimes(3);
 });
 it('rechecks a committed but lost write and applies its actual setting without silently confirming the write receipt', async () => {
   const backend = account(),

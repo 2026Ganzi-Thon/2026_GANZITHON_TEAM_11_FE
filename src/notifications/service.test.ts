@@ -1,10 +1,11 @@
 import { expect, it } from '@jest/globals';
 import { createDeviceReminder } from './service';
 import { fakeDevice, scheduled } from './__tests__/fakeDevice';
+import { storedDevice } from './__tests__/storedDevice';
 import type { DevicePermission } from './types';
 const on = { enabled: true, local_time: '23:15' },
   off = { enabled: false, local_time: null };
-it('registers once, recovers the same OS request after a restart, and preserves unrelated notifications', async () => {
+it('reregisters the same identifier after a restart without duplicating or touching unrelated notifications', async () => {
   const { port, records } = fakeDevice();
   records.set('unrelated', scheduled('unrelated'));
   records.set(
@@ -23,7 +24,7 @@ it('registers once, recovers the same OS request after a restart, and preserves 
     'yangsebam.night-reminder.daily',
   ]);
   await createDeviceReminder(port).sync(on);
-  expect(port.schedule).toHaveBeenCalledTimes(1);
+  expect(port.schedule).toHaveBeenCalledTimes(2);
   expect(port.schedule).toHaveBeenCalledWith({
     id: 'yangsebam.night-reminder.daily',
     localTime: '23:15',
@@ -81,19 +82,21 @@ it('replaces an old time using the same identifier', async () => {
   ]);
   expect(port.cancel).not.toHaveBeenCalled();
 });
-it('recovers a schedule reply lost after native commit without adding another request', async () => {
-  const { port, records } = fakeDevice();
+it('reregisters after a lost reply using the same identifier without adding another request', async () => {
+  const { port, records, alarms } = storedDevice();
   port.schedule.mockImplementationOnce(async (request) => {
     records.set(request.id, scheduled(request.id, request.localTime));
+    alarms.set(request.id, scheduled(request.id, request.localTime));
     throw new Error('lost reply');
   });
   const device = createDeviceReminder(port);
   await expect(device.sync(on)).rejects.toMatchObject({ code: 'schedule' });
   expect(await device.sync(on)).toMatchObject({ state: 'scheduled' });
   expect(records.size).toBe(1);
-  expect(port.schedule).toHaveBeenCalledTimes(1);
+  expect(alarms.size).toBe(1);
+  expect(port.schedule).toHaveBeenCalledTimes(2);
 });
-it('retries partial duplicate cleanup without replacing an already correct request', async () => {
+it('retries partial duplicate cleanup after reregistering the same identifier', async () => {
   const { port, records } = fakeDevice();
   records.set('yangsebam.night-reminder.daily', scheduled());
   records.set(
@@ -105,9 +108,9 @@ it('retries partial duplicate cleanup without replacing an already correct reque
   await expect(device.sync(on)).rejects.toMatchObject({ code: 'cancel' });
   await expect(device.sync(on)).resolves.toMatchObject({ state: 'scheduled' });
   expect(records.size).toBe(1);
-  expect(port.schedule).not.toHaveBeenCalled();
+  expect(port.schedule).toHaveBeenCalledTimes(2);
 });
-it('verifies actual registration instead of trusting a returned ID', async () => {
+it('verifies stored metadata after native registration instead of trusting only a returned ID', async () => {
   const { port } = fakeDevice();
   port.schedule.mockResolvedValue('yangsebam.night-reminder.daily');
   await expect(createDeviceReminder(port).sync(on)).rejects.toMatchObject({

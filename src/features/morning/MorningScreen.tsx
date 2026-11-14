@@ -1,3 +1,4 @@
+import { SettingsScreen } from '../settings/SettingsScreen';
 import { SavedSongsScreen } from '../songs/SavedSongsScreen';
 import { songExternal } from '../songs/songExternal';
 import { ReflectionScreen } from './ReflectionScreen';
@@ -100,6 +101,7 @@ function MorningSession({
   const [reflectionOpen, setReflectionOpen] = useState(false);
   const [deferredWritingOpen, setDeferredWritingOpen] = useState(false);
   const [fortuneOpen, setFortuneOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const flow = useMorningFlow(actions, onExit);
   const { morning, busy, failure } = flow;
   const hasCandidates =
@@ -116,10 +118,14 @@ function MorningSession({
               나의 양떼
             </Text>
             <Text style={styles.text}>밤을 함께 보낸 양들이 쉬고 있어요.</Text>
+            {actions.settings && (
+              <Action label="설정 열기" onPress={() => setSettingsOpen(true)} />
+            )}
             {actions.receivedYarn && (
               <ReceivedYarnSection
                 actions={actions.receivedYarn}
                 blocked={
+                  settingsOpen ||
                   detailId !== null ||
                   songsOpen ||
                   reflectionOpen ||
@@ -176,6 +182,7 @@ function MorningSession({
                   actions={actions.fortune}
                   onVisibilityChange={setFortuneOpen}
                   blocked={
+                    settingsOpen ||
                     detailId !== null ||
                     songsOpen ||
                     reflectionOpen ||
@@ -405,6 +412,13 @@ function MorningSession({
           />
         )}
       </Modal>
+      {settingsOpen && actions.settings && (
+        <SettingsScreen
+          modal
+          actions={actions.settings}
+          onBack={() => setSettingsOpen(false)}
+        />
+      )}
     </DayScreen>
   );
 }

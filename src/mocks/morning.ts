@@ -1,9 +1,16 @@
 import {
+  createMockWorryDeletion,
+  type WorryDeletionScenario,
+} from './worryDeletion';
+import type {
+  ReflectionActions,
+  ReflectionRecord,
+} from '../features/morning/reflection';
+import {
   initialReflection,
   reflectionReplies,
   type ReflectionScenario,
 } from './reflection';
-import type { ReflectionActions } from '../features/morning/reflection';
 import { ApiError } from '../api/errors';
 import { createMockSheepDetail, type DetailScenario } from './sheepDetail';
 import type { SheepDetailLoad } from '../features/flock/types';
@@ -57,6 +64,7 @@ export function createMockMorning(
   scenario: MorningScenario = 'success',
   detailScenario: DetailScenario = 'success',
   reflectionScenario: ReflectionScenario = 'success',
+  deletionScenario?: WorryDeletionScenario,
 ): MorningActions & {
   loadSheep: SheepDetailLoad;
   reflection: ReflectionActions;
@@ -169,10 +177,32 @@ export function createMockMorning(
         : reflectionScenario === 'long'
           ? '내일의 일을 생각하느라 잠이 오지 않아요. '.repeat(15)
           : '면접 결과가 내일 나오는데 계속 생각나서 잠이 안 와요.',
-    worry_saved_at: '2026-11-10T16:12:00Z',
+    worry_saved_at: '2026-11-10T16:12:00Z' as string | null,
     entrusted: true,
   };
+  const records = new Map<string, ReflectionRecord['night']>([
+    [night.id, night],
+    ...earlier.map((sheep): [string, ReflectionRecord['night']] => [
+      sheep.night_id,
+      {
+        ...night,
+        id: sheep.night_id,
+        night_date: sheep.night_date,
+        category_id: 'career',
+        worry_text: '면접 결과가 내일 나오는데 계속 생각나서 잠이 안 와요.',
+      },
+    ]),
+  ]);
+  const worries = deletionScenario
+    ? createMockWorryDeletion((nightId) => {
+        const record = records.get(nightId);
+        if (!record) conflict('NOT_FOUND', 404);
+        record.worry_text = null;
+        record.worry_saved_at = null;
+      }, deletionScenario)
+    : undefined;
   return {
+    worries,
     reflection: {
       load: (nightId, signal) =>
         delayed(signal, () => {
@@ -218,12 +248,8 @@ export function createMockMorning(
         sheep_count: candidate ? candidate.sheep_count : 15,
         night: {
           night_date: sheep.night_date,
-          category_id:
-            sheep.night_id === night.id ? night.category_id : 'career',
-          worry_text:
-            sheep.night_id === night.id
-              ? night.worry_text
-              : '면접 결과가 내일 나오는데 계속 생각나서 잠이 안 와요.',
+          category_id: records.get(sheep.night_id)!.category_id,
+          worry_text: records.get(sheep.night_id)!.worry_text,
           reflection: sheep.night_id === night.id ? reflection : null,
         },
       };

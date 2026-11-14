@@ -1,3 +1,4 @@
+import { createMockWorryDeletion } from './worryDeletion';
 import { createMockSongCards } from './songCards';
 import { createMockReceivedYarn } from './receivedYarn';
 import { createMockFortune } from './fortune';
@@ -38,7 +39,8 @@ export type DemoScenario =
   | 'writing-lost-response'
   | 'writing-refresh-retry'
   | 'received-yarn'
-  | 'fortune';
+  | 'fortune'
+  | 'worry-delete';
 function delayed<T>(
   signal: AbortSignal,
   action: () => T,
@@ -256,6 +258,14 @@ export function createNightMorningDemo(scenario: DemoScenario = 'success') {
     songs: SongActions;
     loadSheep: SheepDetailLoad;
   } = {
+    worries:
+      scenario === 'worry-delete'
+        ? createMockWorryDeletion((id) => {
+            checkNight(id);
+            if (!morningOpen || !draft) conflict('NOT_FOUND', 404);
+            draft = { ...draft!, worry_text: null };
+          })
+        : undefined,
     writing: cardWriting,
     fortune: scenario === 'fortune' ? createMockFortune() : undefined,
     receivedYarn:

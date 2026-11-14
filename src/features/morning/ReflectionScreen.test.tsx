@@ -73,7 +73,7 @@ describe('morning reflection', () => {
     expect(await screen.findByText('회고를 저장했어요.')).toBeTruthy();
   });
   it.each(['none', 'deleted'])(
-    'hides worry and residual reflection when %s',
+    'hides new input when %s and preserves saved reflection only for deleted originals',
     async (mode) => {
       const actions = setup({
         load: jest.fn<ReflectionActions['load']>().mockResolvedValue({
@@ -91,7 +91,8 @@ describe('morning reflection', () => {
       );
       expect(screen.queryAllByRole('radio')).toHaveLength(0);
       expect(screen.queryByText('hidden')).toBeNull();
-      expect(screen.queryByText('residual')).toBeNull();
+      if (mode === 'none') expect(screen.queryByText('residual')).toBeNull();
+      else expect(screen.getByText('residual')).toBeTruthy();
     },
   );
   it('skips without saving and aborts an active save on close', async () => {

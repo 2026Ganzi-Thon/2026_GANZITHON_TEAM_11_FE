@@ -1,3 +1,6 @@
+import { useState } from 'react';
+import type { WorryDeletions } from '../worries/deletions';
+import { WorryDeleteDialog } from '../worries/WorryDeleteDialog';
 import {
   ActivityIndicator,
   Pressable,
@@ -93,7 +96,7 @@ function NightRecord({ detail }: { detail: SheepDetail }) {
               : '남아 있는 고민 기록이 없어요.'}
         </Text>
       </View>
-      {hasWorry && night.reflection && (
+      {night.category_id !== 'none' && night.reflection && (
         <View style={styles.record}>
           <Text accessibilityRole="header" style={styles.sectionTitle}>
             그날의 돌아보기
@@ -107,16 +110,44 @@ function NightRecord({ detail }: { detail: SheepDetail }) {
     </>
   );
 }
-export function SheepDetailScreen({
-  sheepId,
-  load,
-  onBack,
-}: {
+type DetailProps = {
   sheepId: string;
   load: SheepDetailLoad;
   onBack: () => void;
-}) {
-  const { result, retry, back } = useSheepDetail(sheepId, load, onBack);
+  worries?: WorryDeletions;
+};
+export function SheepDetailScreen(props: DetailProps) {
+  const [source, setSource] = useState({
+    id: props.sheepId,
+    load: props.load,
+    worries: props.worries,
+    version: 0,
+  });
+  if (
+    source.id !== props.sheepId ||
+    source.load !== props.load ||
+    source.worries !== props.worries
+  ) {
+    setSource({
+      id: props.sheepId,
+      load: props.load,
+      worries: props.worries,
+      version: source.version + 1,
+    });
+  }
+  return <DetailSession key={source.version} {...props} />;
+}
+function DetailSession({ sheepId, load, onBack, worries }: DetailProps) {
+  const [target, setTarget] = useState<{ id: string; date: string } | null>(
+    null,
+  );
+  const [deleted, setDeleted] = useState(false);
+  const { result, retry, back } = useSheepDetail(
+    sheepId,
+    load,
+    onBack,
+    worries,
+  );
   return (
     <DayScreen>
       <View style={styles.header}>
@@ -145,6 +176,36 @@ export function SheepDetailScreen({
           <>
             <SavedCard card={result.detail.card} />
             <NightRecord detail={result.detail} />
+            {worries &&
+              result.detail.night.category_id !== 'none' &&
+              result.detail.night.worry_text?.trim() &&
+              result.detail.sheep.night_id.trim() &&
+              result.detail.night.night_date ===
+                result.detail.sheep.night_date && (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="고민 삭제"
+                  style={styles.retry}
+                  onPress={() =>
+                    setTarget({
+                      id: result.detail.sheep.night_id,
+                      date: result.detail.sheep.night_date,
+                    })
+                  }
+                >
+                  <Text style={styles.writeLabel}>고민 삭제</Text>
+                </Pressable>
+              )}
+            {deleted && (
+              <View style={styles.record}>
+                <Text
+                  accessibilityLiveRegion="polite"
+                  style={styles.recordText}
+                >
+                  고민을 지웠어요. 양과 카드는 그대로예요.
+                </Text>
+              </View>
+            )}
             <View style={styles.spacer} />
             <Pressable
               accessibilityRole="button"
@@ -181,6 +242,18 @@ export function SheepDetailScreen({
           </View>
         )}
       </ScrollView>
+      {target && worries && (
+        <WorryDeleteDialog
+          nightId={target.id}
+          nightDate={target.date}
+          source={worries}
+          onCancel={() => setTarget(null)}
+          onDeleted={() => {
+            setDeleted(true);
+            setTarget(null);
+          }}
+        />
+      )}
     </DayScreen>
   );
 }

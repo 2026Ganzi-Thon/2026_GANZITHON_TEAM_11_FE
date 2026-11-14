@@ -1,3 +1,4 @@
+import { maskDeletedWorry, type WorryDeletions } from '../worries/deletions';
 import { useEffect, useRef, useState } from 'react';
 import { ApiError } from '../../api/errors';
 import type { ReflectionAnswer } from '../flock/types';
@@ -6,6 +7,7 @@ export function useReflection(
   nightId: string,
   actions: ReflectionActions,
   onBack: () => void,
+  worries?: WorryDeletions,
 ) {
   const [attempt, setAttempt] = useState(0);
   const [state, setState] = useState<{
@@ -38,7 +40,17 @@ export function useReflection(
         if (controller.signal.aborted || !record) return;
         if (record.night && record.night.id !== nightId)
           throw new ApiError('invalid-response');
-        setState({ id: nightId, api: actions, phase: 'ready', record });
+        setState({
+          id: nightId,
+          api: actions,
+          phase: 'ready',
+          record: {
+            ...record,
+            night: record.night
+              ? maskDeletedWorry(record.night, nightId, worries)
+              : null,
+          },
+        });
         setSelected(record.reflection?.answer ?? null);
       })
       .catch((error) => {
@@ -62,7 +74,32 @@ export function useReflection(
       active.current?.abort();
       active.current = null;
     };
-  }, [nightId, actions, attempt]);
+  }, [nightId, actions, attempt, worries]);
+  useEffect(
+    () =>
+      worries?.subscribe((deletedId) => {
+        if (deletedId !== nightId || closed.current) return;
+        active.current?.abort();
+        active.current = null;
+        setState((current) => ({
+          ...current,
+          record: current.record
+            ? {
+                ...current.record,
+                night: current.record.night
+                  ? maskDeletedWorry(current.record.night, nightId, worries)
+                  : null,
+              }
+            : undefined,
+        }));
+        setSelected(null);
+        setBusy(false);
+        setFailure(false);
+        setSaved(false);
+        setAttempt((value) => value + 1);
+      }),
+    [nightId, worries],
+  );
   const current =
     state.id === nightId && state.api === actions
       ? state
@@ -79,7 +116,14 @@ export function useReflection(
     onBack();
   };
   const save = async () => {
-    if (!available || !selected || active.current || closed.current) return;
+    if (
+      !available ||
+      !selected ||
+      active.current ||
+      closed.current ||
+      worries?.isDeleted(nightId)
+    )
+      return;
     const controller = new AbortController();
     active.current = controller;
     setBusy(true);

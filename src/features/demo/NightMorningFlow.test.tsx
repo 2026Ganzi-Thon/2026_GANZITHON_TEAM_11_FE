@@ -47,6 +47,54 @@ async function rest() {
   await tick();
 }
 describe('night to morning demo', () => {
+  it('removes the entered worry from detail and morning while retaining adoption and saved reflection', async () => {
+    const demo = createNightMorningDemo('worry-delete');
+    await render(<NightMorningFlow demo={demo} onExit={() => {}} />);
+    await start();
+    await press('다음 양');
+    await press('다음 양');
+    await press('마무리하기');
+    await tick();
+    await rest();
+    await press('이 양 데려오기');
+    await tick();
+    await tick();
+    await press('어젯밤 돌아보기');
+    await tick();
+    await fireEvent.press(screen.getByRole('radio', { name: '작아졌어요' }));
+    await press('회고 저장하기');
+    await tick();
+    await press('양떼 보러 가기');
+    await fireEvent.press(
+      screen.getByRole('button', { name: /^2026-11-12의 양/ }),
+    );
+    await tick();
+    expect(screen.getByText('시연에서 입력한 고민')).toBeTruthy();
+    await press('고민 삭제');
+    await press('지우기');
+    await tick();
+    expect(screen.queryByText('시연에서 입력한 고민')).toBeNull();
+    expect(screen.getByText('봐, 밤엔 커 보였던 거야.')).toBeTruthy();
+    await press('양떼로 돌아가기');
+    expect(
+      screen.getByRole('button', { name: /^2026-11-12의 양/ }),
+    ).toBeTruthy();
+    await press('어젯밤 돌아보기');
+    await tick();
+    expect(screen.queryAllByRole('radio')).toHaveLength(0);
+    expect(screen.getByText('봐, 밤엔 커 보였던 거야.')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: '회고 저장하기' })).toBeNull();
+    await press('양떼로 돌아가기');
+    await press('미리보기 나가기');
+    await press('아침 다시 보기');
+    await tick();
+    await tick();
+    await fireEvent.press(
+      screen.getByRole('button', { name: /^2026-11-12의 양/ }),
+    );
+    await tick();
+    expect(screen.queryByText('시연에서 입력한 고민')).toBeNull();
+  });
   it('connects the night to a daily fortune in home and retains it on morning reentry', async () => {
     const demo = createNightMorningDemo('fortune');
     const load = jest.spyOn(demo.morning.fortune!, 'load');

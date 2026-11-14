@@ -48,7 +48,6 @@ export function createMockSheepDetail(
             detail.card = { ...detail.card, available: false, content: null };
           if (scenario === 'deleted-worry') {
             detail.night.worry_text = null;
-            detail.night.reflection = null;
           }
           if (scenario === 'no-worry') {
             detail.night.category_id = 'none';

@@ -14,6 +14,10 @@ export default function StartScreen() {
         {__DEV__ && (
           <>
             <Button
+              label="고민 삭제 미리보기"
+              onPress={() => router.push('/dev/worry-deletion')}
+            />
+            <Button
               label="오늘의 운세 미리보기"
               onPress={() => router.push('/dev/fortune')}
             />

@@ -1,5 +1,6 @@
 import { createMockSongCards } from './songCards';
 import { createMockReceivedYarn } from './receivedYarn';
+import { createMockFortune } from './fortune';
 import { createMockCardWriting } from './cardWriting';
 import { createMockYarn } from './yarn';
 import { createMockFluff } from './fluff';
@@ -36,7 +37,8 @@ export type DemoScenario =
   | 'writing-retry'
   | 'writing-lost-response'
   | 'writing-refresh-retry'
-  | 'received-yarn';
+  | 'received-yarn'
+  | 'fortune';
 function delayed<T>(
   signal: AbortSignal,
   action: () => T,
@@ -255,6 +257,7 @@ export function createNightMorningDemo(scenario: DemoScenario = 'success') {
     loadSheep: SheepDetailLoad;
   } = {
     writing: cardWriting,
+    fortune: scenario === 'fortune' ? createMockFortune() : undefined,
     receivedYarn:
       scenario === 'received-yarn' ? createMockReceivedYarn() : undefined,
     reflection: reflectionActions,

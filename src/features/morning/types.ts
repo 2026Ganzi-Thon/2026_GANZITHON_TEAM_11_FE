@@ -3,6 +3,7 @@ import type { ReflectionActions } from './reflection';
 import type { Card } from '../../api/contracts';
 import type { CardWritingActions } from '../cards/CardWritingScreen';
 import type { ClosingResult } from '../night/closing/types';
+import type { ReceivedYarnActions } from '../yarnSummary/types';
 
 /** API v0.6 §6 projection for the memory-only morning preview. */
 export interface MorningCandidate {
@@ -29,6 +30,7 @@ export interface Morning {
   adoption: Sheep | null;
 }
 export interface MorningActions {
+  receivedYarn?: ReceivedYarnActions;
   writing?: CardWritingActions;
   reflection?: ReflectionActions;
   songs?: SongActions;

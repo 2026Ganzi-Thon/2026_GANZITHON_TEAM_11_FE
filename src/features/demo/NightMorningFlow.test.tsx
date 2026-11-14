@@ -1,6 +1,6 @@
 import { describe, it, expect, jest, afterEach } from '@jest/globals';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
-import { AccessibilityInfo, BackHandler } from 'react-native';
+import { AccessibilityInfo, AppState, BackHandler } from 'react-native';
 import { NightMorningFlow } from './NightMorningFlow';
 import { createNightMorningDemo } from '../../mocks/nightMorningDemo';
 const press = (name: string) =>
@@ -9,8 +9,14 @@ const tick = () =>
   act(async () => {
     await jest.runAllTimersAsync();
   });
+const originalAppState = Object.getOwnPropertyDescriptor(
+  AppState,
+  'currentState',
+);
 afterEach(() => {
   jest.restoreAllMocks();
+  if (originalAppState)
+    Object.defineProperty(AppState, 'currentState', originalAppState);
   jest.useRealTimers();
 });
 async function start(noWorry = false) {
@@ -41,6 +47,43 @@ async function rest() {
   await tick();
 }
 describe('night to morning demo', () => {
+  it('presents received yarn after adoption, acknowledges presentation and omits it on morning reentry', async () => {
+    Object.defineProperty(AppState, 'currentState', {
+      value: 'active',
+      configurable: true,
+      writable: true,
+    });
+    jest
+      .spyOn(AppState, 'addEventListener')
+      .mockReturnValue({ remove: () => {} });
+    const demo = createNightMorningDemo('received-yarn');
+    const seen = jest.spyOn(demo.morning.receivedYarn!, 'markSeen');
+    await render(<NightMorningFlow demo={demo} onExit={() => {}} />);
+    await start(true);
+    await press('다음 양');
+    await press('다음 양');
+    await press('마무리하기');
+    await tick();
+    await rest();
+    expect(screen.queryByTestId('received-yarn-modal')).toBeNull();
+    expect(seen).not.toHaveBeenCalled();
+    await press('이 양 데려오기');
+    await tick();
+    await tick();
+    expect(screen.getByText('털실 3개가 도착했어요')).toBeTruthy();
+    expect(seen).not.toHaveBeenCalled();
+    await fireEvent(screen.getByTestId('received-yarn-modal'), 'show');
+    await tick();
+    expect(seen).toHaveBeenCalledTimes(1);
+    await press('받은 털실 닫기');
+    await press('미리보기 나가기');
+    await press('아침 다시 보기');
+    await tick();
+    await tick();
+    expect(screen.getByText('나의 양떼')).toBeTruthy();
+    expect(screen.queryByTestId('received-yarn-modal')).toBeNull();
+    expect(seen).toHaveBeenCalledTimes(1);
+  });
   it('connects a deferred night offer to morning writing and returns to the same home after acceptance', async () => {
     const demo = createNightMorningDemo();
     await render(<NightMorningFlow demo={demo} onExit={() => {}} />);

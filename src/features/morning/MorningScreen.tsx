@@ -19,6 +19,7 @@ import type { MorningActions, MorningCandidate } from './types';
 import { SheepDetailScreen } from '../flock/SheepDetailScreen';
 import type { SheepDetailLoad } from '../flock/types';
 import { DeferredWritingSection } from './DeferredWritingSection';
+import { ReceivedYarnSection } from '../yarnSummary/ReceivedYarnSection';
 
 function Action({
   label,
@@ -96,6 +97,7 @@ function MorningSession({
   const [detailId, setDetailId] = useState<string | null>(null);
   const [songsOpen, setSongsOpen] = useState(false);
   const [reflectionOpen, setReflectionOpen] = useState(false);
+  const [deferredWritingOpen, setDeferredWritingOpen] = useState(false);
   const flow = useMorningFlow(actions, onExit);
   const { morning, busy, failure } = flow;
   const hasCandidates =
@@ -112,6 +114,17 @@ function MorningSession({
               나의 양떼
             </Text>
             <Text style={styles.text}>밤을 함께 보낸 양들이 쉬고 있어요.</Text>
+            {actions.receivedYarn && (
+              <ReceivedYarnSection
+                actions={actions.receivedYarn}
+                blocked={
+                  detailId !== null ||
+                  songsOpen ||
+                  reflectionOpen ||
+                  deferredWritingOpen
+                }
+              />
+            )}
             {morning?.night &&
               morning.writing_offer?.state === 'deferred' &&
               actions.writing && (
@@ -120,6 +133,7 @@ function MorningSession({
                   nightId={morning.night.id}
                   writing={actions.writing}
                   loadMorning={actions.loadMorning}
+                  onVisibilityChange={setDeferredWritingOpen}
                 />
               )}
             {flow.newId && (

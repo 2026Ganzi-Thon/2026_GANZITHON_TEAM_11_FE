@@ -47,6 +47,35 @@ async function rest() {
   await tick();
 }
 describe('night to morning demo', () => {
+  it('connects the night to a daily fortune in home and retains it on morning reentry', async () => {
+    const demo = createNightMorningDemo('fortune');
+    const load = jest.spyOn(demo.morning.fortune!, 'load');
+    await render(<NightMorningFlow demo={demo} onExit={() => {}} />);
+    await start(true);
+    await press('다음 양');
+    await press('다음 양');
+    await press('마무리하기');
+    await tick();
+    await rest();
+    expect(load).not.toHaveBeenCalled();
+    await press('이 양 데려오기');
+    await tick();
+    await tick();
+    await press('오늘의 운세 보기');
+    expect(screen.getByText('3위')).toBeTruthy();
+    expect(
+      screen.getByText('작은 행동 · 미뤄 둔 연락 하나 해 볼까?'),
+    ).toBeTruthy();
+    await press('오늘의 운세 닫기');
+    await press('미리보기 나가기');
+    await press('아침 다시 보기');
+    await tick();
+    await tick();
+    expect(screen.queryByTestId('fortune-modal')).toBeNull();
+    await press('오늘의 운세 보기');
+    expect(screen.getByText('3위')).toBeTruthy();
+    expect(load).toHaveBeenCalledTimes(2);
+  });
   it('presents received yarn after adoption, acknowledges presentation and omits it on morning reentry', async () => {
     Object.defineProperty(AppState, 'currentState', {
       value: 'active',

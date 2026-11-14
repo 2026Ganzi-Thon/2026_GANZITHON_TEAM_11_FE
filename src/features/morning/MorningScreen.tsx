@@ -20,6 +20,7 @@ import { SheepDetailScreen } from '../flock/SheepDetailScreen';
 import type { SheepDetailLoad } from '../flock/types';
 import { DeferredWritingSection } from './DeferredWritingSection';
 import { ReceivedYarnSection } from '../yarnSummary/ReceivedYarnSection';
+import { FortuneSection } from '../fortune/FortuneSection';
 
 function Action({
   label,
@@ -98,6 +99,7 @@ function MorningSession({
   const [songsOpen, setSongsOpen] = useState(false);
   const [reflectionOpen, setReflectionOpen] = useState(false);
   const [deferredWritingOpen, setDeferredWritingOpen] = useState(false);
+  const [fortuneOpen, setFortuneOpen] = useState(false);
   const flow = useMorningFlow(actions, onExit);
   const { morning, busy, failure } = flow;
   const hasCandidates =
@@ -121,7 +123,8 @@ function MorningSession({
                   detailId !== null ||
                   songsOpen ||
                   reflectionOpen ||
-                  deferredWritingOpen
+                  deferredWritingOpen ||
+                  fortuneOpen
                 }
               />
             )}
@@ -168,6 +171,18 @@ function MorningSession({
             )}
             <View style={styles.homeSpacer} />
             <View style={styles.pasture}>
+              {actions.fortune && (
+                <FortuneSection
+                  actions={actions.fortune}
+                  onVisibilityChange={setFortuneOpen}
+                  blocked={
+                    detailId !== null ||
+                    songsOpen ||
+                    reflectionOpen ||
+                    deferredWritingOpen
+                  }
+                />
+              )}
               {flow.items.map((item) => (
                 <Pressable
                   key={item.id}

@@ -59,6 +59,32 @@ afterEach(() => {
   jest.restoreAllMocks();
   jest.useRealTimers();
 });
+it.each(['text', 'song'] as const)(
+  'isolates an unresolved %s submission by night even when actions are reused',
+  async (kind) => {
+    jest.useFakeTimers();
+    const actions = source('old-night', kind, '이전에 보낸 내용');
+    const send = jest
+      .spyOn(kind === 'text' ? actions.text : actions.song, 'submit')
+      .mockRejectedValueOnce(new ApiError('network'));
+    const view = await render(component(actions, 'old-night'));
+    await press('검수 요청하기');
+    await tick();
+    const original = send.mock.calls[0].slice(0, 2);
+    await fireEvent.changeText(
+      screen.getByLabelText(kind === 'text' ? '짧은 글' : '추천 한 줄'),
+      '새로 편집한 내용',
+    );
+    await view.rerender(component(actions, 'new-night'));
+    expect(screen.queryByRole('button', { name: '이전 접수 확인' })).toBeNull();
+    await view.rerender(component(actions, 'old-night'));
+    await press('이전 접수 확인');
+    await tick();
+    expect(send.mock.calls[1].slice(0, 2)).toEqual(original);
+    expect(send.mock.calls[1][0].source_night_id).toBe('old-night');
+    expect(screen.getByText('카드를 맡겼어요')).toBeTruthy();
+  },
+);
 it.each([
   ['text', 'night_offer', 'morning_banner', '이제 잘게요'],
   ['song', 'morning_banner', 'night_offer', '아침 홈으로'],

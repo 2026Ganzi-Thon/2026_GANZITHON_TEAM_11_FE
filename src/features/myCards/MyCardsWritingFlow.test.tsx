@@ -69,6 +69,126 @@ async function done() {
   await tick();
 }
 
+it.each([
+  ['text', false],
+  ['text', true],
+  ['song', false],
+  ['song', true],
+] as const)(
+  'recovers the original %s receipt after editing, restore=%s, and close/reopen before starting another card',
+  async (kind, restore) => {
+    const { source, writer, create } = await open('write-lost-response');
+    const send = jest.spyOn(
+      kind === 'text' ? writer.text : writer.song,
+      'submit',
+    );
+    const label = kind === 'text' ? '짧은 글' : '추천 한 줄';
+    await write(kind, '처음 보낸 내용');
+    await submit();
+    const firstBody = send.mock.calls[0][0],
+      firstKey = send.mock.calls[0][1];
+    expect(screen.getByText('접수를 확인하지 못했어요')).toBeTruthy();
+    await fireEvent.changeText(
+      screen.getByLabelText(label),
+      '응답 유실 뒤 수정한 내용',
+    );
+    if (restore)
+      await fireEvent.changeText(
+        screen.getByLabelText(label),
+        '처음 보낸 내용',
+      );
+    await press('이전');
+    await press('이전');
+    await press('카드 쓰기');
+    expect(screen.getByLabelText(label)).toHaveDisplayValue(
+      restore ? '처음 보낸 내용' : '응답 유실 뒤 수정한 내용',
+    );
+    if (!restore) {
+      expect(
+        screen.getByRole('button', { name: '검수 요청하기' }),
+      ).toBeDisabled();
+      await press('검수 요청하기');
+      expect(send).toHaveBeenCalledTimes(1);
+    }
+    await press('이전 접수 확인');
+    await tick();
+    expect(screen.getByText('카드를 맡겼어요')).toBeTruthy();
+    expect(send).toHaveBeenCalledTimes(2);
+    expect(send.mock.calls[1].slice(0, 2)).toEqual([firstBody, firstKey]);
+    await done();
+    const firstPage = await settle(source.load({}, signal()));
+    const created = firstPage.items.filter((item) =>
+      item.id.startsWith('my-writing-'),
+    );
+    expect(created).toHaveLength(1);
+    expect(created[0]).toMatchObject({
+      kind,
+      content:
+        kind === 'text'
+          ? { text: '처음 보낸 내용' }
+          : { recommendation: '처음 보낸 내용' },
+    });
+
+    const next = create.mock.results.at(-1);
+    if (next?.type !== 'return') throw new Error('새 작성 세션 생성 실패');
+    const nextSend = jest.spyOn(
+      kind === 'text' ? next.value.text : next.value.song,
+      'submit',
+    );
+    await press('카드 쓰기');
+    expect(screen.getByRole('button', { name: '다음' })).toBeDisabled();
+    expect(screen.queryByDisplayValue('처음 보낸 내용')).toBeNull();
+    await press('이전');
+    await write(kind, '처음 보낸 내용');
+    // The next independent session may also lose its first response.
+    await submit();
+    await press('이전 접수 확인');
+    await tick();
+    expect(screen.getByText('카드를 맡겼어요')).toBeTruthy();
+    expect(nextSend.mock.calls[0][1]).not.toBe(firstKey);
+    await done();
+    const page = await settle(source.load({}, signal()));
+    const records = page.items.filter((item) =>
+      item.id.startsWith('my-writing-'),
+    );
+    expect(records).toHaveLength(2);
+    expect(new Set(records.map((item) => item.id)).size).toBe(2);
+  },
+);
+
+it.each(['text', 'song'] as const)(
+  'can recover a %s receipt despite an invalid edited draft and another failed recovery',
+  async (kind) => {
+    const { writer } = await open('write-lost-response');
+    const send = jest.spyOn(
+      kind === 'text' ? writer.text : writer.song,
+      'submit',
+    );
+    await write(kind, '원래 보낸 내용');
+    await submit();
+    await fireEvent.changeText(
+      screen.getByLabelText(kind === 'text' ? '짧은 글' : '추천 한 줄'),
+      '',
+    );
+    send.mockRejectedValueOnce(new Error('recovery response lost'));
+    await press('이전 접수 확인');
+    await tick();
+    expect(screen.getByText('접수를 확인하지 못했어요')).toBeTruthy();
+    await press('이전');
+    await press('이전');
+    await press('카드 쓰기');
+    expect(
+      screen.getByRole('button', { name: '검수 요청하기' }),
+    ).toBeDisabled();
+    await press('이전 접수 확인');
+    await tick();
+    expect(screen.getByText('카드를 맡겼어요')).toBeTruthy();
+    expect(send.mock.calls.map((call) => call.slice(0, 2))).toEqual(
+      Array(3).fill(send.mock.calls[0].slice(0, 2)),
+    );
+  },
+);
+
 it.each(['text', 'song'] as const)(
   'writes a %s card from the real preview route and shows it pending in both list filters',
   async (kind) => {

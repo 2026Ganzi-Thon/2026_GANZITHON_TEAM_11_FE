@@ -18,6 +18,7 @@ import { categories } from '../night/categories';
 import { TextCardArtwork } from './TextCardArtwork';
 import { PREVIEW_TEXT_CARD_LIMIT, type TextCardActions } from './types';
 import { useTextCardWriting } from './useTextCardWriting';
+import { SubmissionRecoveryPanel } from './SubmissionRecoveryPanel';
 function fieldMessage(value: unknown): string | null {
   if (typeof value === 'string') return value;
   if (Array.isArray(value))
@@ -256,9 +257,16 @@ export function TextCardScreen({
               <Button
                 label="검수 요청하기"
                 busy={pending}
-                disabled={!flow.valid || conflict}
+                disabled={!flow.valid || conflict || flow.recoveryChanged}
                 onPress={() => void flow.submit()}
               />
+              {flow.originalSubmission && (
+                <SubmissionRecoveryPanel
+                  original={flow.originalSubmission.content.text}
+                  pending={pending}
+                  onRecover={flow.recover}
+                />
+              )}
               <Text style={[styles.hint, styles.panel]}>
                 검수 전에는 다른 사람에게 보여 주지 않아요. 초안은 시연을
                 끝내거나 앱을 다시 실행하면 사라져요.

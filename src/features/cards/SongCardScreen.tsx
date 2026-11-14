@@ -24,6 +24,7 @@ import {
 import { useSongCardWriting } from './useSongCardWriting';
 import { useTrackSearch } from './useTrackSearch';
 import { TrackSelection } from './TrackSelection';
+import { SubmissionRecoveryPanel } from './SubmissionRecoveryPanel';
 function message(value: unknown) {
   return typeof value === 'string'
     ? value
@@ -71,6 +72,11 @@ function SongCardSession({
   const manual = draft.selection?.mode === 'manual' ? draft.selection : null;
   const selected =
     draft.selection?.mode === 'search' ? draft.selection.track : null;
+  const previous = flow.originalSubmission;
+  const previousTrack =
+    previous?.selection.mode === 'search'
+      ? previous.selection.track
+      : previous?.selection;
   const search = useTrackSearch(
     actions,
     draft.query,
@@ -348,13 +354,23 @@ function SongCardSession({
               )}
               <Button
                 label="검수 요청하기"
-                disabled={!flow.valid || flow.blocked}
+                disabled={!flow.valid || flow.blocked || flow.recoveryChanged}
                 busy={pending}
                 onPress={() => {
                   Keyboard.dismiss();
                   void flow.submit();
                 }}
               />
+              {previous && previousTrack && (
+                <SubmissionRecoveryPanel
+                  original={`${previousTrack.title} · ${previousTrack.artist}\n${previous.body.content.recommendation}`}
+                  pending={pending}
+                  onRecover={() => {
+                    Keyboard.dismiss();
+                    flow.recover();
+                  }}
+                />
+              )}
             </>
           )}
           <Text style={[styles.hint, styles.panel]}>

@@ -174,3 +174,54 @@ it.each(['success', 'failure'] as const)(
     expect(screen.queryByText('late private error')).toBeNull();
   },
 );
+it.each(['success', 'failure'] as const)(
+  'refreshes the latest count after a lost deletion when an older profile read has a late %s',
+  async (mode) => {
+    jest.useFakeTimers();
+    const source = createSettingsMorning('delete-lost');
+    const original = source.settings.loadMe;
+    let finish!: (data: SettingsData) => void;
+    let fail!: (error: Error) => void;
+    const loadMe = jest
+      .fn<SettingsActions['loadMe']>()
+      .mockImplementationOnce(original)
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve, reject) => {
+            finish = resolve;
+            fail = reject;
+          }),
+      )
+      .mockImplementation(original);
+    source.settings.loadMe = loadMe;
+    await open(source.settings);
+    await press('설정으로 돌아가기');
+    expect(screen.getByText('기록 개수를 확인하고 있어요.')).toBeTruthy();
+    expect(loadMe).toHaveBeenCalledTimes(2);
+    await press('고민 기록 열기');
+    await tick();
+    await remove();
+    expect(screen.getByText('삭제 결과를 확인하지 못했어요')).toBeTruthy();
+    await press('취소');
+    await press('설정으로 돌아가기');
+    await tick();
+    await act(async () => {
+      if (mode === 'success') finish(snapshot(3));
+      else fail(new Error('late profile failure'));
+    });
+    expect(screen.getByText('2개')).toBeTruthy();
+    expect(screen.queryByText('3개')).toBeNull();
+    expect(screen.queryByText('기록 개수를 확인하지 못했어요.')).toBeNull();
+    expect(loadMe.mock.calls[1][0].aborted).toBe(true);
+    expect(loadMe).toHaveBeenCalledTimes(3);
+    const actual = original(new AbortController().signal);
+    await tick();
+    expect((await actual).user.stats.worry_record_count).toBe(2);
+    await press('고민 기록 열기');
+    await tick();
+    expect(screen.getByText('고민 기록 2개')).toBeTruthy();
+    expect(
+      screen.queryByRole('button', { name: '2026-11-10 고민 삭제' }),
+    ).toBeNull();
+  },
+);

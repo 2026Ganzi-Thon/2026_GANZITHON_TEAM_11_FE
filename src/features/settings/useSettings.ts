@@ -61,7 +61,8 @@ export function useSettings(actions: SettingsActions) {
     [actions],
   );
   const refresh = useCallback(() => {
-    if (request.current) return;
+    request.current?.abort();
+    request.current = null;
     setState((current) => ({ ...current, error: false, loading: true }));
     setAttempt((value) => value + 1);
   }, []);

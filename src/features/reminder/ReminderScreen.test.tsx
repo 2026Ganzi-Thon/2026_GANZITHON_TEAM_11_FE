@@ -174,12 +174,19 @@ it('blocks duplicate saves and modal back while saving', async () => {
   await enable();
   await press('저장');
   expect(screen.getByRole('button', { name: '저장 중' })).toBeDisabled();
+  expect(
+    screen.getByRole('progressbar', { name: '알림 설정 저장 중' }),
+  ).toBeTruthy();
+  expect(screen.getByText('알림 설정을 저장하고 있어요.')).toBeTruthy();
   await fireEvent(screen.getByTestId('reminder-modal'), 'requestClose');
   expect(back).not.toHaveBeenCalled();
   expect(actions.save).toHaveBeenCalledTimes(1);
   await act(async () => {
     finish({ enabled: true, local_time: '23:00' });
   });
+  expect(
+    screen.queryByRole('progressbar', { name: '알림 설정 저장 중' }),
+  ).toBeNull();
   await press('설정으로 돌아가기');
   expect(back).toHaveBeenCalledTimes(1);
 });

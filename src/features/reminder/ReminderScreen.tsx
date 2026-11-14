@@ -59,6 +59,19 @@ function ReminderSession({
       background={require('../../../assets/images/reminder/background.svg')}
     >
       <Header title="알림 시간" backLabel="알림 설정 닫기" onBack={flow.back} />
+      {flow.phase === 'saving' && (
+        <View
+          accessible
+          accessibilityRole="progressbar"
+          accessibilityLabel="알림 설정 저장 중"
+          accessibilityState={{ busy: true }}
+          accessibilityLiveRegion="polite"
+          style={styles.progress}
+        >
+          <ActivityIndicator accessible={false} color={theme.color.primary} />
+          <Text style={styles.body}>알림 설정을 저장하고 있어요.</Text>
+        </View>
+      )}
       <ScrollView key={flow.phase} contentContainerStyle={styles.content}>
         {flow.phase === 'loading' || flow.phase === 'load-error' ? (
           <View style={styles.panel}>
@@ -186,6 +199,16 @@ function ReminderSession({
   );
 }
 const styles = StyleSheet.create({
+  progress: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2B3591',
+    borderRadius: 4,
+    marginHorizontal: 20,
+    marginVertical: 8,
+    padding: 12,
+    gap: 12,
+  },
   content: {
     flexGrow: 1,
     paddingHorizontal: 20,

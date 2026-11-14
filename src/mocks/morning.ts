@@ -1,11 +1,9 @@
+import { createMockWorryRecords, type MockWorryRecords } from './worryRecords';
 import {
   createMockWorryDeletion,
   type WorryDeletionScenario,
 } from './worryDeletion';
-import type {
-  ReflectionActions,
-  ReflectionRecord,
-} from '../features/morning/reflection';
+import type { ReflectionActions } from '../features/morning/reflection';
 import {
   initialReflection,
   reflectionReplies,
@@ -65,6 +63,7 @@ export function createMockMorning(
   detailScenario: DetailScenario = 'success',
   reflectionScenario: ReflectionScenario = 'success',
   deletionScenario?: WorryDeletionScenario,
+  sharedRecords?: MockWorryRecords,
 ): MorningActions & {
   loadSheep: SheepDetailLoad;
   reflection: ReflectionActions;
@@ -166,8 +165,7 @@ export function createMockMorning(
       throw new ApiError('network');
     }
   };
-  let reflection = initialReflection(reflectionScenario);
-  const night = {
+  const initialNight = {
     id: 'preview-night',
     night_date: '2026-11-10',
     category_id: reflectionScenario === 'no-worry' ? 'none' : 'career',
@@ -180,26 +178,22 @@ export function createMockMorning(
     worry_saved_at: '2026-11-10T16:12:00Z' as string | null,
     entrusted: true,
   };
-  const records = new Map<string, ReflectionRecord['night']>([
-    [night.id, night],
-    ...earlier.map((sheep): [string, ReflectionRecord['night']] => [
-      sheep.night_id,
-      {
-        ...night,
+  const records =
+    sharedRecords ??
+    createMockWorryRecords([
+      { ...initialNight, reflection: initialReflection(reflectionScenario) },
+      ...earlier.map((sheep) => ({
+        ...initialNight,
         id: sheep.night_id,
         night_date: sheep.night_date,
         category_id: 'career',
         worry_text: '면접 결과가 내일 나오는데 계속 생각나서 잠이 안 와요.',
-      },
-    ]),
-  ]);
+        reflection: null,
+      })),
+    ]);
+  const night = records.get('preview-night')!;
   const worries = deletionScenario
-    ? createMockWorryDeletion((nightId) => {
-        const record = records.get(nightId);
-        if (!record) conflict('NOT_FOUND', 404);
-        record.worry_text = null;
-        record.worry_saved_at = null;
-      }, deletionScenario)
+    ? createMockWorryDeletion(records.erase, deletionScenario)
     : undefined;
   return {
     worries,
@@ -209,7 +203,8 @@ export function createMockMorning(
           if (reflectionScenario === 'load-retry') failOnce('reflection-load');
           if (nightId !== night.id || scenario === 'empty')
             conflict('NOT_FOUND', 404);
-          return { night: { ...night }, reflection };
+          const { reflection, ...savedNight } = night;
+          return { night: { ...savedNight }, reflection };
         }),
       save: (nightId, answer, signal) =>
         delayed(signal, () => {
@@ -225,7 +220,8 @@ export function createMockMorning(
             reflectionScenario === 'edit-retry'
           )
             failOnce('reflection-save');
-          reflection = { answer, message: reflectionReplies[answer] };
+          const reflection = { answer, message: reflectionReplies[answer] };
+          records.saveReflection(nightId, reflection);
           return reflection;
         }),
     },
@@ -250,7 +246,7 @@ export function createMockMorning(
           night_date: sheep.night_date,
           category_id: records.get(sheep.night_id)!.category_id,
           worry_text: records.get(sheep.night_id)!.worry_text,
-          reflection: sheep.night_id === night.id ? reflection : null,
+          reflection: records.get(sheep.night_id)!.reflection,
         },
       };
     }, detailScenario),

@@ -1,4 +1,5 @@
 import type { WorryDeletions } from '../worries/deletions';
+import type { SettingsActions } from '../settings/types';
 import type { SongActions } from '../songs/types';
 import type { ReflectionActions } from './reflection';
 import type { Card } from '../../api/contracts';
@@ -33,6 +34,7 @@ export interface Morning {
 }
 export interface MorningActions {
   worries?: WorryDeletions;
+  settings?: SettingsActions;
   fortune?: FortuneActions;
   receivedYarn?: ReceivedYarnActions;
   writing?: CardWritingActions;

@@ -18,6 +18,8 @@ import type { SettingsActions } from './types';
 import { Header } from './Header';
 import { WorryListScreen } from './WorryListScreen';
 import { useSettings } from './useSettings';
+import { ReminderScreen } from '../reminder/ReminderScreen';
+import { reminderLabel } from '../reminder/time';
 import { BirthDateScreen } from '../birthDate/BirthDateScreen';
 export function SettingsScreen(props: Parameters<typeof SettingsSession>[0]) {
   const [source, setSource] = useState({ actions: props.actions, version: 0 });
@@ -38,6 +40,7 @@ function SettingsSession({
   const { refresh } = flow;
   const [list, setList] = useState(false);
   const [birthDateOpen, setBirthDateOpen] = useState(false);
+  const [reminderOpen, setReminderOpen] = useState(false);
   const back = () => {
     if (list) {
       setList(false);
@@ -108,6 +111,11 @@ function SettingsSession({
                       생일 정보도 다시 확인해 주세요.
                     </Text>
                   )}
+                  {actions.reminder && (
+                    <Text style={styles.body}>
+                      알림 설정도 다시 확인해 주세요.
+                    </Text>
+                  )}
                   <Button label="기록 개수 다시 확인" onPress={flow.retry} />
                 </View>
               )}
@@ -136,6 +144,16 @@ function SettingsSession({
               <View style={styles.panel}>
                 <Row
                   label="밤에 와 알림"
+                  value={
+                    flow.loading
+                      ? '설정 확인 중'
+                      : flow.error
+                        ? '설정 확인 필요'
+                        : reminderLabel(data.reminder)
+                  }
+                  onPress={
+                    actions.reminder ? () => setReminderOpen(true) : undefined
+                  }
                   icon={require('../../../assets/images/settings/reminder.svg')}
                 />
               </View>
@@ -215,6 +233,16 @@ function SettingsSession({
   return (
     <>
       {screen}
+      {reminderOpen && actions.reminder && (
+        <ReminderScreen
+          modal
+          actions={actions.reminder}
+          onBack={() => {
+            setReminderOpen(false);
+            refresh();
+          }}
+        />
+      )}
       {birthDateOpen && actions.birthDate && (
         <BirthDateScreen
           modal

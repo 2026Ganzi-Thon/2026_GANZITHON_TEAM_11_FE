@@ -43,7 +43,7 @@ export default function SettingsPreview() {
       <ScrollView contentContainerStyle={styles.content}>
         <Notice
           title={actions ? '아침 확인을 마쳤어요' : '설정·고민 목록 미리보기'}
-          description="프로필과 고민 기록은 고정 예시예요. 원문 삭제를 설정·상세·회고에 함께 반영해요. 알림·계정 변경·실제 서버와 연결하지 않아요. 시연 종료 시 초기화돼요."
+          description="프로필과 고민 기록은 고정 예시예요. 원문 삭제를 설정·상세·회고에 함께 반영해요. 생일·운세·알림 희망 설정은 같은 mock 계정으로 확인해요. 실제 알림·서버와 연결하지 않아요. 시연 종료 시 초기화돼요."
         />
         {actions ? (
           <>

@@ -14,6 +14,10 @@ export default function StartScreen() {
         {__DEV__ && (
           <>
             <Button
+              label="알림 설정 미리보기"
+              onPress={() => router.push('/dev/reminder')}
+            />
+            <Button
               label="생년월일·설정·운세 연결"
               onPress={() => router.push('/dev/birth-date-flow')}
             />

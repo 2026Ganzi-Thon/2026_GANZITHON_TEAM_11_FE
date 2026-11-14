@@ -14,6 +14,10 @@ export default function StartScreen() {
         {__DEV__ && (
           <>
             <Button
+              label="공통 도움 안내 미리보기"
+              onPress={() => router.push('/dev/card-support')}
+            />
+            <Button
               label="알림 설정 미리보기"
               onPress={() => router.push('/dev/reminder')}
             />

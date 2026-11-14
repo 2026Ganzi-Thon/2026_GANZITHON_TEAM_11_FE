@@ -16,6 +16,7 @@ import {
 import { Button } from '../../ui/Button';
 import { NightScreen } from '../../ui/NightScreen';
 import { theme } from '../../ui/theme';
+import { SupportContent } from '../support/SupportContent';
 import { TextCardArtwork } from './TextCardArtwork';
 import {
   PREVIEW_RECOMMENDATION_LIMIT,
@@ -146,21 +147,10 @@ function SongCardSession({
               <Button label={completionLabel} onPress={flow.back} />
             </>
           ) : step === 'support' ? (
-            <>
-              <View style={styles.panel}>
-                <Text style={styles.title} accessibilityRole="header">
-                  제출을 잠시 멈췄어요
-                </Text>
-                <Text style={styles.text}>
-                  {error?.serverMessage ?? '지금은 잠시 쉬어 가도 괜찮아요.'}
-                </Text>
-                <Text style={styles.hint}>
-                  곡과 추천 문장을 유지했어요. 도움 안내는 고정 예시이며 실제
-                  안전 검사와 연결되지 않았어요.
-                </Text>
-              </View>
-              <Button label="쓰던 글로 돌아가기" onPress={flow.returnToDraft} />
-            </>
+            <SupportContent
+              support={error?.support}
+              onReturn={flow.returnToDraft}
+            />
           ) : (
             <>
               {!manual ? (

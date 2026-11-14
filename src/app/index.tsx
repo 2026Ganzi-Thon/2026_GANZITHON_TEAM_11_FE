@@ -18,6 +18,10 @@ export default function StartScreen() {
               onPress={() => router.push('/dev/worry-deletion')}
             />
             <Button
+              label="설정·고민 목록 미리보기"
+              onPress={() => router.push('/dev/settings')}
+            />
+            <Button
               label="오늘의 운세 미리보기"
               onPress={() => router.push('/dev/fortune')}
             />

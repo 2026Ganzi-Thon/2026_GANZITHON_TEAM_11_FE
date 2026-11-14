@@ -1,3 +1,4 @@
+import type { WorryDeletions } from '../worries/deletions';
 import type { SongActions } from '../songs/types';
 import type { ReflectionActions } from './reflection';
 import type { Card } from '../../api/contracts';
@@ -31,6 +32,7 @@ export interface Morning {
   adoption: Sheep | null;
 }
 export interface MorningActions {
+  worries?: WorryDeletions;
   fortune?: FortuneActions;
   receivedYarn?: ReceivedYarnActions;
   writing?: CardWritingActions;

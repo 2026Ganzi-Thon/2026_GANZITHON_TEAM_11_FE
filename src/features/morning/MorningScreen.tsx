@@ -382,6 +382,7 @@ function MorningSession({
             key={morning.night.id}
             nightId={morning.night.id}
             actions={actions.reflection}
+            worries={actions.worries}
             onBack={() => setReflectionOpen(false)}
           />
         )}
@@ -399,6 +400,7 @@ function MorningSession({
             key={detailId}
             sheepId={detailId}
             load={loadDetail}
+            worries={actions.worries}
             onBack={() => setDetailId(null)}
           />
         )}

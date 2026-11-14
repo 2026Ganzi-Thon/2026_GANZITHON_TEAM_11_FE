@@ -35,6 +35,7 @@ function WritingSession({
         key={revision}
         actions={source}
         deletions={source}
+        resubmissions={source}
         onBack={onBack}
         submissionConfirmed={revision > 0}
         onWrite={() => {

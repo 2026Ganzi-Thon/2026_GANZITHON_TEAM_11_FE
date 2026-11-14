@@ -552,3 +552,80 @@ it('blocks a different kind after a lost receipt and explains the independent wr
     ),
   ).toBe(false);
 });
+
+it.each(['text', 'song'] as const)(
+  'keeps a new %s card and a resubmitted rejected text in the same writing-flow store',
+  async (kind) => {
+    const { source } = await open('success');
+    await write(kind, '함께 보존할 새 카드');
+    await submit();
+    await done();
+    expect(
+      screen.getAllByText(
+        kind === 'text' ? '함께 보존할 새 카드' : '밤편지 · 아이유',
+      ),
+    ).toHaveLength(kind === 'text' ? 1 : 2);
+    await tab('반려');
+    await tick();
+    await press('고쳐서 다시 내기');
+    expect(screen.getByLabelText('짧은 글 수정')).toHaveDisplayValue(
+      /나도 결과 기다리는 밤이 제일 길었어/,
+    );
+    await fireEvent.changeText(
+      screen.getByLabelText('짧은 글 수정'),
+      '내 경험으로 고친 반려 글',
+    );
+    await press('분류 변경');
+    await fireEvent.press(screen.getByRole('radio', { name: '학업' }));
+    await press('목록으로');
+    await press('고쳐서 다시 내기');
+    expect(screen.getByLabelText('짧은 글 수정')).toHaveDisplayValue(
+      '내 경험으로 고친 반려 글',
+    );
+    await press('다시 검수 요청');
+    await tick();
+    expect(screen.getByText('다시 검수를 맡겼어요')).toBeTruthy();
+    await press('내 카드로 돌아가기');
+    await tick();
+    expect(screen.getByText('반려된 카드가 없어요')).toBeTruthy();
+    await tab('검수 중');
+    await tick();
+    expect(
+      screen.getAllByText(
+        kind === 'text' ? '함께 보존할 새 카드' : '밤편지 · 아이유',
+      ),
+    ).toHaveLength(kind === 'text' ? 1 : 2);
+    expect(screen.getByText('내 경험으로 고친 반려 글')).toBeTruthy();
+    const page = await settle(source.load({ status: 'pending' }, signal()));
+    expect(page.items).toHaveLength(3);
+    expect(page.next_cursor).toBe('3');
+    const rest = await settle(
+      source.load({ status: 'pending', cursor: '3' }, signal()),
+    );
+    expect(rest.items).toMatchObject([
+      { id: 'my-text-4', moderation_status: 'pending' },
+    ]);
+    expect(rest.next_cursor).toBeNull();
+    expect(page.items.find((item) => item.id === 'my-text-3')).toMatchObject({
+      kind: 'text',
+      category_id: 'study',
+      content: { text: '내 경험으로 고친 반려 글' },
+      moderation_status: 'pending',
+      rejection_reason: null,
+      revision: 2,
+    });
+    expect(
+      page.items.filter((item) =>
+        item.kind === 'text'
+          ? item.content.text === '함께 보존할 새 카드'
+          : item.content.recommendation === '함께 보존할 새 카드',
+      ),
+    ).toHaveLength(1);
+    expect(await settle(source.load({ status: 'rejected' }, signal()))).toEqual(
+      {
+        items: [],
+        next_cursor: null,
+      },
+    );
+  },
+);

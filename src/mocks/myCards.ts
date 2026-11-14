@@ -1,8 +1,14 @@
 import { ApiError } from '../api/errors';
+import { categories } from '../features/night/categories';
 import { createMockTextCards } from './textCards';
 import { createMockSongCards } from './songCards';
 import { createMockCardWriting } from './cardWriting';
-import type { TextCardSubmission } from '../features/cards/types';
+import {
+  PREVIEW_TEXT_CARD_LIMIT,
+  textCardLength,
+  type TextCardDraft,
+  type TextCardSubmission,
+} from '../features/cards/types';
 import type { SongCardSubmission } from '../features/cards/songTypes';
 import type {
   MyCardsWritingSource,
@@ -21,6 +27,16 @@ export type MyCardsScenario =
   | 'lost-delete'
   | 'delete-refresh-retry'
   | 'single'
+  | 'resubmit-retry'
+  | 'lost-resubmit'
+  | 'slow-resubmit'
+  | 'resubmit-approved'
+  | 'resubmit-deleted'
+  | 'resubmit-field'
+  | 'resubmit-category-field'
+  | 'resubmit-safety'
+  | 'resubmit-support'
+  | 'resubmit-refresh-retry'
   | 'write-retry'
   | 'write-lost-response'
   | 'write-refresh-retry'
@@ -134,13 +150,21 @@ export function createMockMyCards(
         6,
       );
   }
+  const drafts = new Map<string, TextCardDraft>();
+  const accepted = new Map<
+    string,
+    { fingerprint: string; receipt: TextCardSubmission }
+  >();
+  let draftVersion = 0;
+  const fingerprint = (value: Pick<TextCardDraft, 'category_id' | 'text'>) =>
+    JSON.stringify([value.category_id, value.text.trim()]);
   const failures = new Set<string>();
   const deleted = new Set<string>();
   let refreshFailure = false;
   let writingSession = 0;
   function request<T>(
     signal: AbortSignal,
-    key: 'load' | 'more' | 'delete',
+    key: 'load' | 'more' | 'delete' | 'resubmit',
     job: () => T,
   ): Promise<T> {
     return new Promise((resolve, reject) => {
@@ -169,7 +193,8 @@ export function createMockMyCards(
             reject(error);
           }
         },
-        scenario === 'slow-delete' && key === 'delete'
+        (scenario === 'slow-delete' && key === 'delete') ||
+          (scenario === 'slow-resubmit' && key === 'resubmit')
           ? 5000
           : scenario === 'slow'
             ? 2500
@@ -179,6 +204,131 @@ export function createMockMyCards(
     });
   }
   return {
+    readDraft(item) {
+      const previous = drafts.get(item.id);
+      if (previous) return { ...previous };
+      const draft: TextCardDraft = {
+        text: item.content.text,
+        category_id: categories.some(
+          (c) => c.id !== 'none' && c.id === item.category_id,
+        )
+          ? (item.category_id as TextCardDraft['category_id'])
+          : null,
+        operationKey: `resubmit-${item.id}-${draftVersion++}`,
+      };
+      drafts.set(item.id, draft);
+      return { ...draft };
+    },
+    writeDraft(id, value) {
+      const previous = drafts.get(id);
+      const draft = {
+        ...value,
+        operationKey:
+          previous && fingerprint(previous) === fingerprint(value)
+            ? previous.operationKey
+            : `resubmit-${id}-${draftVersion++}`,
+      };
+      drafts.set(id, draft);
+      return { ...draft };
+    },
+    clearDraft(id) {
+      drafts.delete(id);
+    },
+    resubmit: (id, body, key, signal) =>
+      request(signal, 'resubmit', () => {
+        const operation = JSON.stringify([id, key]);
+        const payload = JSON.stringify(body);
+        const copy = (receipt: TextCardSubmission): TextCardSubmission => ({
+          ...receipt,
+          content: { ...receipt.content },
+        });
+        const previous = accepted.get(operation);
+        if (previous) {
+          if (previous.fingerprint !== payload)
+            throw new ApiError('http', {
+              status: 409,
+              code: 'IDEMPOTENCY_CONFLICT',
+            });
+          return copy(previous.receipt);
+        }
+        const index = records.findIndex((item) => item.id === id);
+        if (scenario === 'resubmit-deleted') deleted.add(id);
+        if (index < 0 || deleted.has(id))
+          throw new ApiError('http', { status: 404, code: 'CARD_NOT_FOUND' });
+        const item = records[index];
+        if (scenario === 'resubmit-approved')
+          records[index] = {
+            ...item,
+            moderation_status: 'approved',
+            rejection_reason: null,
+          };
+        if (records[index].moderation_status !== 'rejected')
+          throw new ApiError('http', {
+            status: 409,
+            code: 'CARD_NOT_REJECTED',
+          });
+        if (
+          item.kind !== 'text' ||
+          body.kind !== 'text' ||
+          !categories.some((c) => c.id !== 'none' && c.id === body.category_id)
+        )
+          throw new ApiError('http', {
+            status: 422,
+            fields: { category_id: '고민 분류를 다시 골라 주세요.' },
+          });
+        if (
+          !textCardLength(body.content.text) ||
+          textCardLength(body.content.text) > PREVIEW_TEXT_CARD_LIMIT
+        )
+          throw new ApiError('http', {
+            status: 422,
+            fields: { 'content.text': '1~200자로 적어 주세요.' },
+          });
+        if (!failures.has('resubmit-fixture')) {
+          failures.add('resubmit-fixture');
+          if (scenario === 'resubmit-field')
+            throw new ApiError('http', {
+              status: 422,
+              fields: { 'content.text': '글 내용을 다시 확인해 주세요.' },
+            });
+          if (scenario === 'resubmit-category-field')
+            throw new ApiError('http', {
+              status: 422,
+              fields: { category_id: '고민 분류를 다시 골라 주세요.' },
+            });
+          if (scenario === 'resubmit-safety')
+            throw new ApiError('http', {
+              status: 503,
+              code: 'SAFETY_CHECK_UNAVAILABLE',
+            });
+          if (scenario === 'resubmit-support')
+            throw new ApiError('http', {
+              status: 422,
+              code: 'SUPPORT_RECOMMENDED',
+              serverMessage: '지금은 잠시 쉬어 가도 괜찮아요.',
+            });
+        }
+        const receipt: TextCardSubmission = {
+          id,
+          kind: 'text',
+          category_id: body.category_id,
+          content: { text: body.content.text.trim() },
+          moderation_status: 'pending',
+        };
+        records[index] = {
+          ...item,
+          ...receipt,
+          revision: item.revision + 1,
+          rejection_reason: null,
+        };
+        accepted.set(operation, { fingerprint: payload, receipt });
+        if (scenario === 'resubmit-refresh-retry') refreshFailure = true;
+        if (scenario === 'lost-resubmit' && !failures.has('lost-resubmit')) {
+          failures.add('lost-resubmit');
+          throw new ApiError('network');
+        }
+        return copy(receipt);
+      }),
     createWritingSession() {
       let fulfilled = false;
       const namespace = `my-writing-${String(++writingSession).padStart(6, '0')}`;

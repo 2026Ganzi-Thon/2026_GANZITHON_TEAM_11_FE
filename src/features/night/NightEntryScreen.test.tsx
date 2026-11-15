@@ -29,6 +29,21 @@ async function fill() {
 }
 
 describe('night entry preview', () => {
+  it('starts an existing night at count selection and returns without exposing worry input again', async () => {
+    const api = actions(),
+      onBack = jest.fn();
+    await render(
+      <NightEntryScreen actions={api} onBack={onBack} mode="existing-night" />,
+    );
+    expect(screen.getByText('오늘은 몇 마리 셀까요?')).toBeTruthy();
+    expect(screen.queryByLabelText('오늘의 고민')).toBeNull();
+    await press('양 세기 시작');
+    expect(api.checkWorry).not.toHaveBeenCalled();
+    expect(api.startCounting).toHaveBeenCalledWith(15, expect.any(AbortSignal));
+    await press('뒤로');
+    expect(onBack).toHaveBeenCalledTimes(1);
+    expect(screen.queryByLabelText('오늘의 고민')).toBeNull();
+  });
   it('requires a category and text, with a configurable length limit', async () => {
     const api = actions();
     await render(

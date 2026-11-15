@@ -14,6 +14,10 @@ export default function StartScreen() {
         {__DEV__ && (
           <>
             <Button
+              label="밤 재진입·이어 세기 미리보기"
+              onPress={() => router.push('/dev/night-reentry')}
+            />
+            <Button
               label="Android 알림 연결"
               onPress={() => router.push('/dev/android-reminder')}
             />

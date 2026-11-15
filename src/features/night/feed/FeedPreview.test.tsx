@@ -59,7 +59,18 @@ describe('feed development integration', () => {
       .mockResolvedValue(true);
     await render(
       <NightEntryScreen
-        actions={{ checkWorry: async () => {}, startCounting: async () => {} }}
+        actions={{
+          checkWorry: async () => ({
+            id: 'test-night',
+            status: 'ready',
+            support: null,
+          }),
+          continueSupport: async () => ({
+            id: 'test-night',
+            active_session_id: null,
+          }),
+          startCounting: async () => {},
+        }}
         onBack={() => {}}
         createFeed={createMockNightFeed}
       />,

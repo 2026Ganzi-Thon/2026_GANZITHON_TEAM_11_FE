@@ -24,7 +24,11 @@ describe('night entry mock lifecycle', () => {
     const operation = mock.checkWorry(draft, signal);
     expect(jest.getTimerCount()).toBe(1);
     await jest.advanceTimersByTimeAsync(800);
-    await expect(operation).resolves.toBeUndefined();
+    await expect(operation).resolves.toEqual({
+      id: 'preview-night-entry',
+      status: 'ready',
+      support: null,
+    });
     expect(jest.getTimerCount()).toBe(0);
     expect(remove).toHaveBeenCalledWith('abort', expect.any(Function));
   });
@@ -42,7 +46,10 @@ describe('night entry mock lifecycle', () => {
       });
       await jest.advanceTimersByTimeAsync(800);
       await failed;
-      const succeeded = expect(invoke()).resolves.toBeUndefined();
+      const succeeded =
+        scenario === 'worry-retry'
+          ? expect(invoke()).resolves.toMatchObject({ status: 'ready' })
+          : expect(invoke()).resolves.toBeUndefined();
       await jest.advanceTimersByTimeAsync(800);
       await succeeded;
       expect(jest.getTimerCount()).toBe(0);

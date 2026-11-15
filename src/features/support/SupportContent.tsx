@@ -2,25 +2,40 @@ import { useEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import { Button } from '../../ui/Button';
 import { theme } from '../../ui/theme';
+import { NightSupportArtwork } from './NightSupportArtwork';
+import { NightSupportButton } from './NightSupportButton';
 import { openSupportResource } from './device';
 import { readSupport, supportTarget, type SupportResource } from './model';
 type Props = {
   support: unknown;
-  onReturn: () => void;
   openResource?: (resource: SupportResource) => Promise<void>;
-};
+} & (
+  | { context?: 'card'; onReturn: () => void }
+  | {
+      context: 'night';
+      onContinue: () => void;
+      onReload: () => void;
+      pending: 'continue' | 'reload' | null;
+      error: string | null;
+    }
+);
 /** Compose inside the writing screen's scroll area so the writing session stays alive. */
 export function SupportContent(props: Props) {
   const support = readSupport(props.support);
   return (
-    <SupportSession key={JSON.stringify(support)} {...props} data={support} />
+    <SupportSession
+      key={`${props.context ?? 'card'}:${JSON.stringify(support)}`}
+      {...props}
+      data={support}
+    />
   );
 }
-function SupportSession({
-  data,
-  onReturn,
-  openResource = openSupportResource,
-}: Props & { data: ReturnType<typeof readSupport> }) {
+function SupportSession(
+  props: Props & { data: ReturnType<typeof readSupport> },
+) {
+  const { data, openResource = openSupportResource } = props;
+  const night = props.context === 'night' ? props : null;
+  const waiting = night?.pending != null;
   const [pending, setPending] = useState<number | null>(null);
   const [failed, setFailed] = useState<number | null>(null);
   const active = useRef(true);
@@ -36,6 +51,7 @@ function SupportSession({
     if (
       !active.current ||
       request.current ||
+      waiting ||
       !supportTarget(resource, Platform.OS)
     )
       return;
@@ -55,90 +71,168 @@ function SupportSession({
     }
   }
   return (
-    <View style={styles.content}>
-      <View style={styles.panel}>
-        <Text style={styles.title} accessibilityRole="header">
-          제출을 잠시 멈췄어요
+    <View style={[styles.content, night && styles.nightContent]}>
+      <View style={[styles.panel, night && styles.nightIntro]}>
+        <Text
+          style={[styles.title, night && styles.nightTitle]}
+          accessibilityRole="header"
+        >
+          {night ? '혼자 버티지 않아도 돼요' : '제출을 잠시 멈췄어요'}
         </Text>
-        {data ? (
-          <Text style={styles.body}>{data.message}</Text>
+        {night ? (
+          <NightSupportArtwork
+            message={
+              data?.message ??
+              '도움 안내를 불러오지 못했어요. 적은 고민은 유지하고 있어요. 다시 불러와 주세요.'
+            }
+            error={!data}
+          />
         ) : (
-          <Text style={styles.body} accessibilityRole="alert">
-            도움 안내를 불러오지 못했어요. 쓰던 글로 돌아가 다시 요청할 수
-            있어요.
-          </Text>
+          <>
+            {data ? (
+              <Text style={styles.body}>{data.message}</Text>
+            ) : (
+              <Text style={styles.body} accessibilityRole="alert">
+                도움 안내를 불러오지 못했어요. 쓰던 글로 돌아가 다시 요청할 수
+                있어요.
+              </Text>
+            )}
+            <Text style={styles.caption}>
+              작성 내용과 선택한 분류·곡은 그대로 남아 있어요.
+            </Text>
+          </>
         )}
-        <Text style={styles.caption}>
-          작성 내용과 선택한 분류·곡은 그대로 남아 있어요.
-        </Text>
       </View>
       {data && (
-        <View style={styles.panel}>
-          <Text style={styles.section} accessibilityRole="header">
-            도움받을 곳
-          </Text>
-          {data.resources.length === 0 && (
-            <Text style={styles.body}>
-              지금 표시할 지원 항목이 없어요. 쓰던 글로 돌아갈 수 있어요.
+        <View style={[styles.panel, night && styles.nightResources]}>
+          {!night && (
+            <Text style={styles.section} accessibilityRole="header">
+              도움받을 곳
             </Text>
           )}
-          {data.resources.map((resource, index) => {
-            const available = !!supportTarget(resource, Platform.OS);
-            return (
-              <View key={index} style={styles.resource}>
-                {failed === index && (
-                  <Text
-                    style={styles.error}
-                    accessibilityRole="alert"
-                    accessibilityLiveRegion="polite"
-                  >
-                    앱을 열지 못했어요. 다시 눌러 시도하거나 다른 도움 항목을
-                    선택해 주세요.
-                  </Text>
-                )}
-                {pending === index && (
-                  <Text style={styles.body} accessibilityLiveRegion="polite">
-                    앱을 여는 중이에요.
-                  </Text>
-                )}
-                {!available && (
-                  <Text style={styles.caption}>
-                    이 기기에서 열 수 없는 항목이에요.
-                  </Text>
-                )}
-                <Button
-                  label={resource.label}
-                  onPress={() => void open(resource, index)}
-                  disabled={!available || pending !== null}
-                  busy={pending === index}
-                />
-              </View>
-            );
-          })}
+          {data.resources.length === 0 && (
+            <Text style={styles.body}>
+              {night
+                ? '지금 표시할 지원 항목이 없어요.'
+                : '지금 표시할 지원 항목이 없어요. 쓰던 글로 돌아갈 수 있어요.'}
+            </Text>
+          )}
+          {data.resources
+            .map((resource, index) => ({ resource, index }))
+            .sort((a, b) =>
+              night
+                ? Number(a.resource.action === 'open_contacts') -
+                  Number(b.resource.action === 'open_contacts')
+                : a.index - b.index,
+            )
+            .map(({ resource, index }) => {
+              const available = !!supportTarget(resource, Platform.OS);
+              return (
+                <View key={index} style={styles.resource}>
+                  {failed === index && (
+                    <Text
+                      style={styles.error}
+                      accessibilityRole="alert"
+                      accessibilityLiveRegion="polite"
+                    >
+                      앱을 열지 못했어요. 다시 눌러 시도하거나 다른 도움 항목을
+                      선택해 주세요.
+                    </Text>
+                  )}
+                  {pending === index && (
+                    <Text style={styles.body} accessibilityLiveRegion="polite">
+                      앱을 여는 중이에요.
+                    </Text>
+                  )}
+                  {!available && (
+                    <Text style={styles.caption}>
+                      이 기기에서 열 수 없는 항목이에요.
+                    </Text>
+                  )}
+                  {night && resource.action !== 'open_contacts' ? (
+                    <NightSupportButton
+                      label={resource.label}
+                      kind={resource.action}
+                      onPress={() => void open(resource, index)}
+                      disabled={!available || pending !== null || waiting}
+                      busy={pending === index}
+                    />
+                  ) : (
+                    <Button
+                      label={resource.label}
+                      onPress={() => void open(resource, index)}
+                      disabled={!available || pending !== null || waiting}
+                      busy={pending === index}
+                    />
+                  )}
+                </View>
+              );
+            })}
           <Text style={styles.caption}>
-            전화 버튼은 전화 앱을 열어요. 직접 통화를 시작하기 전에는 전화가
-            걸리지 않아요. 연락처는 기기의 연락처 앱에서 확인하며 이 앱으로
-            가져오지 않아요.
+            {night
+              ? '전화 앱만 열며 자동 발신하지 않아요. 연락처는 가져오지 않아요.'
+              : '전화 버튼은 전화 앱을 열어요. 직접 통화를 시작하기 전에는 전화가 걸리지 않아요. 연락처는 기기의 연락처 앱에서 확인하며 이 앱으로 가져오지 않아요.'}
           </Text>
         </View>
       )}
+      {night && <View style={styles.nightSpace} />}
       <Text style={styles.preview}>
-        고정 예시 안내 · 도움 버튼은 기기의 앱을 열어요. 실제 안전 검사와
-        연결되지 않았어요.
+        {night
+          ? '예시 안내 · 실제 안전 검사는 하지 않아요.'
+          : '고정 예시 안내 · 도움 버튼은 기기의 앱을 열어요. 실제 안전 검사와 연결되지 않았어요.'}
       </Text>
-      <Button
-        label="쓰던 글로 돌아가기"
-        onPress={() => {
-          active.current = false;
-          request.current = null;
-          onReturn();
-        }}
-      />
+      {night ? (
+        <View style={styles.content}>
+          {night.error && (
+            <Text
+              style={styles.error}
+              accessibilityRole="alert"
+              accessibilityLiveRegion="polite"
+            >
+              {night.error}
+            </Text>
+          )}
+          {!data && (
+            <Button
+              label={
+                night.pending === 'reload'
+                  ? '안내 확인 중'
+                  : '도움 안내 다시 불러오기'
+              }
+              busy={night.pending === 'reload'}
+              disabled={waiting}
+              onPress={night.onReload}
+            />
+          )}
+          <NightSupportButton
+            label={night.pending === 'continue' ? '계속하는 중' : '계속하기'}
+            busy={night.pending === 'continue'}
+            disabled={!data || waiting}
+            onPress={night.onContinue}
+          />
+        </View>
+      ) : (
+        props.context !== 'night' && (
+          <Button
+            label="쓰던 글로 돌아가기"
+            onPress={() => {
+              active.current = false;
+              request.current = null;
+              props.onReturn();
+            }}
+          />
+        )
+      )}
     </View>
   );
 }
 const styles = StyleSheet.create({
   content: { gap: 20 },
+  nightContent: { flexGrow: 1, gap: 14, paddingTop: 20 },
+  nightIntro: { padding: 0, backgroundColor: 'transparent', gap: 20 },
+  nightResources: { padding: 0, backgroundColor: 'transparent', gap: 12 },
+  nightTitle: { fontSize: 26, lineHeight: 37 },
+  nightSpace: { flexGrow: 1, minHeight: 24 },
   panel: {
     padding: 20,
     gap: 16,

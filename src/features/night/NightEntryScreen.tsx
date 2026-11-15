@@ -20,11 +20,17 @@ import { Button } from '../../ui/Button';
 import { NightScreen } from '../../ui/NightScreen';
 import { Notice } from '../../ui/Notice';
 import { theme } from '../../ui/theme';
+import { ApiError } from '../../api/errors';
+import { SupportContent } from '../support/SupportContent';
+import { readSupport } from '../support/model';
 import { categories } from './categories';
 import { CategoryShelf } from './CategoryShelf';
 import {
   PREVIEW_WORRY_LIMIT,
   validateWorry,
+  readNightWorryResult,
+  type NightWorryResult,
+  type WorryDraft,
   type CategoryId,
   type NightEntryActions,
 } from './entry';
@@ -35,7 +41,15 @@ import type { ClosingActions } from './closing/types';
 import type { FeedLoad } from './feed/model';
 
 /** Transient preview flow. No persistence or safety decision; feed loading is explicitly injected. */
-export function NightEntryScreen({
+export function NightEntryScreen(
+  props: Parameters<typeof NightEntrySession>[0],
+) {
+  const [source, setSource] = useState({ actions: props.actions, version: 0 });
+  if (source.actions !== props.actions)
+    setSource({ actions: props.actions, version: source.version + 1 });
+  return <NightEntrySession key={source.version} {...props} />;
+}
+function NightEntrySession({
   actions,
   onBack,
   worryLimit = PREVIEW_WORRY_LIMIT,
@@ -53,7 +67,15 @@ export function NightEntryScreen({
   initialCount?: number;
 }) {
   const [feedLoad, setFeedLoad] = useState<FeedLoad | null>(null);
-  const [step, setStep] = useState<'worry' | 'count'>('worry');
+  const [step, setStep] = useState<'worry' | 'support' | 'count'>('worry');
+  const [support, setSupport] = useState<{
+    night: NightWorryResult;
+    draft: WorryDraft;
+  } | null>(null);
+  const [supportOperation, setSupportOperation] = useState<
+    'continue' | 'reload' | null
+  >(null);
+  const [supportError, setSupportError] = useState<string | null>(null);
   const [categoryId, setCategoryId] = useState<CategoryId | null>(null);
   const [text, setText] = useState('');
   const [count, setCount] = useState(initialCount);
@@ -69,6 +91,7 @@ export function NightEntryScreen({
   useEffect(
     () => () => {
       active.current?.abort();
+      active.current = null;
     },
     [],
   );
@@ -78,7 +101,10 @@ export function NightEntryScreen({
     Keyboard.dismiss();
     setStatus('idle');
     setValidation(null);
-    if (step === 'count') setStep('worry');
+    setSupportOperation(null);
+    setSupportError(null);
+    setSupport(null);
+    if (step === 'count' || step === 'support') setStep('worry');
     else onBack();
   }, [onBack, step]);
   useEffect(() => {
@@ -97,7 +123,7 @@ export function NightEntryScreen({
   }, [step]);
 
   const submit = async () => {
-    if (active.current || status === 'done') return;
+    if (active.current || status === 'done' || step === 'support') return;
     if (step === 'worry') {
       const error = validateWorry(categoryId, text, worryLimit);
       setValidation(error);
@@ -109,15 +135,18 @@ export function NightEntryScreen({
     Keyboard.dismiss();
     try {
       if (step === 'worry' && categoryId) {
-        await actions.checkWorry(
-          {
-            category_id: categoryId,
-            worry_text: categoryId === 'none' ? null : text.trim(),
-          },
-          controller.signal,
-        );
-        if (controller.signal.aborted) return;
-        setStep('count');
+        const draft: WorryDraft = {
+          category_id: categoryId,
+          worry_text: categoryId === 'none' ? null : text.trim(),
+        };
+        const result = await actions.checkWorry(draft, controller.signal);
+        if (controller.signal.aborted || active.current !== controller) return;
+        const night = readNightWorryResult(result);
+        if (night.status === 'needs_support') {
+          setSupport({ night, draft });
+          setSupportError(null);
+          setStep('support');
+        } else setStep('count');
         setStatus('idle');
       } else {
         await actions.startCounting(count, controller.signal);
@@ -137,6 +166,56 @@ export function NightEntryScreen({
       if (active.current === controller) active.current = null;
     }
   };
+  async function supportRequest(operation: 'continue' | 'reload') {
+    if (step !== 'support' || !support || active.current) return;
+    if (operation === 'continue' && !readSupport(support.night.support)) return;
+    const controller = new AbortController();
+    active.current = controller;
+    setSupportOperation(operation);
+    setSupportError(null);
+    setStatus('pending');
+    try {
+      if (operation === 'reload') {
+        const result = await actions.checkWorry(
+          { ...support.draft },
+          controller.signal,
+        );
+        if (controller.signal.aborted || active.current !== controller) return;
+        const night = readNightWorryResult(result);
+        if (night.id !== support.night.id || night.status !== 'needs_support')
+          throw new ApiError('invalid-response');
+        setSupport({ ...support, night });
+      } else {
+        const result = await actions.continueSupport(
+          support.night.id,
+          controller.signal,
+        );
+        if (controller.signal.aborted || active.current !== controller) return;
+        if (
+          !result ||
+          result.id !== support.night.id ||
+          result.active_session_id !== null
+        )
+          throw new ApiError('invalid-response');
+        setStep('count');
+      }
+      setStatus('idle');
+    } catch {
+      if (!controller.signal.aborted && active.current === controller) {
+        setSupportError(
+          operation === 'continue'
+            ? '계속하기 응답을 확인하지 못했어요. 다시 시도해 주세요.'
+            : '도움 안내를 다시 불러오지 못했어요. 다시 시도해 주세요.',
+        );
+        setStatus('error');
+      }
+    } finally {
+      if (active.current === controller) {
+        active.current = null;
+        setSupportOperation(null);
+      }
+    }
+  }
   const edit = () => {
     setValidation(null);
     setStatus('idle');
@@ -155,7 +234,13 @@ export function NightEntryScreen({
     );
 
   return (
-    <NightScreen>
+    <NightScreen
+      background={
+        step === 'support'
+          ? require('../../../assets/images/night-support/background.svg')
+          : undefined
+      }
+    >
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -170,7 +255,11 @@ export function NightEntryScreen({
             <Text style={styles.backText}>←</Text>
           </Pressable>
           <Text style={styles.barTitle}>
-            {step === 'worry' ? '오늘 밤' : '양 수 정하기'}
+            {step === 'worry'
+              ? '오늘 밤'
+              : step === 'support'
+                ? '도움 안내'
+                : '양 수 정하기'}
           </Text>
           <Text style={styles.preview}>미리보기 · 저장 안 함</Text>
         </View>
@@ -179,7 +268,16 @@ export function NightEntryScreen({
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.content}
         >
-          {step === 'worry' ? (
+          {step === 'support' ? (
+            <SupportContent
+              context="night"
+              support={support?.night.support}
+              pending={supportOperation}
+              error={supportError}
+              onContinue={() => void supportRequest('continue')}
+              onReload={() => void supportRequest('reload')}
+            />
+          ) : step === 'worry' ? (
             <>
               <Text accessibilityRole="header" style={styles.title}>
                 {'오늘은 어떤 고민을\n적어볼까요?'}
@@ -237,7 +335,7 @@ export function NightEntryScreen({
               <Notice title={validation} error />
             </View>
           )}
-          {status === 'error' && (
+          {status === 'error' && step !== 'support' && (
             <View style={styles.message}>
               <Notice
                 title="응답을 확인하지 못했어요. 다시 시도해 주세요."
@@ -253,28 +351,32 @@ export function NightEntryScreen({
               />
             </View>
           )}
-          <View style={styles.space} />
-          {status === 'done' ? (
-            <Button label="미리보기 닫기" onPress={onBack} />
-          ) : (
-            <Button
-              label={
-                pending
-                  ? step === 'worry'
-                    ? '확인 중'
-                    : '준비 중'
-                  : status === 'error'
-                    ? '다시 시도'
-                    : step === 'worry'
-                      ? '다음'
-                      : '양 세기 시작'
-              }
-              busy={pending}
-              disabled={missing}
-              onPress={() => {
-                void submit();
-              }}
-            />
+          {step !== 'support' && (
+            <>
+              <View style={styles.space} />
+              {status === 'done' ? (
+                <Button label="미리보기 닫기" onPress={onBack} />
+              ) : (
+                <Button
+                  label={
+                    pending
+                      ? step === 'worry'
+                        ? '확인 중'
+                        : '준비 중'
+                      : status === 'error'
+                        ? '다시 시도'
+                        : step === 'worry'
+                          ? '다음'
+                          : '양 세기 시작'
+                  }
+                  busy={pending}
+                  disabled={missing}
+                  onPress={() => {
+                    void submit();
+                  }}
+                />
+              )}
+            </>
           )}
         </ScrollView>
       </KeyboardAvoidingView>

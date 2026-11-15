@@ -10,6 +10,8 @@ export interface MockWorryRecords {
   get(id: string): MockNightRecord | undefined;
   all(): MockNightRecord[];
   erase(id: string): void;
+  eraseRecord(id: string): void;
+  isRecordDeleted(id: string): boolean;
   saveReflection(id: string, reflection: Reflection): void;
 }
 /** Shared memory behind settings, detail and reflection samples. */
@@ -27,6 +29,7 @@ export function createMockWorryRecords(
     if (!record) throw new ApiError('http', { status: 404, code: 'NOT_FOUND' });
     return record;
   };
+  const deletedRecords = new Set<string>();
   return {
     get: (id) => records.get(id),
     all: () => [...records.values()],
@@ -35,7 +38,20 @@ export function createMockWorryRecords(
       record.worry_text = null;
       record.worry_saved_at = null;
     },
+    eraseRecord(id) {
+      const record = find(id);
+      record.worry_text = null;
+      record.worry_saved_at = null;
+      record.reflection = null;
+      deletedRecords.add(id);
+    },
+    isRecordDeleted: (id) => deletedRecords.has(id),
     saveReflection(id, reflection) {
+      if (deletedRecords.has(id))
+        throw new ApiError('http', {
+          status: 409,
+          code: 'REFLECTION_NOT_AVAILABLE',
+        });
       find(id).reflection = reflection;
     },
   };

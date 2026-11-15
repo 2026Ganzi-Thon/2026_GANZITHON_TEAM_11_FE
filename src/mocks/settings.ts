@@ -2,6 +2,8 @@ import { createMockWorryRecords, type MockWorryRecords } from './worryRecords';
 import { ApiError } from '../api/errors';
 import type { SettingsActions, WorryRecord } from '../features/settings/types';
 export type SettingsScenario =
+  | 'delete-partial'
+  | 'delete-check-retry'
   | 'success'
   | 'empty'
   | 'profile-retry'

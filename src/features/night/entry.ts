@@ -50,6 +50,15 @@ export type NightEntryActions = {
   ) => Promise<NightSupportContinue>;
   startCounting: (count: number, signal: AbortSignal) => Promise<void>;
 };
+/** Only explicit input validation confirms that creation was rejected. */
+export function isSheepCountRejection(error: unknown): boolean {
+  return (
+    error instanceof ApiError &&
+    error.kind === 'http' &&
+    error.status === 422 &&
+    (error.code === 'INVALID_SHEEP_COUNT' || error.code === 'VALIDATION_ERROR')
+  );
+}
 // Provisional preview limit; reconcile with the server contract before integration.
 export const PREVIEW_WORRY_LIMIT = 200;
 export function validateWorry(

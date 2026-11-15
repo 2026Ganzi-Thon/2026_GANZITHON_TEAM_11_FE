@@ -3,6 +3,17 @@ import { useEffect, useRef, useState } from 'react';
 import { ApiError } from '../../api/errors';
 import type { ReflectionAnswer } from '../flock/types';
 import type { ReflectionActions, ReflectionRecord } from './reflection';
+function masked(
+  record: ReflectionRecord,
+  id: string,
+  worries?: WorryDeletions,
+): ReflectionRecord {
+  return {
+    ...record,
+    night: record.night ? maskDeletedWorry(record.night, id, worries) : null,
+    reflection: worries?.records?.isDeleted(id) ? null : record.reflection,
+  };
+}
 export function useReflection(
   nightId: string,
   actions: ReflectionActions,
@@ -44,14 +55,11 @@ export function useReflection(
           id: nightId,
           api: actions,
           phase: 'ready',
-          record: {
-            ...record,
-            night: record.night
-              ? maskDeletedWorry(record.night, nightId, worries)
-              : null,
-          },
+          record: masked(record, nightId, worries),
         });
-        setSelected(record.reflection?.answer ?? null);
+        setSelected(
+          masked(record, nightId, worries).reflection?.answer ?? null,
+        );
       })
       .catch((error) => {
         if (!controller.signal.aborted)
@@ -84,12 +92,7 @@ export function useReflection(
         setState((current) => ({
           ...current,
           record: current.record
-            ? {
-                ...current.record,
-                night: current.record.night
-                  ? maskDeletedWorry(current.record.night, nightId, worries)
-                  : null,
-              }
+            ? masked(current.record, nightId, worries)
             : undefined,
         }));
         setSelected(null);

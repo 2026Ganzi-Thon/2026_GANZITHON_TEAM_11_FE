@@ -14,6 +14,10 @@ export default function StartScreen() {
         {__DEV__ && (
           <>
             <Button
+              label="밤 재진입·이어 세기 미리보기"
+              onPress={() => router.push('/dev/night-reentry')}
+            />
+            <Button
               label="첫 밤 전 홈·시간 버튼"
               onPress={() => router.push('/dev/first-night-home')}
             />

@@ -72,7 +72,8 @@ it('opens settings and paginated worry records from home without exposing deleti
   await press('고민 기록 열기');
   expect(await screen.findByText('면접이 걱정돼요.')).toBeTruthy();
   expect(screen.getByText('고민 기록 3개')).toBeTruthy();
-  expect(screen.getByText('아침에 돌아본 답 · 그대로예요')).toBeTruthy();
+  expect(screen.getByText('아침에 돌아본 답')).toBeTruthy();
+  expect(screen.getByText('그대로예요')).toBeTruthy();
   expect(load).toHaveBeenNthCalledWith(1, {}, expect.any(AbortSignal));
   expect(screen.queryAllByRole('checkbox')).toHaveLength(0);
   expect(

@@ -37,8 +37,11 @@ async function open(actions: SettingsActions) {
   await tick();
 }
 async function remove(date = '2026-11-10') {
-  await press(date + ' 고민 삭제');
-  await press('지우기');
+  await fireEvent.press(
+    screen.getByRole('checkbox', { name: date + ' 고민 선택' }),
+  );
+  await press('선택한 1개 지우기');
+  await press('지울게요');
   await tick();
 }
 it('does not restore an old count when another deletion invalidates a pending profile refresh', async () => {
@@ -105,7 +108,7 @@ it('aborts an in-flight more page, reloads a fresh first page and ignores late d
   );
   expect(screen.queryByText('부활하면 안 되는 원문')).toBeNull();
   expect(
-    screen.queryByRole('button', { name: '2026-11-10 고민 삭제' }),
+    screen.queryByRole('checkbox', { name: '2026-11-10 고민 선택' }),
   ).toBeNull();
   expect(screen.getByText('시험을 앞두고 마음이 복잡해요.')).toBeTruthy();
   expect(screen.getByText('고민 기록 2개')).toBeTruthy();
@@ -124,7 +127,7 @@ it('filters a stale replacement page against confirmed deletion IDs', async () =
   await open(source.settings);
   await remove();
   expect(
-    screen.queryByRole('button', { name: '2026-11-10 고민 삭제' }),
+    screen.queryByRole('checkbox', { name: '2026-11-10 고민 선택' }),
   ).toBeNull();
   expect(
     screen.queryByText('면접 결과가 내일 나오는데 계속 생각나서 잠이 안 와요.'),
@@ -169,7 +172,7 @@ it.each(['success', 'failure'] as const)(
     await tick();
     expect(screen.getByText('고민 기록 3개')).toBeTruthy();
     expect(
-      screen.getByRole('button', { name: '2026-11-10 고민 삭제' }),
+      screen.getByRole('checkbox', { name: '2026-11-10 고민 선택' }),
     ).toBeTruthy();
     expect(screen.queryByText('late private error')).toBeNull();
   },
@@ -178,7 +181,7 @@ it.each(['success', 'failure'] as const)(
   'refreshes the latest count after a lost deletion when an older profile read has a late %s',
   async (mode) => {
     jest.useFakeTimers();
-    const source = createSettingsMorning('delete-lost');
+    const source = createSettingsMorning('delete-check-retry');
     const original = source.settings.loadMe;
     let finish!: (data: SettingsData) => void;
     let fail!: (error: Error) => void;
@@ -201,8 +204,8 @@ it.each(['success', 'failure'] as const)(
     await press('고민 기록 열기');
     await tick();
     await remove();
-    expect(screen.getByText('삭제 결과를 확인하지 못했어요')).toBeTruthy();
-    await press('취소');
+    expect(screen.getByText(/확인 필요 1개/)).toBeTruthy();
+    await press('그냥 둘게요');
     await press('설정으로 돌아가기');
     await tick();
     await act(async () => {
@@ -221,7 +224,7 @@ it.each(['success', 'failure'] as const)(
     await tick();
     expect(screen.getByText('고민 기록 2개')).toBeTruthy();
     expect(
-      screen.queryByRole('button', { name: '2026-11-10 고민 삭제' }),
+      screen.queryByRole('checkbox', { name: '2026-11-10 고민 선택' }),
     ).toBeNull();
   },
 );

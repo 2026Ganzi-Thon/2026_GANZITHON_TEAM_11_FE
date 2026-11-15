@@ -8,6 +8,12 @@ const tick = () =>
   });
 const press = (name: string) =>
   fireEvent.press(screen.getByRole('button', { name }));
+const select = (date: string) =>
+  fireEvent.press(screen.getByRole('checkbox', { name: date + ' 고민 선택' }));
+async function begin(date = '2026-11-10') {
+  await select(date);
+  await press('선택한 1개 지우기');
+}
 afterEach(() => {
   jest.useRealTimers();
 });
@@ -28,14 +34,14 @@ it('deletes a listed original and updates count, detail and reflection while pre
   await press('고민 기록 열기');
   await tick();
   expect(
-    screen.getByRole('button', { name: '2026-11-10 고민 삭제' }),
+    screen.getByRole('checkbox', { name: '2026-11-10 고민 선택' }),
   ).toBeTruthy();
-  const remove = jest.spyOn(source.worries!, 'remove');
-  await press('2026-11-10 고민 삭제');
-  await press('취소');
+  const remove = jest.spyOn(source.worries!.records!, 'remove');
+  await begin();
+  await press('그냥 둘게요');
   expect(remove).not.toHaveBeenCalled();
-  await press('2026-11-10 고민 삭제');
-  await press('지우기');
+  await press('선택한 1개 지우기');
+  await press('지울게요');
   await tick();
   expect(
     screen.queryByText('면접 결과가 내일 나오는데 계속 생각나서 잠이 안 와요.'),
@@ -51,11 +57,11 @@ it('deletes a listed original and updates count, detail and reflection while pre
   await tick();
   expect(screen.getByText('남아 있는 고민 기록이 없어요.')).toBeTruthy();
   expect(screen.getByText('잠깐의 쉼 (예시)')).toBeTruthy();
-  expect(screen.getByText('그대로예요')).toBeTruthy();
+  expect(screen.queryByText('그대로예요')).toBeNull();
   await press('양떼로 돌아가기');
   await press('어젯밤 돌아보기');
   await tick();
-  expect(screen.getByText('저장된 회고 · 그대로예요')).toBeTruthy();
+  expect(screen.queryByText('저장된 회고 · 그대로예요')).toBeNull();
   expect(screen.queryAllByRole('radio')).toHaveLength(0);
 });
 async function openList(source: ReturnType<typeof createSettingsMorning>) {
@@ -73,32 +79,26 @@ async function openList(source: ReturnType<typeof createSettingsMorning>) {
   await press('고민 기록 열기');
   await tick();
 }
-it.each(['delete-retry', 'delete-lost'] as const)(
-  'retains uncertain %s and retries the same night without decrementing twice',
+it.each(['delete-retry', 'delete-check-retry'] as const)(
+  'recovers %s without decrementing twice',
   async (scenario) => {
     jest.useFakeTimers();
     const source = createSettingsMorning(scenario);
-    const remove = jest.spyOn(source.worries!, 'remove');
+    const remove = jest.spyOn(source.worries!.records!, 'remove');
     await openList(source);
-    await press('2026-11-10 고민 삭제');
-    await press('지우기');
+    await begin();
+    await press('지울게요');
     await tick();
-    expect(screen.getByText('삭제 결과를 확인하지 못했어요')).toBeTruthy();
-    await press('취소');
-    expect(screen.getByText('고민 기록 3개')).toBeTruthy();
-    expect(
-      screen.getByRole('button', { name: '2026-11-10 고민 삭제' }),
-    ).toBeTruthy();
-    await press('2026-11-10 고민 삭제');
-    await press('지우기');
+    await press(
+      scenario === 'delete-retry'
+        ? '미완료 항목 다시 처리'
+        : '삭제 결과 다시 확인',
+    );
     await tick();
     expect(screen.getByText('고민 기록 2개')).toBeTruthy();
-    expect(remove.mock.calls.map((c) => c[0])).toEqual([
-      'preview-night',
-      'preview-night',
-    ]);
+    expect(remove).toHaveBeenCalledTimes(scenario === 'delete-retry' ? 2 : 1);
     await act(async () => {
-      const pending = source.worries!.remove(
+      const pending = source.worries!.records!.remove(
         'preview-night',
         new AbortController().signal,
       );
@@ -127,13 +127,13 @@ it('removes a detail-deleted original from settings and preserves every other re
   await press('고민 기록 열기');
   await tick();
   expect(
-    screen.queryByRole('button', { name: '2026-11-09 고민 삭제' }),
+    screen.queryByRole('checkbox', { name: '2026-11-09 고민 선택' }),
   ).toBeNull();
   expect(
-    screen.getByRole('button', { name: '2026-11-10 고민 삭제' }),
+    screen.getByRole('checkbox', { name: '2026-11-10 고민 선택' }),
   ).toBeTruthy();
   expect(
-    screen.getByRole('button', { name: '2026-11-08 고민 삭제' }),
+    screen.getByRole('checkbox', { name: '2026-11-08 고민 선택' }),
   ).toBeTruthy();
 });
 it('resets a consumed cursor after deletion so the next remaining record is not skipped', async () => {
@@ -143,8 +143,8 @@ it('resets a consumed cursor after deletion so the next remaining record is not 
   await press('더 보기');
   await tick();
   expect(screen.getByText('시험을 앞두고 마음이 복잡해요.')).toBeTruthy();
-  await press('2026-11-10 고민 삭제');
-  await press('지우기');
+  await begin();
+  await press('지울게요');
   await tick();
   expect(screen.getByText('고민 기록 2개')).toBeTruthy();
   expect(screen.getByText('연락이 뜸해진 게 자꾸 신경 쓰여요.')).toBeTruthy();
@@ -157,11 +157,11 @@ it.each(['refresh-retry', 'count-retry'] as const)(
     jest.useFakeTimers();
     const source = createSettingsMorning(scenario);
     await openList(source);
-    await press('2026-11-10 고민 삭제');
-    await press('지우기');
+    await begin();
+    await press('지울게요');
     await tick();
     expect(
-      screen.queryByRole('button', { name: '2026-11-10 고민 삭제' }),
+      screen.queryByRole('checkbox', { name: '2026-11-10 고민 선택' }),
     ).toBeNull();
     expect(screen.getByText('연락이 뜸해진 게 자꾸 신경 쓰여요.')).toBeTruthy();
     if (scenario === 'count-retry') {
@@ -177,8 +177,8 @@ it('shows an empty list and zero count after deleting every original while prese
   const source = createSettingsMorning();
   await openList(source);
   for (const date of ['2026-11-10', '2026-11-09', '2026-11-08']) {
-    await press(date + ' 고민 삭제');
-    await press('지우기');
+    await begin(date);
+    await press('지울게요');
     await tick();
   }
   expect(screen.getByText('저장된 고민 없음')).toBeTruthy();
@@ -194,26 +194,26 @@ it('shows an empty list and zero count after deleting every original while prese
 it('blocks duplicate requests and modal back/cancel during a slow list deletion', async () => {
   jest.useFakeTimers();
   const source = createSettingsMorning('delete-slow');
-  const remove = jest.spyOn(source.worries!, 'remove');
+  const remove = jest.spyOn(source.worries!.records!, 'remove');
   await openList(source);
-  await press('2026-11-10 고민 삭제');
-  await press('지우기');
+  await begin();
+  await press('지울게요');
   await press('삭제 확인 중');
-  await fireEvent(screen.getByTestId('worry-delete-modal'), 'requestClose');
-  expect(screen.getByRole('button', { name: '취소' })).toBeDisabled();
+  await fireEvent(screen.getByTestId('worry-selection-modal'), 'requestClose');
+  expect(screen.getByRole('button', { name: '그냥 둘게요' })).toBeDisabled();
   expect(remove).toHaveBeenCalledTimes(1);
   await tick();
-  expect(screen.queryByTestId('worry-delete-modal')).toBeNull();
+  expect(screen.queryByTestId('worry-selection-modal')).toBeNull();
   expect(screen.getByText('고민 기록 2개')).toBeTruthy();
 });
 it('reconciles the count on returning from a lost-response dialog that was cancelled', async () => {
   jest.useFakeTimers();
-  const source = createSettingsMorning('delete-lost');
+  const source = createSettingsMorning('delete-check-retry');
   await openList(source);
-  await press('2026-11-10 고민 삭제');
-  await press('지우기');
+  await begin();
+  await press('지울게요');
   await tick();
-  await press('취소');
+  await press('그냥 둘게요');
   await press('설정으로 돌아가기');
   await tick();
   expect(screen.getByText('2개')).toBeTruthy();
@@ -221,6 +221,6 @@ it('reconciles the count on returning from a lost-response dialog that was cance
   await tick();
   expect(screen.getByText('고민 기록 2개')).toBeTruthy();
   expect(
-    screen.queryByRole('button', { name: '2026-11-10 고민 삭제' }),
+    screen.queryByRole('checkbox', { name: '2026-11-10 고민 선택' }),
   ).toBeNull();
 });

@@ -21,11 +21,10 @@ it('provides only surviving originals in date order and uses the full count acro
   await tick();
   expect(screen.getByText('고민 기록 3개')).toBeTruthy();
   expect(
-    screen.getAllByText(/2026-11-\d+ 밤/).map((n) => n.props.children),
-  ).toEqual([
-    ['2026-11-10', ' 밤'],
-    ['2026-11-09', ' 밤'],
-  ]);
+    screen
+      .getAllByLabelText(/2026-11-\d+ 밤/)
+      .map((n) => n.props.accessibilityLabel),
+  ).toEqual(['2026-11-10 밤', '2026-11-09 밤']);
   await press('더 보기');
   await tick();
   expect(screen.getByText('시험을 앞두고 마음이 복잡해요.')).toBeTruthy();

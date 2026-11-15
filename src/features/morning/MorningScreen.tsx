@@ -2,7 +2,7 @@ import { SettingsScreen } from '../settings/SettingsScreen';
 import { SavedSongsScreen } from '../songs/SavedSongsScreen';
 import { songExternal } from '../songs/songExternal';
 import { ReflectionScreen } from './ReflectionScreen';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -91,10 +91,16 @@ function MorningSession({
   actions,
   onExit,
   loadDetail,
+  homeFooter,
+  homeWhenNoCandidates = false,
+  fortuneKey,
 }: {
   actions: MorningActions;
   onExit: () => void;
   loadDetail?: SheepDetailLoad;
+  homeFooter?: (blocked: boolean) => ReactNode;
+  homeWhenNoCandidates?: boolean;
+  fortuneKey?: string;
 }) {
   const [detailId, setDetailId] = useState<string | null>(null);
   const [songsOpen, setSongsOpen] = useState(false);
@@ -103,7 +109,7 @@ function MorningSession({
   const [fortuneOpen, setFortuneOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [fortuneVersion, setFortuneVersion] = useState(0);
-  const flow = useMorningFlow(actions, onExit);
+  const flow = useMorningFlow(actions, onExit, homeWhenNoCandidates);
   const { morning, busy, failure } = flow;
   const hasCandidates =
     !!morning?.night && morning.candidate_cards.some(canAdopt);
@@ -180,7 +186,7 @@ function MorningSession({
             <View style={styles.pasture}>
               {actions.fortune && (
                 <FortuneSection
-                  key={fortuneVersion}
+                  key={`${fortuneKey ?? ''}:${fortuneVersion}`}
                   actions={actions.fortune}
                   onVisibilityChange={setFortuneOpen}
                   blocked={
@@ -362,6 +368,15 @@ function MorningSession({
         )}
         <Action label="미리보기 나가기" onPress={flow.exit} />
       </ScrollView>
+      {flow.page === 'home' &&
+        homeFooter?.(
+          detailId !== null ||
+            songsOpen ||
+            reflectionOpen ||
+            deferredWritingOpen ||
+            fortuneOpen ||
+            settingsOpen,
+        )}
       <Modal
         testID="saved-songs-modal"
         visible={songsOpen}

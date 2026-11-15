@@ -1,13 +1,16 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { NightEntryScreen } from './NightEntryScreen';
-import type { NightEntryActions } from './entry';
+import type { NightEntryActions, NightWorryResult } from './entry';
 
 function actions() {
   return {
     checkWorry: jest
       .fn<NightEntryActions['checkWorry']>()
-      .mockResolvedValue(undefined),
+      .mockResolvedValue({ id: 'test-night', status: 'ready', support: null }),
+    continueSupport: jest
+      .fn<NightEntryActions['continueSupport']>()
+      .mockResolvedValue({ id: 'test-night', active_session_id: null }),
     startCounting: jest
       .fn<NightEntryActions['startCounting']>()
       .mockResolvedValue(undefined),
@@ -119,7 +122,7 @@ describe('night entry preview', () => {
   });
   it('blocks duplicate worry submissions and aborts when leaving', async () => {
     const api = actions();
-    let finish!: () => void;
+    let finish!: (value: NightWorryResult) => void;
     api.checkWorry.mockImplementation(
       () =>
         new Promise((resolve) => {
@@ -136,7 +139,9 @@ describe('night entry preview', () => {
     await press('뒤로');
     expect(api.checkWorry.mock.calls[0][1].aborted).toBe(true);
     expect(onBack).toHaveBeenCalledTimes(1);
-    await act(async () => finish());
+    await act(async () =>
+      finish({ id: 'test-night', status: 'ready', support: null }),
+    );
     expect(screen.queryByText('오늘은 몇 마리 셀까요?')).toBeNull();
   });
   it('ignores a late count completion after backing out and permits a new attempt', async () => {

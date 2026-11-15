@@ -342,6 +342,12 @@ export function createNightMorningDemo(scenario: DemoScenario = 'success') {
           worry_text:
             value.category_id === 'none' ? null : value.worry_text!.trim(),
         };
+        return { id: nightId, status: 'ready' as const, support: null };
+      }),
+    continueSupport: (id, signal) =>
+      delayed(signal, () => {
+        if (id !== nightId) conflict('NIGHT_NOT_FOUND', 404);
+        conflict('SUPPORT_NOT_REQUIRED');
       }),
     startCounting: (value, signal) =>
       delayed(signal, () => {

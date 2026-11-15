@@ -3,6 +3,7 @@ import { ApiError } from '../../../api/errors';
 import { NightEntryScreen } from '../NightEntryScreen';
 import {
   readNightWorryResult,
+  isSheepCountRejection,
   type NightEntryActions,
   type NightWorryResult,
 } from '../entry';
@@ -19,12 +20,16 @@ export function ReentryEntry({
   onCreated,
   onRecorded,
   onBack,
+  onCreationUnconfirmed,
+  initialCount = 15,
 }: {
   actions: ReentryActions;
   route: ReentryRoute;
   onCreated: (session: ReentrySession) => void;
   onRecorded: (night: NightWorryResult) => void;
   onBack: () => void;
+  onCreationUnconfirmed: (nightId: string, count: number) => void;
+  initialCount?: number;
 }) {
   const created = useRef<ReentrySession | null>(null);
   const bridge = useMemo(() => {
@@ -46,24 +51,31 @@ export function ReentryEntry({
       },
       startCounting: async (count, signal) => {
         if (!nightId) throw new ApiError('invalid-response');
-        const result = await actions.createSession(nightId, count, signal);
-        if (signal.aborted) throw new ApiError('aborted');
-        const session = readReentrySession(result, nightId);
-        if (
-          session.sheep_count !== count ||
-          session.position !== 0 ||
-          session.furthest_position !== 0 ||
-          session.sequence !== 0
-        )
-          throw new ApiError('invalid-response');
-        created.current = session;
+        try {
+          const result = await actions.createSession(nightId, count, signal);
+          if (signal.aborted) throw new ApiError('aborted');
+          const session = readReentrySession(result, nightId);
+          if (
+            session.sheep_count !== count ||
+            session.position !== 0 ||
+            session.furthest_position !== 0 ||
+            session.sequence !== 0
+          )
+            throw new ApiError('invalid-response');
+          created.current = session;
+        } catch (error) {
+          if (!signal.aborted && !isSheepCountRejection(error))
+            onCreationUnconfirmed(nightId, count);
+          throw error;
+        }
       },
     };
     return entry;
-  }, [actions, route, onRecorded]);
+  }, [actions, route, onRecorded, onCreationUnconfirmed]);
   return (
     <NightEntryScreen
       actions={bridge}
+      initialCount={initialCount}
       mode={
         route.next_screen === 'NIGHT_SHEEP_COUNT'
           ? 'existing-night'

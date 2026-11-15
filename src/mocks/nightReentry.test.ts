@@ -76,6 +76,37 @@ it('keeps the first successful worry as a recorded night and refuses duplicate a
     (await settled(source.loadFeed(created.id, signal()))).map((c) => c.id),
   ).toEqual(['preview-card-1', 'preview-card-2', 'preview-card-3']);
 });
+it.each(['create-lost-response', 'create-recovery-retry'] as const)(
+  'keeps an actual session after losing its creation reply (%s)',
+  async (scenario) => {
+    const source = createMockNightReentry(scenario);
+    expect(await settled(source.bootstrap(signal()))).toMatchObject({
+      next_screen: 'NIGHT_WORRY',
+    });
+    await settled(
+      source.checkWorry({ category_id: 'none', worry_text: null }, signal()),
+    );
+    const failed = expect(
+      source.createSession('reentry-night', 3, signal()),
+    ).rejects.toMatchObject({ kind: 'network' });
+    await jest.advanceTimersByTimeAsync(600);
+    await failed;
+    if (scenario === 'create-recovery-retry') {
+      const failedLookup = expect(
+        source.bootstrap(signal()),
+      ).rejects.toMatchObject({ kind: 'network' });
+      await jest.advanceTimersByTimeAsync(600);
+      await failedLookup;
+    }
+    expect(await settled(source.bootstrap(signal()))).toMatchObject({
+      next_screen: 'NIGHT_FEED',
+      active_session_id: 'reentry-session-1',
+    });
+    expect(
+      await settled(source.resume('reentry-session-1', signal())),
+    ).toMatchObject({ id: 'reentry-session-1', sheep_count: 3, position: 0 });
+  },
+);
 it('keeps support on each explicit reentry and uses the same active session after continue', async () => {
   const source = createMockNightReentry('support-active');
   expect(await settled(source.bootstrap(signal()))).toMatchObject({

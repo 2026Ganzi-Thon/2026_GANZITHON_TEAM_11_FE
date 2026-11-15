@@ -44,6 +44,12 @@ function ReentrySessionFlow({
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const revealFrame = useRef<number | null>(null);
   const supportError = state.kind === 'support' ? state.error : null;
+  const creation =
+    (state.kind === 'loading' ||
+      (state.kind === 'error' && !state.unsupported && !state.closed)) &&
+    state.job.kind === 'bootstrap'
+      ? state.job.creation
+      : undefined;
   const revealError = useCallback(() => {
     if (!supportError) return;
     if (revealFrame.current !== null) cancelAnimationFrame(revealFrame.current);
@@ -78,6 +84,8 @@ function ReentrySessionFlow({
         onBack={flow.pause}
         onCreated={flow.showFeed}
         onRecorded={flow.recorded}
+        onCreationUnconfirmed={flow.creationUnconfirmed}
+        initialCount={state.initialCount}
       />
     );
   if (state.kind === 'feed')
@@ -119,9 +127,11 @@ function ReentrySessionFlow({
           <View style={styles.waiting}>
             <ActivityIndicator color={theme.color.text} />
             <Text style={styles.message} accessibilityLiveRegion="polite">
-              {state.job.kind === 'resume'
-                ? '이어서 셀 양을 확인하고 있어요'
-                : '오늘 밤 상태를 확인하고 있어요'}
+              {creation
+                ? '양 세기 준비 상태를 확인하고 있어요'
+                : state.job.kind === 'resume'
+                  ? '이어서 셀 양을 확인하고 있어요'
+                  : '오늘 밤 상태를 확인하고 있어요'}
             </Text>
           </View>
         ) : state.kind === 'error' ? (
@@ -129,27 +139,38 @@ function ReentrySessionFlow({
             <Notice
               error
               title={
-                state.unsupported
-                  ? '지금은 이 밤을 이어 볼 수 없어요'
-                  : state.closed
-                    ? '이 세션은 이미 끝났어요'
-                    : '밤 상태를 확인하지 못했어요'
+                creation
+                  ? '양 세기 준비 결과를 확인하지 못했어요'
+                  : state.unsupported
+                    ? '지금은 이 밤을 이어 볼 수 없어요'
+                    : state.closed
+                      ? '이 세션은 이미 끝났어요'
+                      : '밤 상태를 확인하지 못했어요'
               }
               description={
-                state.unsupported
-                  ? '낮 화면과 마무리 복귀는 이번 미리보기 범위에 포함하지 않았어요.'
-                  : state.closed
-                    ? '밤 상태를 다시 확인해 주세요.'
-                    : '현재 위치를 확인한 뒤에만 이어 볼 수 있어요. 다시 시도해 주세요.'
+                creation
+                  ? '이미 준비됐을 수 있어요. 새로 만들지 않고 밤 상태를 확인해 이어 갈게요.'
+                  : state.unsupported
+                    ? '낮 화면과 마무리 복귀는 이번 미리보기 범위에 포함하지 않았어요.'
+                    : state.closed
+                      ? '밤 상태를 다시 확인해 주세요.'
+                      : '현재 위치를 확인한 뒤에만 이어 볼 수 있어요. 다시 시도해 주세요.'
               }
             />
+            {creation && (
+              <Text style={styles.message} accessibilityLabel="선택한 양 수">
+                {creation.count}마리
+              </Text>
+            )}
             <Button
               label={
-                state.unsupported
-                  ? '시연 끝내기'
-                  : state.closed
-                    ? '밤 상태 다시 확인'
-                    : '다시 시도'
+                creation
+                  ? '밤 상태 다시 확인'
+                  : state.unsupported
+                    ? '시연 끝내기'
+                    : state.closed
+                      ? '밤 상태 다시 확인'
+                      : '다시 시도'
               }
               onPress={state.unsupported ? onExit : flow.retry}
             />

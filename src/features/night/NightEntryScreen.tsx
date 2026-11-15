@@ -29,6 +29,7 @@ import {
   PREVIEW_WORRY_LIMIT,
   validateWorry,
   readNightWorryResult,
+  isSheepCountRejection,
   type NightWorryResult,
   type WorryDraft,
   type CategoryId,
@@ -173,8 +174,13 @@ function NightEntrySession({
           setStatus('idle');
         } else setStatus('done');
       }
-    } catch {
-      if (!controller.signal.aborted) setStatus('error');
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        if (step === 'count' && isSheepCountRejection(error)) {
+          setValidation('양 수가 접수되지 않았어요.');
+          setStatus('idle');
+        } else setStatus('error');
+      }
     } finally {
       if (active.current === controller) active.current = null;
     }

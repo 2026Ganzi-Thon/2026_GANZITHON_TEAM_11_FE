@@ -12,6 +12,11 @@ export type ReentryScenario =
   | 'untouched'
   | 'recorded'
   | 'new'
+  | 'create-lost-response'
+  | 'create-recovery-retry'
+  | 'create-conflict'
+  | 'create-rejected'
+  | 'create-no-active-retry'
   | 'support-active'
   | 'support-count'
   | 'support-missing'
@@ -29,11 +34,20 @@ export function createMockNightReentry(
   scenario: ReentryScenario,
 ): ReentryActions {
   const nightId = 'reentry-night';
-  let recorded = scenario !== 'new',
+  let recorded = ![
+      'new',
+      'create-lost-response',
+      'create-recovery-retry',
+      'create-conflict',
+      'create-rejected',
+      'create-no-active-retry',
+    ].includes(scenario),
     continued = false,
     expired = false,
     failed = false,
-    bootstrapCalls = 0;
+    bootstrapCalls = 0,
+    creationFailed = false,
+    recoveryFailed = false;
   const needsSupport = [
     'support-active',
     'support-count',
@@ -80,6 +94,26 @@ export function createMockNightReentry(
         () => {
           cleanup();
           try {
+            if (
+              step === 'bootstrap' &&
+              scenario === 'create-recovery-retry' &&
+              creationFailed &&
+              !recoveryFailed
+            ) {
+              recoveryFailed = true;
+              throw new ApiError('network');
+            }
+            if (
+              step === 'create' &&
+              !creationFailed &&
+              (scenario === 'create-rejected' ||
+                scenario === 'create-no-active-retry')
+            ) {
+              creationFailed = true;
+              if (scenario === 'create-rejected')
+                conflict('VALIDATION_ERROR', 422);
+              throw new ApiError('network');
+            }
             if (scenario === `${step}-retry` && !failed) {
               failed = true;
               throw new ApiError('network');
@@ -150,6 +184,20 @@ export function createMockNightReentry(
         if (id !== nightId || !recorded) conflict('NIGHT_NOT_FOUND', 404);
         if (needsSupport && !continued) conflict('SUPPORT_REQUIRED');
         if (session) conflict('ACTIVE_SESSION_EXISTS');
+        if (scenario === 'create-conflict' && !creationFailed) {
+          creationFailed = true;
+          session = {
+            id: 'reentry-session-1',
+            night_id: nightId,
+            status: 'active',
+            sheep_count: 6,
+            position: 2,
+            furthest_position: 4,
+            sequence: 0,
+            writer_epoch: 1,
+          };
+          conflict('ACTIVE_SESSION_EXISTS');
+        }
         if (!Number.isInteger(count) || count < 3 || count > 30)
           conflict('INVALID_SHEEP_COUNT', 422);
         session = {
@@ -162,6 +210,14 @@ export function createMockNightReentry(
           sequence: 0,
           writer_epoch: 1,
         };
+        if (
+          (scenario === 'create-lost-response' ||
+            scenario === 'create-recovery-retry') &&
+          !creationFailed
+        ) {
+          creationFailed = true;
+          throw new ApiError('network');
+        }
         return { ...session };
       }),
     resume: (id, signal) =>

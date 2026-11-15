@@ -12,12 +12,12 @@ import {
 } from './model';
 
 type Job =
-  | { kind: 'bootstrap' }
+  | { kind: 'bootstrap'; creation?: { nightId: string; count: number } }
   | { kind: 'resume'; nightId: string; sessionId: string };
 type State =
   | { kind: 'loading'; job: Job }
   | { kind: 'error'; job: Job; closed: boolean; unsupported?: boolean }
-  | { kind: 'entry'; route: ReentryRoute }
+  | { kind: 'entry'; route: ReentryRoute; initialCount?: number }
   | {
       kind: 'support';
       route: ReentryRoute;
@@ -65,7 +65,14 @@ export function useNightReentry(actions: ReentryActions) {
             setState(
               route.next_screen === 'NIGHT_SUPPORT'
                 ? { kind: 'support', route, pending: null, error: null }
-                : { kind: 'entry', route },
+                : {
+                    kind: 'entry',
+                    route,
+                    initialCount:
+                      job.creation?.nightId === route.night_id
+                        ? job.creation.count
+                        : undefined,
+                  },
             );
             return;
           }
@@ -157,6 +164,17 @@ export function useNightReentry(actions: ReentryActions) {
         : { kind: 'entry', route },
     );
   }, []);
+  const creationUnconfirmed = useCallback((nightId: string, count: number) => {
+    setState((previous) =>
+      previous.kind === 'entry' && previous.route.night_id === nightId
+        ? {
+            kind: 'error',
+            job: { kind: 'bootstrap', creation: { nightId, count } },
+            closed: false,
+          }
+        : previous,
+    );
+  }, []);
   async function continueSupport() {
     if (state.kind !== 'support' || !state.route.support || active.current)
       return;
@@ -228,6 +246,7 @@ export function useNightReentry(actions: ReentryActions) {
     showFeed,
     observe,
     recorded,
+    creationUnconfirmed,
     continueSupport,
     reloadSupport: () =>
       state.kind === 'support' &&

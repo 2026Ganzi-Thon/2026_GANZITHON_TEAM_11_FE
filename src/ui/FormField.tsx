@@ -11,10 +11,10 @@ export function FormField({
   label,
   error,
   ...input
-}: TextInputProps & { label: string; error?: string }) {
+}: TextInputProps & { label?: string; error?: string }) {
   return (
     <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
+      {label ? <Text style={styles.label}>{label}</Text> : null}
       <TextInput
         {...input}
         placeholderTextColor={theme.color.muted}

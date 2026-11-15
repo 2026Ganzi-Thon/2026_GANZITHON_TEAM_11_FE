@@ -1,4 +1,5 @@
 import { ApiError } from '../api/errors';
+import { previewZodiac } from '../features/birthDate/zodiac';
 import { birthDateError, kstDate, parseDate } from '../features/birthDate/date';
 import type {
   BirthDateActions,
@@ -21,28 +22,6 @@ export type BirthDateScenario =
   | 'validation-error'
   | 'age-rejected'
   | 'invalid-response';
-/** Deterministic preview ranges only. Production zodiac comes from the service. */
-function previewZodiac(date: string): BirthDateResult['zodiac'] {
-  const p = parseDate(date)!;
-  const day = p.month * 100 + p.day;
-  const starts = [
-    [120, 'aquarius'],
-    [219, 'pisces'],
-    [321, 'aries'],
-    [420, 'taurus'],
-    [521, 'gemini'],
-    [621, 'cancer'],
-    [723, 'leo'],
-    [823, 'virgo'],
-    [923, 'libra'],
-    [1023, 'scorpio'],
-    [1122, 'sagittarius'],
-    [1222, 'capricorn'],
-  ] as const;
-  let zodiac: BirthDateResult['zodiac'] = 'capricorn';
-  for (const [start, value] of starts) if (day >= start) zodiac = value;
-  return zodiac;
-}
 /** API A-09 is a proposal; this sample is not a legal age determination. */
 function allowedAge(date: string, today: string): boolean {
   const p = parseDate(date)!,

@@ -1,0 +1,172 @@
+import { ApiError } from '../api/errors';
+import { birthDateError, parseDate } from '../features/birthDate/date';
+import {
+  consentIds,
+  type ConsentDocuments,
+  type Registration,
+  type SignupActions,
+} from '../features/signup/types';
+import type { BirthDateResult } from '../features/birthDate/types';
+import { previewZodiac } from '../features/birthDate/zodiac';
+export type SignupScenario =
+  | 'success'
+  | 'register-retry'
+  | 'register-lost'
+  | 'register-in-progress'
+  | 'birth-in-progress'
+  | 'email-used'
+  | 'documents-retry'
+  | 'consent-retry'
+  | 'version-changed'
+  | 'birth-retry'
+  | 'age-rejected'
+  | 'slow';
+/** In-memory UI adapter; recovery keys and extra choices are not agreed HTTP fields. */
+export function createMockSignup(
+  scenario: SignupScenario = 'success',
+): SignupActions {
+  const today = '2026-11-16';
+  let revision = 'v1',
+    account: Registration | null = null,
+    birth: BirthDateResult | null = null,
+    agreed = false;
+  const operations = new Map<string, Registration>(),
+    failed = new Set<string>();
+  const failOnce = (name: string) => {
+    if (!failed.has(name)) {
+      failed.add(name);
+      throw new ApiError('network');
+    }
+  };
+  function delayed<T>(signal: AbortSignal, action: () => T): Promise<T> {
+    return new Promise((resolve, reject) => {
+      if (signal.aborted) {
+        reject(new ApiError('aborted'));
+        return;
+      }
+      const cleanup = () => {
+        clearTimeout(timer);
+        signal.removeEventListener('abort', abort);
+      };
+      const abort = () => {
+        cleanup();
+        reject(new ApiError('aborted'));
+      };
+      const timer = setTimeout(
+        () => {
+          cleanup();
+          try {
+            resolve(action());
+          } catch (e) {
+            reject(e);
+          }
+        },
+        scenario === 'slow' ? 5000 : 500,
+      );
+      signal.addEventListener('abort', abort, { once: true });
+    });
+  }
+  const titles = [
+    '서비스 이용약관',
+    '개인정보 수집 · 이용',
+    '고민 글 외부 AI 전송',
+    '알림 수신',
+  ];
+  return {
+    today,
+    loadDocuments: (signal) =>
+      delayed(signal, () => {
+        if (scenario === 'documents-retry') failOnce('docs');
+        return {
+          revision,
+          documents: consentIds.map((id, i) => ({
+            id,
+            title: titles[i],
+            version: revision,
+            body: `화면 검증용 예시입니다. 실제 약관 원문이 아닙니다.\n\n${titles[i]} 항목의 내용과 버전을 확인하는 화면입니다.\n\n이 시연은 서버로 정보를 보내거나 기기 알림을 요청하지 않습니다. 실제 문서와 동의 저장 계약은 서비스 연결 시 적용합니다.`,
+          })),
+        } satisfies ConsentDocuments;
+      }),
+    register: (key, credentials, signal) =>
+      delayed(signal, () => {
+        if (operations.has(key)) {
+          const found = operations.get(key)!;
+          if (found.email !== credentials.email)
+            throw new ApiError('http', {
+              status: 409,
+              code: 'OPERATION_CONFLICT',
+            });
+          return { ...found };
+        }
+        if (scenario === 'email-used' || account)
+          throw new ApiError('http', {
+            status: 409,
+            code: 'EMAIL_ALREADY_USED',
+          });
+        if (scenario === 'register-retry') failOnce('register');
+        account = { id: 'signup-preview-account', email: credentials.email };
+        operations.set(key, { ...account });
+        if (scenario === 'register-lost') failOnce('lost');
+        if (scenario === 'register-in-progress')
+          throw new ApiError('http', {
+            status: 409,
+            code: 'REQUEST_IN_PROGRESS',
+          });
+        return { ...account };
+      }),
+    consent: (id, input, signal) =>
+      delayed(signal, () => {
+        if (id !== account?.id) throw new ApiError('http', { status: 404 });
+        if (scenario === 'version-changed' && !failed.has('version')) {
+          failed.add('version');
+          revision = 'v2';
+          throw new ApiError('http', {
+            status: 409,
+            code: 'CONSENT_VERSION_CHANGED',
+          });
+        }
+        if (input.revision !== revision)
+          throw new ApiError('http', {
+            status: 409,
+            code: 'CONSENT_VERSION_CHANGED',
+          });
+        if (
+          !input.choices.terms ||
+          !input.choices.privacy ||
+          !input.choices.processing
+        )
+          throw new ApiError('http', { status: 422 });
+        if (scenario === 'consent-retry') failOnce('consent');
+        agreed = true;
+      }),
+    birth: (id, date, signal) =>
+      delayed(signal, () => {
+        if (id !== account?.id || !agreed)
+          throw new ApiError('http', { status: 409 });
+        const parts = parseDate(date);
+        if (!parts || birthDateError(parts, today))
+          throw new ApiError('http', { status: 422 });
+        if (scenario === 'age-rejected')
+          throw new ApiError('http', { status: 422, code: 'AGE_NOT_ALLOWED' });
+        if (birth && birth.birth_date !== date)
+          throw new ApiError('http', {
+            status: 409,
+            code: 'PROFILE_ALREADY_COMPLETED',
+          });
+        if (birth) return { ...birth };
+        if (scenario === 'birth-retry') failOnce('birth');
+        birth = {
+          birth_date: date,
+          edits_remaining: 1,
+          zodiac: previewZodiac(date),
+        };
+        if (scenario === 'birth-in-progress')
+          throw new ApiError('http', {
+            status: 409,
+            code: 'REQUEST_IN_PROGRESS',
+          });
+        return { ...birth };
+      }),
+    login: (_credentials, signal) => delayed(signal, () => undefined),
+  };
+}

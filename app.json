@@ -13,6 +13,7 @@
     "plugins": [
       "expo-router",
       "expo-image",
+      "expo-notifications",
       [
         "expo-font",
         {

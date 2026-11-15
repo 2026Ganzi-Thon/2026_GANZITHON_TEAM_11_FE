@@ -1,7 +1,8 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { BackHandler, Text } from 'react-native';
 import { LoginScreen } from '../auth/LoginScreen';
-import type { SignupActions } from './types';
+import type { Registration, SignupActions } from './types';
+import type { BirthDateResult } from '../birthDate/types';
 import { createSignupController } from './controller';
 import { WelcomeScreen } from './WelcomeScreen';
 import { EmailSignup } from './EmailSignup';
@@ -11,6 +12,7 @@ import { SignupShell, signupStyles } from './SignupShell';
 export function SignupFlow(props: {
   actions: SignupActions;
   onExit: () => void;
+  onComplete?: (registration: Registration, birth: BirthDateResult) => void;
 }) {
   const [source, setSource] = useState({ actions: props.actions, version: 0 });
   if (source.actions !== props.actions)
@@ -20,9 +22,11 @@ export function SignupFlow(props: {
 function SignupSession({
   actions,
   onExit,
+  onComplete,
 }: {
   actions: SignupActions;
   onExit: () => void;
+  onComplete?: (registration: Registration, birth: BirthDateResult) => void;
 }) {
   const [c] = useState(() => createSignupController(actions));
   const state = useSyncExternalStore(c.subscribe, c.getSnapshot, c.getSnapshot);
@@ -31,6 +35,16 @@ function SignupSession({
     return c.stop;
   }, [c]);
   useEffect(() => {
+    if (
+      state.stage === 'complete' &&
+      state.registration &&
+      state.result &&
+      onComplete
+    )
+      onComplete(state.registration, state.result);
+  }, [state.stage, state.registration, state.result, onComplete]);
+  useEffect(() => {
+    if (state.stage === 'complete' && onComplete) return;
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
       if (state.stage === 'welcome' || state.stage === 'complete') {
         c.stop();
@@ -39,7 +53,7 @@ function SignupSession({
       return true;
     });
     return () => sub.remove();
-  }, [c, state.stage, onExit]);
+  }, [c, state.stage, onExit, onComplete]);
   if (state.stage === 'welcome')
     return <WelcomeScreen onSignup={c.openSignup} onLogin={c.openLogin} />;
   if (state.stage === 'login')
@@ -48,6 +62,7 @@ function SignupSession({
   if (state.stage === 'consents') return <ConsentScreen state={state} c={c} />;
   if (state.stage === 'birth')
     return <BirthSignup state={state} c={c} today={actions.today} />;
+  if (onComplete) return null;
   return (
     <SignupShell
       title="입력 확인"
@@ -70,7 +85,8 @@ function SignupSession({
         생일 {state.result?.birth_date} · 이후 한 번 수정 가능
       </Text>
       <Text style={signupStyles.body}>
-        알림 선택과 낮 가입 안내는 다음 단계에서 연결해요.
+        알림 선택과 낮 가입 안내는 가입 → 알림 → 첫 홈 미리보기에서 확인할 수
+        있어요.
       </Text>
     </SignupShell>
   );

@@ -1,6 +1,8 @@
 import { ApiError } from '../api/errors';
 import { fortuneDate, homePhase } from '../features/home/model';
 import type { HomeSource } from '../features/home/types';
+import type { Registration } from '../features/signup/types';
+import type { SettingsMorningOptions } from './settingsMorning';
 import { createSettingsMorning } from './settingsMorning';
 import { createMockMorning } from './morning';
 import { createMockMyCards } from './myCards';
@@ -44,7 +46,13 @@ function delayed<T>(signal: AbortSignal, read: () => T, ms = 300): Promise<T> {
   });
 }
 /** Server-time fixtures advance monotonically within one memory-only preview. */
-export function createMockHome(scenario: HomeScenario = 'day'): HomeSource {
+export function createMockHome(
+  scenario: HomeScenario = 'day',
+  options: SettingsMorningOptions & {
+    identity?: Registration;
+    now?: () => number;
+  } = {},
+): HomeSource {
   const previous = ['adopted', 'empty-flock', 'candidates', 'banner'].includes(
     scenario,
   );
@@ -59,8 +67,11 @@ export function createMockHome(scenario: HomeScenario = 'day'): HomeSource {
           : '2026-11-15T21:00:00+09:00',
   );
   const started = performance.now(),
-    now = () => base + performance.now() - started;
-  const combined = createSettingsMorning(previous ? 'success' : 'empty');
+    now = options.now ?? (() => base + performance.now() - started);
+  const combined = createSettingsMorning(
+    previous ? 'success' : 'empty',
+    options,
+  );
   const settings = {
     ...combined.settings,
     loadMe: async (signal: AbortSignal) => {
@@ -69,7 +80,8 @@ export function createMockHome(scenario: HomeScenario = 'day'): HomeSource {
         ...value,
         user: {
           ...value.user,
-          id: 'preview-home-user',
+          id: options.identity?.id ?? 'preview-home-user',
+          email: options.identity?.email ?? value.user.email,
           stats: { ...value.user.stats, night_count: count },
         },
       };
@@ -128,7 +140,10 @@ export function createMockHome(scenario: HomeScenario = 'day'): HomeSource {
               server_time: new Date(time).toISOString(),
               timezone: 'Asia/Seoul',
               phase: homePhase(time),
-              user: { id: 'preview-home-user', stats: { night_count: count } },
+              user: {
+                id: options.identity?.id ?? 'preview-home-user',
+                stats: { night_count: count },
+              },
             };
           },
           scenario === 'slow' ? 6000 : 300,

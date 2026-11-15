@@ -34,12 +34,15 @@ function allowedAge(date: string, today: string): boolean {
 export function createMockBirthDate(
   scenario: BirthDateScenario = 'success',
   now: () => Date = () => new Date('2026-11-14T12:30:00Z'),
+  initial?: BirthDateResult,
 ): MockBirthDate {
-  let record: BirthDateResult = {
-    birth_date: '2004-05-14',
-    edits_remaining: scenario === 'exhausted' ? 0 : 1,
-    zodiac: 'taurus',
-  };
+  let record: BirthDateResult = initial
+    ? { ...initial }
+    : {
+        birth_date: '2004-05-14',
+        edits_remaining: scenario === 'exhausted' ? 0 : 1,
+        zodiac: 'taurus',
+      };
   let conflictOccurred = false;
   const failed = new Set<string>();
   const failOnce = (key: string) => {

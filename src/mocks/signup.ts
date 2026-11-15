@@ -83,7 +83,7 @@ export function createMockSignup(
             id,
             title: titles[i],
             version: revision,
-            body: `화면 검증용 예시입니다. 실제 약관 원문이 아닙니다.\n\n${titles[i]} 항목의 내용과 버전을 확인하는 화면입니다.\n\n이 시연은 서버로 정보를 보내거나 기기 알림을 요청하지 않습니다. 실제 문서와 동의 저장 계약은 서비스 연결 시 적용합니다.`,
+            body: `화면 검증용 예시입니다. 실제 약관 원문이 아닙니다.\n\n${titles[i]} 항목의 내용과 버전을 확인하는 화면입니다.\n\n이 동의 화면에서는 서버로 정보를 보내거나 기기 알림 권한을 요청하지 않습니다. 실제 문서와 동의 저장 계약은 서비스 연결 시 적용합니다.`,
           })),
         } satisfies ConsentDocuments;
       }),

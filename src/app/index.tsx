@@ -14,6 +14,10 @@ export default function StartScreen() {
         {__DEV__ && (
           <>
             <Button
+              label="가입 → 알림 → 첫 홈"
+              onPress={() => router.push('/dev/signup-home')}
+            />
+            <Button
               label="회원가입 온보딩 미리보기"
               onPress={() => router.push('/dev/signup')}
             />

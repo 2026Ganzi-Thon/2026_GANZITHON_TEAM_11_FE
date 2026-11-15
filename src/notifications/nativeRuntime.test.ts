@@ -39,7 +39,8 @@ it('cleans old reservations on startup, refreshes saved preferences after foregr
   expect([...native.records.keys()]).toEqual(['unrelated']);
   expect(native.port.requestPermission).not.toHaveBeenCalled();
   const current = getNativeReminderSession();
-  const saving = current.source.settings.reminder.save(
+  expect(current.reminder).toBe(current.source.settings.reminder);
+  const saving = current.reminder.save(
     { enabled: true, local_time: '23:15' },
     new AbortController().signal,
   );

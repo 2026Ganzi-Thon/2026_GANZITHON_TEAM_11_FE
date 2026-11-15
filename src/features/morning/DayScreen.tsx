@@ -3,7 +3,7 @@ import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-const layers: readonly [number, number, number, number, number][] = [
+const dayLayers: readonly [number, number, number, number, number][] = [
   [require('../../../assets/images/morning/sky-1.svg'), 0, 0, 360, 140],
   [require('../../../assets/images/morning/sky-2.svg'), 0, 140, 360, 140],
   [require('../../../assets/images/morning/sky-3.svg'), 0, 280, 360, 140],
@@ -131,6 +131,7 @@ const homeDetails: readonly [string, number, number, number, number][] = [
   ['#ffe7a3', 159.2, 629.3, 3, 3],
   ['#f9cfdd', 163.25, 553.47, 3, 3],
 ];
+export { dayLayers, homeLayers, homeDetails };
 export function DayScreen({
   children,
   home = false,
@@ -144,7 +145,7 @@ export function DayScreen({
         importantForAccessibility="no-hide-descendants"
         style={StyleSheet.absoluteFill}
       >
-        {[...layers, ...(home ? homeLayers : [])].map(
+        {[...dayLayers, ...(home ? homeLayers : [])].map(
           ([source, x, y, w, h], index) => (
             <Image
               key={index}

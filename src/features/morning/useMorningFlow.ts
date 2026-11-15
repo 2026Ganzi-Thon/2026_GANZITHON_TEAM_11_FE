@@ -16,7 +16,11 @@ const refreshCodes = new Set([
   'MORNING_NOT_OPEN',
 ]);
 
-export function useMorningFlow(actions: MorningActions, onExit: () => void) {
+export function useMorningFlow(
+  actions: MorningActions,
+  onExit: () => void,
+  homeWhenNoCandidates = false,
+) {
   const [api] = useState(() => actions);
   const [morning, setMorning] = useState<Morning | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -75,7 +79,10 @@ export function useMorningFlow(actions: MorningActions, onExit: () => void) {
             ? result.default_card_id
             : null;
         });
-        if (result.adoption) {
+        if (
+          result.adoption ||
+          (homeWhenNoCandidates && !result.candidate_cards.some(canAdopt))
+        ) {
           setConfirmed(result.adoption);
           setPage('home');
           await readFlock(signal);
@@ -84,7 +91,7 @@ export function useMorningFlow(actions: MorningActions, onExit: () => void) {
         if (!signal.aborted) setFailure(reconciling ? 'refresh' : 'morning');
       }
     },
-    [api, readFlock],
+    [api, readFlock, homeWhenNoCandidates],
   );
 
   useEffect(() => {

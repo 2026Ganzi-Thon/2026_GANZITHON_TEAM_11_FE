@@ -23,6 +23,7 @@ import { useFortune } from './useFortune';
 type Props = {
   actions: FortuneActions;
   blocked?: boolean;
+  compact?: boolean;
   onVisibilityChange: (open: boolean) => void;
 };
 export function FortuneSection(props: Props) {
@@ -34,6 +35,7 @@ export function FortuneSection(props: Props) {
 function FortuneSession({
   actions,
   blocked = false,
+  compact = false,
   onVisibilityChange,
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -69,7 +71,7 @@ function FortuneSession({
     </>
   );
   return (
-    <View style={styles.section}>
+    <View style={[styles.section, compact && styles.compactSection]}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="오늘의 운세 보기"
@@ -79,12 +81,34 @@ function FortuneSession({
           onVisibilityChange(true);
           setOpen(true);
         }}
-        style={styles.entry}
+        style={[styles.entry, compact && styles.compactEntry]}
       >
-        <Text style={styles.tag}>오늘 운세</Text>
+        <Text style={[styles.tag, compact && styles.compactTag]}>
+          오늘 운세
+        </Text>
         <FortuneSheep />
       </Pressable>
-      {!open && feedback}
+      {!open &&
+        (compact ? (
+          <>
+            {flow.pending && (
+              <ActivityIndicator
+                accessibilityLabel="운세 불러오는 중"
+                color="#2F3A9E"
+              />
+            )}
+            {flow.error && (
+              <Text
+                style={[styles.body, styles.compactFeedback]}
+                accessibilityRole="alert"
+              >
+                운세 확인 필요
+              </Text>
+            )}
+          </>
+        ) : (
+          feedback
+        ))}
       {open && !blocked && (
         <Modal
           transparent
@@ -151,6 +175,20 @@ function FortuneSession({
 }
 const styles = StyleSheet.create({
   section: { minWidth: 88, maxWidth: '100%', alignItems: 'center', gap: 8 },
+  compactSection: { minWidth: 66, gap: 2 },
+  compactEntry: {
+    minWidth: 66,
+    minHeight: 76,
+    padding: 0,
+    justifyContent: 'flex-start',
+  },
+  compactTag: {
+    fontSize: 9,
+    lineHeight: 11,
+    paddingVertical: 3,
+    marginBottom: -2,
+  },
+  compactFeedback: { backgroundColor: '#FFF4D6', padding: 4 },
   entry: {
     minWidth: 88,
     minHeight: 100,

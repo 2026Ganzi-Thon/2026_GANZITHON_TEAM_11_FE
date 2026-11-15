@@ -1,3 +1,4 @@
+import { createMockSupport } from './support';
 import { ApiError } from '../api/errors';
 import { categories } from '../features/night/categories';
 import { createMockTextCards } from './textCards';
@@ -305,6 +306,7 @@ export function createMockMyCards(
             throw new ApiError('http', {
               status: 422,
               code: 'SUPPORT_RECOMMENDED',
+              support: createMockSupport(),
               serverMessage: '지금은 잠시 쉬어 가도 괜찮아요.',
             });
         }

@@ -24,13 +24,17 @@ export function createSettingsMorning(
     'existing',
     'success',
     'success',
-    scenario === 'delete-retry'
-      ? 'retry'
-      : scenario === 'delete-lost'
-        ? 'lost-response'
-        : scenario === 'delete-slow'
-          ? 'slow'
-          : 'success',
+    scenario === 'delete-partial'
+      ? 'partial'
+      : scenario === 'delete-check-retry'
+        ? 'check-retry'
+        : scenario === 'delete-retry'
+          ? 'retry'
+          : scenario === 'delete-lost'
+            ? 'lost-response'
+            : scenario === 'delete-slow'
+              ? 'slow'
+              : 'success',
     records,
   );
   const account = options.birthDate ?? createMockBirthDate();

@@ -1,6 +1,7 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { ApiError } from '../../api/errors';
+import { createWorryDeletions } from '../worries/deletions';
 import { SheepDetailScreen } from './SheepDetailScreen';
 import type { SheepDetail, SheepDetailLoad } from './types';
 
@@ -280,4 +281,32 @@ describe('sheep detail read-only flow', () => {
     expect(back).toHaveBeenCalledTimes(1);
     await screen.unmount();
   });
+});
+
+it('masks a late detail response after full record deletion while preserving its sheep and card', async () => {
+  const worries = createWorryDeletions(
+    { remove: async () => {} },
+    { remove: async () => {}, check: async () => true },
+  );
+  let finish!: (data: SheepDetail) => void;
+  await render(
+    <SheepDetailScreen
+      sheepId="s1"
+      load={() =>
+        new Promise((resolve) => {
+          finish = resolve;
+        })
+      }
+      worries={worries}
+      onBack={() => {}}
+    />,
+  );
+  await act(async () =>
+    worries.records!.remove('n1', new AbortController().signal),
+  );
+  await act(async () => finish(detail));
+  expect(screen.getByText('카드 내용')).toBeTruthy();
+  expect(screen.getByText(/15마리 중 4번째/)).toBeTruthy();
+  expect(screen.queryByText('면접이 걱정돼요.')).toBeNull();
+  expect(screen.queryByText('조금 작아졌구나.')).toBeNull();
 });

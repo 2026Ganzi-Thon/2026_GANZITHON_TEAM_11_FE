@@ -193,7 +193,7 @@ export function createMockMorning(
     ]);
   const night = records.get('preview-night')!;
   const worries = deletionScenario
-    ? createMockWorryDeletion(records.erase, deletionScenario)
+    ? createMockWorryDeletion(records.erase, deletionScenario, records)
     : undefined;
   return {
     worries,

@@ -166,3 +166,50 @@ it('keeps all validation errors together beside the submit action without sendin
   ).toBe(true);
   expect(register).not.toHaveBeenCalled();
 });
+it.each(['register-in-progress', 'birth-in-progress'] as const)(
+  'recovers the existing %s result through the actual mock adapter',
+  async (scenario) => {
+    const actions = createMockSignup(scenario),
+      register = jest.spyOn(actions, 'register'),
+      birth = jest.spyOn(actions, 'birth');
+    await render(<SignupFlow actions={actions} onExit={() => {}} />);
+    await email();
+    if (scenario === 'register-in-progress') {
+      expect(screen.getByLabelText('이메일 주소').props.editable).toBe(false);
+      expect(
+        screen.getByRole('button', { name: '가입 결과 다시 확인' }),
+      ).toBeTruthy();
+      await press('가입 결과 다시 확인');
+      await tick();
+      expect(register.mock.calls[1].slice(0, 2)).toEqual(
+        register.mock.calls[0].slice(0, 2),
+      );
+    }
+    await agree();
+    await press('다음');
+    await tick();
+    if (scenario === 'birth-in-progress') {
+      expect(
+        screen.getByRole('adjustable', { name: '출생 월' }),
+      ).toBeDisabled();
+      await fireEvent(
+        screen.getByRole('adjustable', { name: '출생 월' }),
+        'accessibilityAction',
+        { nativeEvent: { actionName: 'increment' } },
+      );
+      await press('생일 저장 결과 다시 확인');
+      await tick();
+      expect(birth.mock.calls.map((call) => call[1])).toEqual([
+        '2004-05-14',
+        '2004-05-14',
+      ]);
+    }
+    expect(screen.getByText('가입 정보 확인을 마쳤어요')).toBeTruthy();
+    expect(register).toHaveBeenCalledTimes(
+      scenario === 'register-in-progress' ? 2 : 1,
+    );
+    expect(birth).toHaveBeenCalledTimes(
+      scenario === 'birth-in-progress' ? 2 : 1,
+    );
+  },
+);

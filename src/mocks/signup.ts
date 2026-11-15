@@ -12,6 +12,8 @@ export type SignupScenario =
   | 'success'
   | 'register-retry'
   | 'register-lost'
+  | 'register-in-progress'
+  | 'birth-in-progress'
   | 'email-used'
   | 'documents-retry'
   | 'consent-retry'
@@ -105,6 +107,11 @@ export function createMockSignup(
         account = { id: 'signup-preview-account', email: credentials.email };
         operations.set(key, { ...account });
         if (scenario === 'register-lost') failOnce('lost');
+        if (scenario === 'register-in-progress')
+          throw new ApiError('http', {
+            status: 409,
+            code: 'REQUEST_IN_PROGRESS',
+          });
         return { ...account };
       }),
     consent: (id, input, signal) =>
@@ -146,12 +153,18 @@ export function createMockSignup(
             status: 409,
             code: 'PROFILE_ALREADY_COMPLETED',
           });
+        if (birth) return { ...birth };
         if (scenario === 'birth-retry') failOnce('birth');
         birth = {
           birth_date: date,
           edits_remaining: 1,
           zodiac: previewZodiac(date),
         };
+        if (scenario === 'birth-in-progress')
+          throw new ApiError('http', {
+            status: 409,
+            code: 'REQUEST_IN_PROGRESS',
+          });
         return { ...birth };
       }),
     login: (_credentials, signal) => delayed(signal, () => undefined),

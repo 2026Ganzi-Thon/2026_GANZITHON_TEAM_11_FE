@@ -10,6 +10,8 @@ const scenarios: readonly [SignupScenario, string][] = [
   ['success', '가입 흐름 확인'],
   ['register-retry', '가입 연결 실패·재시도'],
   ['register-lost', '가입 응답 유실·재확인'],
+  ['register-in-progress', '가입 처리 중·결과 재확인'],
+  ['birth-in-progress', '생일 처리 중·결과 재확인'],
   ['email-used', '이메일 중복 안내'],
   ['documents-retry', '동의 문서 조회 실패'],
   ['consent-retry', '동의 저장 실패'],

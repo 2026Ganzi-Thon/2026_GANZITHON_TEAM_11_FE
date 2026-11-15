@@ -207,3 +207,84 @@ it('reconfirms the original first birth save after a lost response instead of sp
   ]);
   expect(c.getSnapshot().stage).toBe('complete');
 });
+it('preserves a processing registration key and original credentials until its existing result is recovered', async () => {
+  const { actions, c } = fixture();
+  jest
+    .mocked(actions.register)
+    .mockRejectedValueOnce(
+      new ApiError('http', { status: 409, code: 'REQUEST_IN_PROGRESS' }),
+    );
+  await registered(c);
+  expect(c.getSnapshot().uncertain).toBe(true);
+  c.edit('email', 'another@example.com');
+  c.edit('password', 'anotherpass');
+  c.back();
+  c.openSignup();
+  await c.submit();
+  const calls = jest.mocked(actions.register).mock.calls;
+  expect(calls[1].slice(0, 2)).toEqual(calls[0].slice(0, 2));
+  expect(c.getSnapshot().stage).toBe('consents');
+  expect(c.getSnapshot().password).toBe('');
+});
+it('preserves a processing birth date and recovers it without spending a profile edit', async () => {
+  const { actions, c } = fixture();
+  await registered(c);
+  c.toggle('all');
+  await c.submit();
+  jest
+    .mocked(actions.birth)
+    .mockRejectedValueOnce(
+      new ApiError('http', { status: 409, code: 'REQUEST_IN_PROGRESS' }),
+    );
+  await c.submit();
+  expect(c.getSnapshot().birthUncertain).toBe(true);
+  c.changeDate('month', 6);
+  await c.submit();
+  expect(jest.mocked(actions.birth).mock.calls.map((call) => call[1])).toEqual([
+    '2004-05-14',
+    '2004-05-14',
+  ]);
+  expect(c.getSnapshot().result?.edits_remaining).toBe(1);
+  expect(c.getSnapshot().stage).toBe('complete');
+});
+it('permits correcting a definitively rejected email instead of retaining its old registration operation', async () => {
+  const { actions, c } = fixture();
+  jest
+    .mocked(actions.register)
+    .mockRejectedValueOnce(
+      new ApiError('http', { status: 409, code: 'EMAIL_ALREADY_USED' }),
+    );
+  await registered(c);
+  expect(c.getSnapshot().uncertain).toBe(false);
+  c.edit('email', 'new@example.com');
+  await c.submit();
+  const calls = jest.mocked(actions.register).mock.calls;
+  expect(calls[1][0]).not.toBe(calls[0][0]);
+  expect(calls[1][1].email).toBe('new@example.com');
+  expect(c.getSnapshot().stage).toBe('consents');
+});
+it('keeps an unresolved birth date locked when revisiting consent and that unrelated save fails', async () => {
+  const { actions, c } = fixture();
+  await registered(c);
+  c.toggle('all');
+  await c.submit();
+  jest
+    .mocked(actions.birth)
+    .mockRejectedValueOnce(
+      new ApiError('http', { status: 409, code: 'REQUEST_IN_PROGRESS' }),
+    );
+  await c.submit();
+  c.back();
+  jest.mocked(actions.consent).mockRejectedValueOnce(new ApiError('network'));
+  await c.submit();
+  expect(c.getSnapshot().birthUncertain).toBe(true);
+  await c.submit();
+  c.changeDate('month', 6);
+  expect(c.getSnapshot().date.month).toBe(5);
+  await c.submit();
+  expect(jest.mocked(actions.birth).mock.calls.map((call) => call[1])).toEqual([
+    '2004-05-14',
+    '2004-05-14',
+  ]);
+  expect(c.getSnapshot().stage).toBe('complete');
+});

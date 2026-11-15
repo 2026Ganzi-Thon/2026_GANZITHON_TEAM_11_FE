@@ -61,6 +61,23 @@ function validDocuments(d: ConsentDocuments) {
     )
   );
 }
+/** Only known input/business conflicts permit replacing an unresolved operation. */
+function isDefiniteRejection(
+  error: unknown,
+  conflictCodes: readonly string[],
+): boolean {
+  if (
+    !(error instanceof ApiError) ||
+    error.kind !== 'http' ||
+    error.code === 'REQUEST_IN_PROGRESS'
+  )
+    return false;
+  return (
+    error.status === 400 ||
+    error.status === 422 ||
+    (error.status === 409 && conflictCodes.includes(error.code ?? ''))
+  );
+}
 export function createSignupController(actions: SignupActions) {
   let state: SignupState = {
     stage: 'welcome',
@@ -231,16 +248,16 @@ export function createSignupController(actions: SignupActions) {
     } catch (error) {
       if (!current(c)) return;
       if (stage === 'email') {
-        const rejected =
-          error instanceof ApiError &&
-          error.kind === 'http' &&
-          [400, 409, 422].includes(error.status ?? 0);
+        const rejected = isDefiniteRejection(error, ['EMAIL_ALREADY_USED']);
         if (rejected) registrationWork = null;
         patch({
           uncertain: !rejected,
-          error: rejected
-            ? '이 이메일로 가입할 수 없어요. 입력 내용을 확인해 주세요.'
-            : '가입 결과를 확인하지 못했어요. 같은 요청으로 다시 확인해 주세요.',
+          error:
+            error instanceof ApiError && error.code === 'REQUEST_IN_PROGRESS'
+              ? '가입 처리가 진행 중이에요. 같은 요청으로 결과를 다시 확인해 주세요.'
+              : rejected
+                ? '이 이메일로 가입할 수 없어요. 입력 내용을 확인해 주세요.'
+                : '가입 결과를 확인하지 못했어요. 같은 요청으로 다시 확인해 주세요.',
         });
       } else if (
         stage === 'consents' &&
@@ -255,19 +272,23 @@ export function createSignupController(actions: SignupActions) {
         });
         needsDocuments = true;
       } else {
-        const rejected =
-          error instanceof ApiError &&
-          error.kind === 'http' &&
-          [400, 409, 422].includes(error.status ?? 0);
+        const rejected = isDefiniteRejection(error, [
+          'PROFILE_ALREADY_COMPLETED',
+          'BIRTH_DATE_EDIT_LIMIT',
+        ]);
         if (stage === 'birth' && rejected) birthWork = null;
         patch({
-          birthUncertain: stage === 'birth' && !rejected,
+          ...(stage === 'birth' ? { birthUncertain: !rejected } : {}),
           error:
-            error instanceof ApiError && error.code === 'AGE_NOT_ALLOWED'
-              ? '입력한 생년월일로는 계속할 수 없어요. 생일을 다시 확인해 주세요.'
-              : stage === 'birth' && !rejected
-                ? '생일 저장 결과를 확인하지 못했어요. 같은 날짜로 다시 확인해 주세요.'
-                : '저장 결과를 확인하지 못했어요. 입력은 유지했으니 다시 시도해 주세요.',
+            stage === 'birth' &&
+            error instanceof ApiError &&
+            error.code === 'REQUEST_IN_PROGRESS'
+              ? '생일 저장 처리가 진행 중이에요. 같은 날짜로 결과를 다시 확인해 주세요.'
+              : error instanceof ApiError && error.code === 'AGE_NOT_ALLOWED'
+                ? '입력한 생년월일로는 계속할 수 없어요. 생일을 다시 확인해 주세요.'
+                : stage === 'birth' && !rejected
+                  ? '생일 저장 결과를 확인하지 못했어요. 같은 날짜로 다시 확인해 주세요.'
+                  : '저장 결과를 확인하지 못했어요. 입력은 유지했으니 다시 시도해 주세요.',
         });
       }
     } finally {

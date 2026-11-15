@@ -39,21 +39,25 @@ export function SignupShell({
 }>) {
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const frame = useRef<number | null>(null);
+  const feedbackActive = useRef(false);
+  const stopFeedbackScroll = useCallback(() => {
+    feedbackActive.current = false;
+    if (frame.current !== null) {
+      cancelAnimationFrame(frame.current);
+      frame.current = null;
+    }
+  }, []);
   const revealStatus = useCallback(() => {
-    if (!busy && !error) return;
+    if (!feedbackActive.current || (!busy && !error)) return;
     if (frame.current !== null) cancelAnimationFrame(frame.current);
     frame.current = requestAnimationFrame(() => {
       frame.current = null;
-      scroll.current?.scrollToEnd({ animated: false });
+      if (feedbackActive.current)
+        scroll.current?.scrollToEnd({ animated: false });
     });
   }, [busy, error]);
   useEffect(revealStatus, [revealStatus]);
-  useEffect(
-    () => () => {
-      if (frame.current !== null) cancelAnimationFrame(frame.current);
-    },
-    [],
-  );
+  useEffect(() => stopFeedbackScroll, [stopFeedbackScroll]);
   return (
     <NightScreen
       background={
@@ -83,6 +87,9 @@ export function SignupShell({
         </View>
         <ScrollView
           ref={scroll}
+          onFocusCapture={stopFeedbackScroll}
+          onTouchStartCapture={stopFeedbackScroll}
+          onScrollBeginDrag={stopFeedbackScroll}
           onContentSizeChange={revealStatus}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={s.content}
@@ -103,7 +110,11 @@ export function SignupShell({
               label={label}
               busy={busy}
               disabled={disabled}
-              onPress={onSubmit}
+              onPress={() => {
+                feedbackActive.current = true;
+                onSubmit();
+                revealStatus();
+              }}
             />
           </View>
         </ScrollView>

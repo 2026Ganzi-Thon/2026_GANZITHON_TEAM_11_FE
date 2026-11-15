@@ -64,6 +64,7 @@ export function useReminder(actions: ReminderActions, onBack: () => void) {
     };
   }, [actions, attempt]);
   useEffect(() => {
+    if (actions.device) return;
     const controller = new AbortController();
     permissionRequest.current = controller;
     void Promise.resolve()

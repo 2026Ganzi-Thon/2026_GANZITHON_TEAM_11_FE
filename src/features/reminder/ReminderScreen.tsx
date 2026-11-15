@@ -17,6 +17,7 @@ import { Header } from '../settings/Header';
 import type { ReminderActions } from './types';
 import { reminderLabel } from './time';
 import { useReminder } from './useReminder';
+import { ReminderDevicePanel } from './ReminderDevicePanel';
 import { TimeWheel } from './TimeWheel';
 export function ReminderScreen(props: {
   actions: ReminderActions;
@@ -38,6 +39,9 @@ function ReminderSession({
   modal?: boolean;
 }) {
   const flow = useReminder(actions, onBack);
+  useEffect(() => {
+    if (actions.device) void actions.device.refresh();
+  }, [actions.device]);
   useEffect(() => {
     if (modal) return;
     const handler = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -152,19 +156,23 @@ function ReminderSession({
             )}
           </>
         )}
-        <View style={styles.panel}>
-          <Text style={styles.body}>기기 알림 권한 · {permissionText}</Text>
-          <Text style={styles.caption}>
-            희망 설정과 기기 권한은 별개예요. 이 미리보기에서는 권한 상태도
-            예시이며 실제 알림은 예약하지 않아요.
-          </Text>
-          {flow.permission === 'unknown' && (
-            <Button
-              label="권한 상태 다시 확인"
-              onPress={flow.retryPermission}
-            />
-          )}
-        </View>
+        {actions.device ? (
+          <ReminderDevicePanel device={actions.device} />
+        ) : (
+          <View style={styles.panel}>
+            <Text style={styles.body}>기기 알림 권한 · {permissionText}</Text>
+            <Text style={styles.caption}>
+              희망 설정과 기기 권한은 별개예요. 이 미리보기에서는 권한 상태도
+              예시이며 실제 알림은 예약하지 않아요.
+            </Text>
+            {flow.permission === 'unknown' && (
+              <Button
+                label="권한 상태 다시 확인"
+                onPress={flow.retryPermission}
+              />
+            )}
+          </View>
+        )}
         <View style={styles.spacer} />
         {editing && (
           <Button

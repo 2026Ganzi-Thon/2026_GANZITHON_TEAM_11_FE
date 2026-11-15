@@ -44,9 +44,17 @@ import type { FeedLoad } from './feed/model';
 export function NightEntryScreen(
   props: Parameters<typeof NightEntrySession>[0],
 ) {
-  const [source, setSource] = useState({ actions: props.actions, version: 0 });
-  if (source.actions !== props.actions)
-    setSource({ actions: props.actions, version: source.version + 1 });
+  const [source, setSource] = useState({
+    actions: props.actions,
+    mode: props.mode,
+    version: 0,
+  });
+  if (source.actions !== props.actions || source.mode !== props.mode)
+    setSource({
+      actions: props.actions,
+      mode: props.mode,
+      version: source.version + 1,
+    });
   return <NightEntrySession key={source.version} {...props} />;
 }
 function NightEntrySession({
@@ -57,6 +65,7 @@ function NightEntrySession({
   closingActions,
   onStarted,
   initialCount = 15,
+  mode = 'first-entry',
 }: {
   actions: NightEntryActions;
   onBack: () => void;
@@ -65,9 +74,12 @@ function NightEntrySession({
   closingActions?: ClosingActions;
   onStarted?: () => void;
   initialCount?: number;
+  mode?: 'first-entry' | 'existing-night';
 }) {
   const [feedLoad, setFeedLoad] = useState<FeedLoad | null>(null);
-  const [step, setStep] = useState<'worry' | 'support' | 'count'>('worry');
+  const [step, setStep] = useState<'worry' | 'support' | 'count'>(
+    mode === 'existing-night' ? 'count' : 'worry',
+  );
   const [support, setSupport] = useState<{
     night: NightWorryResult;
     draft: WorryDraft;
@@ -104,9 +116,10 @@ function NightEntrySession({
     setSupportOperation(null);
     setSupportError(null);
     setSupport(null);
-    if (step === 'count' || step === 'support') setStep('worry');
+    if (mode === 'first-entry' && (step === 'count' || step === 'support'))
+      setStep('worry');
     else onBack();
-  }, [onBack, step]);
+  }, [mode, onBack, step]);
   useEffect(() => {
     if (feedLoad) return;
     const subscription = BackHandler.addEventListener(

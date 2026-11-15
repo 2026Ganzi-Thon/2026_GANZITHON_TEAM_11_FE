@@ -17,6 +17,7 @@ type Props = {
       onReload: () => void;
       pending: 'continue' | 'reload' | null;
       error: string | null;
+      onErrorLayout?: () => void;
     }
 );
 /** Compose inside the writing screen's scroll area so the writing session stays alive. */
@@ -186,6 +187,7 @@ function SupportSession(
           {night.error && (
             <Text
               style={styles.error}
+              onLayout={night.onErrorLayout}
               accessibilityRole="alert"
               accessibilityLiveRegion="polite"
             >

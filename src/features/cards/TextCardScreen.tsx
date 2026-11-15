@@ -14,6 +14,7 @@ import {
 import { Button } from '../../ui/Button';
 import { NightScreen } from '../../ui/NightScreen';
 import { theme } from '../../ui/theme';
+import { SupportContent } from '../support/SupportContent';
 import { categories } from '../night/categories';
 import { TextCardArtwork } from './TextCardArtwork';
 import { PREVIEW_TEXT_CARD_LIMIT, type TextCardActions } from './types';
@@ -113,21 +114,10 @@ export function TextCardScreen({
               <Button label={completionLabel} onPress={onDone} />
             </>
           ) : step === 'support' ? (
-            <>
-              <View style={styles.panel}>
-                <Text style={styles.title} accessibilityRole="header">
-                  제출을 잠시 멈췄어요
-                </Text>
-                <Text style={styles.body}>
-                  {error?.serverMessage ?? '지금은 잠시 쉬어 가도 괜찮아요.'}
-                </Text>
-                <Text style={styles.hint}>
-                  쓰던 글은 이 시연 안에 남아 있어요. 도움 안내는 예시이며 실제
-                  안전 검사와 연결되지 않았어요.
-                </Text>
-              </View>
-              <Button label="쓰던 글로 돌아가기" onPress={flow.returnToDraft} />
-            </>
+            <SupportContent
+              support={error?.support}
+              onReturn={flow.returnToDraft}
+            />
           ) : step === 'category' ? (
             <>
               <View style={styles.panel}>

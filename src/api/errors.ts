@@ -7,6 +7,7 @@ export type ApiErrorKind =
   | 'invalid-response';
 
 interface ErrorDetails {
+  support?: unknown;
   status?: number;
   code?: string;
   serverMessage?: string;
@@ -25,6 +26,7 @@ const messages: Record<Exclude<ApiErrorKind, 'http'>, string> = {
 
 export class ApiError extends Error {
   readonly kind: ApiErrorKind;
+  readonly support?: unknown;
   readonly status?: number;
   readonly code?: string;
   readonly serverMessage?: string;
@@ -36,6 +38,7 @@ export class ApiError extends Error {
     super(kind === 'http' ? `HTTP ${details.status}` : messages[kind]);
     this.name = 'ApiError';
     this.kind = kind;
+    this.support = details.support;
     this.status = details.status;
     this.code = details.code;
     this.serverMessage = details.serverMessage;
@@ -53,6 +56,7 @@ export function httpError(response: Response, body: unknown): ApiError {
   const error = isRecord(body) && isRecord(body.error) ? body.error : {};
   return new ApiError('http', {
     status: response.status,
+    support: error.support,
     code: typeof error.code === 'string' ? error.code : undefined,
     serverMessage:
       typeof error.message === 'string' ? error.message : undefined,

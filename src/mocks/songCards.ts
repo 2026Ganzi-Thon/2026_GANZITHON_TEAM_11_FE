@@ -1,3 +1,4 @@
+import { createMockSupport } from './support';
 import { ApiError } from '../api/errors';
 import type { Track } from '../api/contracts';
 import { categories } from '../features/night/categories';
@@ -232,6 +233,7 @@ export function createMockSongCards(
               throw new ApiError('http', {
                 status: 422,
                 code: 'SUPPORT_RECOMMENDED',
+                support: createMockSupport(),
                 serverMessage: '지금은 잠시 쉬어 가도 괜찮아요.',
               });
             if (scenario === 'safety-unavailable')

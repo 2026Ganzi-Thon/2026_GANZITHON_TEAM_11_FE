@@ -32,7 +32,7 @@ npm run android
 <details>
 <summary>네이티브 의존성·설정을 변경한 경우</summary>
 
-`app.json`, config plugin, 네이티브 의존성을 바꿨다면 재생성 후 다시 빌드합니다. Metro 새로고침만으로는 반영되지 않습니다.
+`app.json`·`app.config.js`, config plugin, 네이티브 의존성을 바꿨다면 재생성 후 다시 빌드합니다. Metro 새로고침만으로는 반영되지 않습니다.
 
 ```sh
 npx expo prebuild --clean --platform android
@@ -60,6 +60,13 @@ npm run build:preview:android
 ```
 
 이 명령은 `android/`를 재생성하므로 생성 폴더의 수동 변경을 먼저 보존합니다. 결과 APK와 SHA-256은 `dist/preview/`에 생성합니다. 후속 업데이트에도 같은 서명 키를 사용하고 `versionCode`를 올립니다. EAS 계정을 연결한 환경에서는 `eas.json`의 `preview` 프로필도 사용할 수 있습니다.
+
+체험판을 만든 뒤 개발 빌드를 다시 만들 때는 생성된 네이티브 설정도 기본 모드로 되돌립니다. `npm run android`만 실행하면 이전 체험판 설정을 재사용할 수 있습니다.
+
+```sh
+APP_VARIANT=production npx expo prebuild --clean --platform android
+APP_VARIANT=production npm run android
+```
 
 `APP_VARIANT=preview`는 체험판 전용입니다. 기본값 `production`에서는 mock 진입을 허용하지 않습니다. 체험판은 스토어 출시 빌드와 분리합니다.
 

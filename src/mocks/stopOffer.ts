@@ -13,7 +13,7 @@ export function createMockStopOffer(
   if (position === null) return null;
   return {
     input: {
-      reason: 'leave',
+      reason: 'stop_pause',
       position,
       furthestPosition: position,
       sheepCount,

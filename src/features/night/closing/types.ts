@@ -2,7 +2,7 @@ import type { Card, NightSummary } from '../../../api/contracts';
 
 /** Preview adapter only. Server progress ownership and persistence are not connected. */
 export type ClosingRequest = {
-  reason: 'completed' | 'leave';
+  reason: 'completed' | 'leave' | 'stop_pause';
   position: number;
   furthestPosition: number;
   sheepCount: number;

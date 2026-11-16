@@ -53,45 +53,63 @@ export function StopOfferScreen({
             <Text style={styles.leaveLabel}>그만 세고 싶어요</Text>
           </Pressable>
         </View>
-        <View style={styles.artwork}>
-          <Image
-            source={require('../../../../assets/images/stop-offer/yawning-sheep.svg')}
-            style={styles.yawning}
-            contentFit="contain"
-            accessible={false}
-          />
-        </View>
-        <View style={styles.prompt}>
-          <Image
-            source={require('../../../../assets/images/stop-offer/sheep.svg')}
-            style={styles.guide}
-            contentFit="contain"
-            accessible={false}
-          />
-          <View style={styles.bubble}>
-            <Text style={styles.message}>
-              눈이 좀 무거워졌다면, 여기서 그만 세도 괜찮아.
-            </Text>
-          </View>
-        </View>
-        <View style={styles.spacer} />
-        <Button label="그만 셀래요" onPress={onStop} />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="계속 셀래요"
-          onPress={onContinue}
-          style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}
-        >
-          <Text style={styles.secondaryLabel}>계속 셀래요</Text>
-        </Pressable>
-        <Text style={styles.caption}>
-          그만 세면 따뜻한 카드 한 장으로 마무리해요
-        </Text>
+        <StopOfferPanel onStop={onStop} onContinue={onContinue} />
       </ScrollView>
     </NightScreen>
   );
 }
+export function StopOfferPanel({
+  onStop,
+  onContinue,
+  disabled = false,
+}: {
+  onStop: () => void;
+  onContinue: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <View style={styles.panel}>
+      <View style={styles.artwork}>
+        <Image
+          source={require('../../../../assets/images/stop-offer/yawning-sheep.svg')}
+          style={styles.yawning}
+          contentFit="contain"
+          accessible={false}
+        />
+      </View>
+      <View style={styles.prompt}>
+        <Image
+          source={require('../../../../assets/images/stop-offer/sheep.svg')}
+          style={styles.guide}
+          contentFit="contain"
+          accessible={false}
+        />
+        <View style={styles.bubble}>
+          <Text style={styles.message}>
+            눈이 좀 무거워졌다면, 여기서 그만 세도 괜찮아.
+          </Text>
+        </View>
+      </View>
+      <View style={styles.spacer} />
+      <Button label="그만 셀래요" onPress={onStop} disabled={disabled} />
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="계속 셀래요"
+        disabled={disabled}
+        accessibilityState={{ disabled }}
+        onPress={onContinue}
+        style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}
+      >
+        <Text style={styles.secondaryLabel}>계속 셀래요</Text>
+      </Pressable>
+      <Text style={styles.caption}>
+        그만 세면 따뜻한 카드 한 장으로 마무리해요
+      </Text>
+    </View>
+  );
+}
 const styles = StyleSheet.create({
+  panel: { flexGrow: 1, gap: 14, width: '100%' },
   content: { flexGrow: 1, padding: 20, paddingBottom: 24, gap: 14 },
   header: {
     flexDirection: 'row',

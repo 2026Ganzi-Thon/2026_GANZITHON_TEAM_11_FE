@@ -3,3 +3,5 @@ export function stopOfferPosition(sheepCount: number): 14 | null {
     ? 14
     : null;
 }
+
+export type StopOfferItem = { id: string; position: 14 };

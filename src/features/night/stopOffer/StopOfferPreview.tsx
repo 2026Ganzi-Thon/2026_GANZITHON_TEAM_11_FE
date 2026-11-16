@@ -1,4 +1,9 @@
-import { useEffect, useState } from 'react';
+import { HomeNightJourney } from '../../home/HomeNightJourney';
+import {
+  createStopOfferJourney,
+  type StopOfferJourneyPreset,
+} from '../../../mocks/stopOfferJourney';
+import { useEffect, useRef, useState } from 'react';
 import { BackHandler, ScrollView } from 'react-native';
 import { createMockStopOffer } from '../../../mocks/stopOffer';
 import type { ClosingScenario } from '../../../mocks/nightClosing';
@@ -88,25 +93,87 @@ const presets: readonly {
   { label: '따뜻한 카드 확인 실패', count: 20, scenario: 'view-retry' },
   { label: '따뜻한 카드 없음', count: 20, scenario: 'unavailable' },
 ];
+const journeyPresets: readonly {
+  label: string;
+  value: StopOfferJourneyPreset;
+}[] = [
+  { label: '밤부터 아침까지', value: 'success' },
+  { label: '고민 없음 · 그만 세기', value: 'none' },
+  { label: '느린 종료 저장', value: 'slow' },
+  { label: '종료 실패·재시도', value: 'retry' },
+  { label: '종료 응답 유실·복구', value: 'lost' },
+  { label: '그만 세기 화면 04시 마감', value: 'expiry' },
+  { label: '종료 저장 중 마감', value: 'expiry-save' },
+  { label: '종료 재시도 중 마감', value: 'expiry-retry' },
+];
 export function StopOfferPreview({ onExit }: { onExit: () => void }) {
   const [source, setSource] = useState<Source | null>(null);
+  const [journey, setJourney] = useState<Awaited<
+    ReturnType<typeof createStopOfferJourney>
+  > | null>(null);
+  const [busy, setBusy] = useState(false),
+    [error, setError] = useState(false);
+  const request = useRef<AbortController | null>(null);
+  useEffect(() => () => request.current?.abort(), []);
+  const start = async (preset: StopOfferJourneyPreset) => {
+    if (request.current) return;
+    const c = new AbortController();
+    request.current = c;
+    setBusy(true);
+    setError(false);
+    try {
+      const value = await createStopOfferJourney(preset, c.signal);
+      if (!c.signal.aborted) setJourney(value);
+    } catch {
+      if (!c.signal.aborted) setError(true);
+    } finally {
+      if (!c.signal.aborted) {
+        request.current = null;
+        setBusy(false);
+      }
+    }
+  };
+  if (journey)
+    return (
+      <HomeNightJourney
+        source={journey}
+        initialNightOpen
+        onExit={() => setJourney(null)}
+      />
+    );
   if (source)
     return <StopOfferDemo source={source} onBack={() => setSource(null)} />;
   return (
     <NightScreen>
       <ScrollView contentContainerStyle={{ padding: 20, gap: 16, flexGrow: 1 }}>
         <Notice
-          title="그만 세도 되는 양 · 독립 미리보기"
-          description="16마리 이상일 때 14번째 칸을 확인해요. 그만 선택은 따뜻한 카드·마무리 mock으로 이어져요. 계속 선택은 확인 화면까지만 표시해요. 실제 피드 이동·아침 기록·04시 마감은 아직 연결하지 않았어요."
+          title="그만 세도 되는 양 · 밤부터 아침까지"
+          description="20마리 중 14번째 칸에서 시작해요. 계정·피드·아침은 메모리 mock이에요. 마감 시연은 준비 후 20초 뒤 닫혀요. 느린 종료·재시도는 약 6초 걸려요. 아래 독립 화면은 선택·마무리만 확인해요. 실제 서버·앱 종료 후 복원은 연결하지 않았어요."
         />
+        {error && (
+          <Notice
+            error
+            title="시연을 준비하지 못했어요"
+            description="원하는 시연을 다시 선택해 주세요."
+          />
+        )}
+        {journeyPresets.map(({ label, value }) => (
+          <Button
+            key={value}
+            label={label}
+            disabled={busy}
+            onPress={() => void start(value)}
+          />
+        ))}
         {presets.map(({ label, count, scenario }) => (
           <Button
             key={label}
             label={label}
+            disabled={busy}
             onPress={() => setSource(createMockStopOffer(count, scenario))}
           />
         ))}
-        <Button label="시작 화면으로" onPress={onExit} />
+        <Button label="시작 화면으로" disabled={busy} onPress={onExit} />
       </ScrollView>
     </NightScreen>
   );

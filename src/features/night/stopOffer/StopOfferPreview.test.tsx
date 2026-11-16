@@ -30,7 +30,7 @@ it.each([16, 30])(
     expect(finish).toHaveBeenCalledTimes(1);
     expect(finish).toHaveBeenCalledWith(
       {
-        reason: 'leave',
+        reason: 'stop_pause',
         position: 14,
         furthestPosition: 14,
         sheepCount: count,

@@ -173,6 +173,6 @@ const styles = StyleSheet.create({
     fontFamily: theme.font,
     fontSize: 12,
     lineHeight: 18,
-    color: '#8F98D6',
+    color: theme.color.muted,
   },
 });

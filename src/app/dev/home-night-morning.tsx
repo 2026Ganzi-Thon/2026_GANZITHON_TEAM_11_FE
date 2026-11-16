@@ -1,3 +1,4 @@
+import { canUseMock } from '../../config/runtime';
 import { useMemo, useState } from 'react';
 import { Redirect, router } from 'expo-router';
 import { ScrollView } from 'react-native';
@@ -15,12 +16,12 @@ import { Notice } from '../../ui/Notice';
 import { Button } from '../../ui/Button';
 export default function HomeJourneyPreview() {
   const native = useMemo(
-    () => (__DEV__ ? getNativeReminderSession() : null),
+    () => (canUseMock() ? getNativeReminderSession() : null),
     [],
   );
   const [source, setSource] = useState<HomeNightJourneySource | null>(null),
     [open, setOpen] = useState(false);
-  if (!__DEV__ || !native) return <Redirect href="/" />;
+  if (!canUseMock() || !native) return <Redirect href="/" />;
   if (source && open)
     return <HomeNightJourney source={source} onExit={() => setOpen(false)} />;
   const start = (scenario: HomeJourneyScenario) => {

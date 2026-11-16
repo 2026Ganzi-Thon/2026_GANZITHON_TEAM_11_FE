@@ -86,7 +86,11 @@ export function useClosingFlow(
       setState((previous) => ({
         ...previous,
         step:
-          previous.result?.writing_offer.state === 'offered' ? 'offer' : 'rest',
+          previous.result?.writing_offer.state === 'offered'
+            ? 'offer'
+            : previous.result?.writing_offer.state === 'writing'
+              ? 'writing'
+              : 'rest',
       }));
     }
   };

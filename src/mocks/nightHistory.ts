@@ -120,7 +120,7 @@ export function createMockNightHistory(
     getStats: () => ({
       night_count: all().filter((n) => n.demo.getSession() !== null).length,
       counted_sheep_total: all().reduce(
-        (sum, n) => sum + (n.demo.getSession()?.furthestPosition ?? 0),
+        (sum, n) => sum + n.demo.getTotalCount(),
         0,
       ),
       worry_record_count: records.all().filter((r) => !!r.worry_text?.trim())

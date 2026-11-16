@@ -1,3 +1,5 @@
+import { ConnectedReturnPreview } from './ConnectedReturnPreview';
+import type { ReturnJourneyScenario } from '../../../mocks/nightReturnJourney';
 import { useState } from 'react';
 import { ScrollView } from 'react-native';
 import {
@@ -44,6 +46,9 @@ function title(next: ReturnOutcome): string {
   }
 }
 export function NightReturnPreview({ onExit }: { onExit: () => void }) {
+  const [connected, setConnected] = useState<ReturnJourneyScenario | null>(
+    null,
+  );
   const [actions, setActions] = useState<ReturnType<
       typeof createMockNightReturn
     > | null>(null),
@@ -52,6 +57,13 @@ export function NightReturnPreview({ onExit }: { onExit: () => void }) {
     setActions(null);
     setNext(null);
   };
+  if (connected)
+    return (
+      <ConnectedReturnPreview
+        scenario={connected}
+        onExit={() => setConnected(null)}
+      />
+    );
   if (next)
     return (
       <NightScreen>
@@ -84,9 +96,24 @@ export function NightReturnPreview({ onExit }: { onExit: () => void }) {
     <NightScreen>
       <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 20, gap: 16 }}>
         <Notice
-          title="또 왔네 · 독립 미리보기"
-          description="조회 mock으로 재방문 기록·빠른 선택·상태 재확인만 준비했어요. 실제 새 세션·피드·아침 누적·자동 04시 마감·앱 종료 복원은 아직 연결하지 않았어요."
+          title="또 왔네 · 밤 재방문"
+          description="같은 밤 다시 세기에서 기존 고민·반응을 유지하고 새 세션과 아침 합산을 확인해요. 아래 조회 예시는 분기만 보여주는 독립 시연이에요. 서버·앱 종료 후 복원은 연결하지 않았어요."
         />
+        {(
+          [
+            ['같은 밤 다시 세기·아침', 'completed'],
+            ['중도 종료 후 다시 세기', 'stopped'],
+            ['새 세션 응답 유실 복구', 'lost'],
+            ['마무리 확인 전 복귀', 'closing'],
+            ['다시 세기 중 04시 마감', 'expiry'],
+          ] as const
+        ).map(([label, value]) => (
+          <Button
+            key={value}
+            label={label}
+            onPress={() => setConnected(value)}
+          />
+        ))}
         {presets.map(({ label, value }) => (
           <Button
             key={value}

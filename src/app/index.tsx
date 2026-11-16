@@ -22,6 +22,10 @@ export default function StartScreen() {
               />
             )}
             <Button
+              label="또 왔네·다시 세기"
+              onPress={() => router.push('/dev/night-return')}
+            />
+            <Button
               label="그만 세기 양·마무리"
               onPress={() => router.push('/dev/stop-offer')}
             />

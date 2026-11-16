@@ -22,6 +22,10 @@ export default function StartScreen() {
               />
             )}
             <Button
+              label="그만 세기 양·마무리"
+              onPress={() => router.push('/dev/stop-offer')}
+            />
+            <Button
               label="고민 맡기기·아침 반영"
               onPress={() => router.push('/dev/entrust')}
             />

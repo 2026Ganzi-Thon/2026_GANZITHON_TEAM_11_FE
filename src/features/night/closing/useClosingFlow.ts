@@ -18,6 +18,7 @@ export function useClosingFlow(
   input: ClosingRequest,
   actions: ClosingActions,
   onExit: () => void,
+  blocked = false,
 ) {
   // The operation owns a snapshot even if a parent rerenders while retrying.
   const [request] = useState(() => ({ ...input }));
@@ -32,7 +33,7 @@ export function useClosingFlow(
   const exited = useRef(false);
   const busy = useRef(true);
   useEffect(() => {
-    if (state.step !== 'pending') return;
+    if (state.step !== 'pending' || blocked) return;
     const controller = new AbortController();
     active.current = controller;
     const job = state.job;
@@ -52,7 +53,7 @@ export function useClosingFlow(
           result: result ?? previous.result,
           step:
             job.kind === 'finish'
-              ? request.reason === 'leave'
+              ? request.reason !== 'completed'
                 ? 'card'
                 : 'summary'
               : job.kind === 'view'
@@ -68,14 +69,14 @@ export function useClosingFlow(
       }
     })();
     return () => controller.abort();
-  }, [adapter, operationId, request, state.job, state.step]);
+  }, [adapter, operationId, request, state.job, state.step, blocked]);
   const submit = (job: Job) => {
-    if (busy.current || exited.current) return;
+    if (blocked || busy.current || exited.current) return;
     busy.current = true;
     setState((previous) => ({ ...previous, step: 'pending', job }));
   };
   const next = () => {
-    if (busy.current || exited.current) return;
+    if (blocked || busy.current || exited.current) return;
     if (state.step === 'card') {
       const card = state.result?.closing_card;
       if (card?.available && card.content)

@@ -22,20 +22,22 @@ export function ClosingScreen({
   onExit,
   onRest,
   onWrite,
+  blocked = false,
 }: {
   input: ClosingRequest;
   actions: ClosingActions;
   onExit: () => void;
   onRest?: () => void;
   onWrite?: () => void;
+  blocked?: boolean;
 }) {
-  const flow = useClosingFlow(input, actions, onExit);
+  const flow = useClosingFlow(input, actions, onExit, blocked);
   const { state, request, exit } = flow;
   const summary = state.result?.summary;
   const card = state.result?.closing_card;
   useEffect(() => {
-    if (state.step === 'writing') onWrite?.();
-  }, [state.step, onWrite]);
+    if (state.step === 'writing' && !blocked) onWrite?.();
+  }, [state.step, onWrite, blocked]);
   useEffect(() => {
     const subscription = BackHandler.addEventListener(
       'hardwareBackPress',
@@ -67,7 +69,7 @@ export function ClosingScreen({
           }
           description="잠시 후 다시 시도해 주세요. 예시 응답으로 확인 중이에요."
         />
-        <Button label="다시 시도" onPress={flow.retry} />
+        <Button label="다시 시도" onPress={flow.retry} disabled={blocked} />
       </View>
     ) : state.step === 'card' ? (
       <>
@@ -82,7 +84,7 @@ export function ClosingScreen({
           )}
         </ScrollView>
         <View style={styles.footer}>
-          <Button label="다음" onPress={flow.next} />
+          <Button label="다음" onPress={flow.next} disabled={blocked} />
         </View>
       </>
     ) : state.step === 'summary' || state.step === 'offer' ? (
@@ -105,12 +107,17 @@ export function ClosingScreen({
         </ScrollView>
         <View style={styles.footer}>
           {state.step === 'summary' ? (
-            <Button label="다음" onPress={flow.next} />
+            <Button label="다음" onPress={flow.next} disabled={blocked} />
           ) : (
             <>
-              <Button label="지금 쓸래요" onPress={() => flow.choose('now')} />
+              <Button
+                label="지금 쓸래요"
+                onPress={() => flow.choose('now')}
+                disabled={blocked}
+              />
               <Secondary
                 label="아침에 쓸게요"
+                disabled={blocked}
                 onPress={() => flow.choose('morning')}
               />
             </>
@@ -136,11 +143,12 @@ export function ClosingScreen({
           }
         />
         {state.step === 'writing' && onWrite && (
-          <Button label="카드 이어 쓰기" onPress={onWrite} />
+          <Button label="카드 이어 쓰기" onPress={onWrite} disabled={blocked} />
         )}
         {state.step === 'writing' && (
           <Button
             label="아침에 쓸게요"
+            disabled={blocked}
             onPress={() => flow.choose('morning')}
           />
         )}
@@ -150,6 +158,7 @@ export function ClosingScreen({
               ? '밤 마무리 확인'
               : '미리보기로 돌아가기'
           }
+          disabled={blocked}
           onPress={onRest && state.step === 'rest' ? onRest : flow.exit}
         />
       </View>
@@ -177,11 +186,21 @@ export function ClosingScreen({
     </NightScreen>
   );
 }
-function Secondary({ label, onPress }: { label: string; onPress: () => void }) {
+function Secondary({
+  label,
+  onPress,
+  disabled = false,
+}: {
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+}) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
+      disabled={disabled}
+      accessibilityState={{ disabled }}
       onPress={onPress}
       style={styles.secondary}
     >

@@ -1,3 +1,7 @@
+import {
+  stopOfferPosition,
+  type StopOfferItem,
+} from '../features/night/stopOffer/model';
 import type { TextCardSubmission } from '../features/cards/types';
 import type { SongCardSubmission } from '../features/cards/songTypes';
 import type { MockWorryRecords } from './worryRecords';
@@ -52,6 +56,9 @@ export type DemoScenario =
   | 'entrust-retry'
   | 'entrust-slow-retry'
   | 'entrust-lost-response'
+  | 'stop-slow-finish'
+  | 'stop-retry-finish'
+  | 'stop-lost-finish'
   | 'worry-delete';
 function delayed<T>(
   signal: AbortSignal,
@@ -109,8 +116,10 @@ export function createNightMorningDemo(
   let count: number | null = null;
   let cards: Card[] | null = null;
   let entrust: EntrustActions | undefined;
+  let stopOffer: StopOfferItem | undefined;
   let entrustAction: EntrustAction | null = null;
-  const isPause = (index: number) => index + 1 === entrust?.item.position;
+  const isPause = (index: number) =>
+    index + 1 === entrust?.item.position || index + 1 === stopOffer?.position;
   const yarn = createMockYarn(
     () => (cards ?? []).filter((_card, index) => !isPause(index)),
     scenario === 'slow-yarn' ? 'slow' : 'success',
@@ -268,7 +277,11 @@ export function createNightMorningDemo(
     : undefined;
   const baseClosing = createMockNightClosing();
   const failOnce = (key: string) => {
-    if (scenario === 'lost-responses' && !failed.has(key)) {
+    if (
+      (scenario === 'lost-responses' ||
+        (scenario === 'stop-lost-finish' && key === 'finish')) &&
+      !failed.has(key)
+    ) {
       failed.add(key);
       throw new ApiError('network');
     }
@@ -288,7 +301,11 @@ export function createNightMorningDemo(
         sheep_count: count!,
         last_viewed_at: viewedAt.get(card.id) ?? `${nightDate}T16:12:00Z`,
       }))
-      .filter((item) => item.position !== entrust?.item.position);
+      .filter(
+        (item) =>
+          item.position !== entrust?.item.position &&
+          item.position !== stopOffer?.position,
+      );
     if (closingViewed && finished?.closing_card)
       items.push({
         card: finished.closing_card,
@@ -509,6 +526,11 @@ export function createNightMorningDemo(
           return;
         }
         count = value;
+        const stopPosition = stopOfferPosition(value);
+        stopOffer =
+          stopPosition === null
+            ? undefined
+            : { id: `${nightId}-stop-offer`, position: stopPosition };
         if (value >= 7 && draft!.category_id !== 'none' && draft!.worry_text) {
           const item = {
             id: `${nightId}-entrust`,
@@ -588,6 +610,8 @@ export function createNightMorningDemo(
     finish: async (input, key, signal) => {
       if (
         !cards ||
+        (input.reason === 'stop_pause' &&
+          input.position !== stopOffer?.position) ||
         input.sheepCount !== count ||
         input.position !== position.position ||
         input.furthestPosition !== position.furthestPosition
@@ -602,6 +626,15 @@ export function createNightMorningDemo(
           return finished!;
         });
       guardNight();
+      if (scenario === 'stop-retry-finish' && !failed.has('stop-finish')) {
+        await delayed(signal, () => {
+          failed.add('stop-finish');
+          throw new ApiError('network');
+        });
+      }
+      if (scenario === 'stop-slow-finish' || scenario === 'stop-retry-finish') {
+        await delayed(signal, () => guardNight(), 5000);
+      }
       const result = await baseClosing.finish(input, key, signal);
       if (signal.aborted) throw new ApiError('aborted');
       guardNight();
@@ -643,6 +676,9 @@ export function createNightMorningDemo(
   };
   return {
     nightId,
+    get stopOffer() {
+      return stopOffer;
+    },
     get entrust() {
       return entrust;
     },

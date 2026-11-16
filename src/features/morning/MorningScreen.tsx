@@ -1,3 +1,5 @@
+import { MyCardsWritingFlow } from '../myCards/MyCardsWritingFlow';
+import type { MyCardsWritingSource } from '../myCards/types';
 import { SettingsScreen } from '../settings/SettingsScreen';
 import { SavedSongsScreen } from '../songs/SavedSongsScreen';
 import { songExternal } from '../songs/songExternal';
@@ -94,6 +96,7 @@ function MorningSession({
   homeFooter,
   homeWhenNoCandidates = false,
   fortuneKey,
+  myCards,
 }: {
   actions: MorningActions;
   onExit: () => void;
@@ -101,6 +104,7 @@ function MorningSession({
   homeFooter?: (blocked: boolean) => ReactNode;
   homeWhenNoCandidates?: boolean;
   fortuneKey?: string;
+  myCards?: MyCardsWritingSource;
 }) {
   const [detailId, setDetailId] = useState<string | null>(null);
   const [songsOpen, setSongsOpen] = useState(false);
@@ -108,6 +112,7 @@ function MorningSession({
   const [deferredWritingOpen, setDeferredWritingOpen] = useState(false);
   const [fortuneOpen, setFortuneOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [cardsOpen, setCardsOpen] = useState(false);
   const [fortuneVersion, setFortuneVersion] = useState(0);
   const flow = useMorningFlow(actions, onExit, homeWhenNoCandidates);
   const { morning, busy, failure } = flow;
@@ -125,6 +130,9 @@ function MorningSession({
               나의 양떼
             </Text>
             <Text style={styles.text}>밤을 함께 보낸 양들이 쉬고 있어요.</Text>
+            {myCards && (
+              <Action label="내 카드 열기" onPress={() => setCardsOpen(true)} />
+            )}
             {actions.settings && (
               <Action label="설정 열기" onPress={() => setSettingsOpen(true)} />
             )}
@@ -132,6 +140,7 @@ function MorningSession({
               <ReceivedYarnSection
                 actions={actions.receivedYarn}
                 blocked={
+                  cardsOpen ||
                   settingsOpen ||
                   detailId !== null ||
                   songsOpen ||
@@ -190,6 +199,7 @@ function MorningSession({
                   actions={actions.fortune}
                   onVisibilityChange={setFortuneOpen}
                   blocked={
+                    cardsOpen ||
                     settingsOpen ||
                     detailId !== null ||
                     songsOpen ||
@@ -375,7 +385,8 @@ function MorningSession({
             reflectionOpen ||
             deferredWritingOpen ||
             fortuneOpen ||
-            settingsOpen,
+            settingsOpen ||
+            cardsOpen,
         )}
       <Modal
         testID="saved-songs-modal"
@@ -429,6 +440,20 @@ function MorningSession({
           />
         )}
       </Modal>
+      {cardsOpen && myCards && (
+        <Modal
+          visible
+          animationType="none"
+          statusBarTranslucent
+          navigationBarTranslucent
+          onRequestClose={() => setCardsOpen(false)}
+        >
+          <MyCardsWritingFlow
+            source={myCards}
+            onBack={() => setCardsOpen(false)}
+          />
+        </Modal>
+      )}
       {settingsOpen && actions.settings && (
         <SettingsScreen
           modal

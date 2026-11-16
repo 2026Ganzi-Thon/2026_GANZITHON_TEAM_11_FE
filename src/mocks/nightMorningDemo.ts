@@ -1,3 +1,5 @@
+import type { TextCardSubmission } from '../features/cards/types';
+import type { SongCardSubmission } from '../features/cards/songTypes';
 import type { MockWorryRecords } from './worryRecords';
 import { createMockWorryDeletion } from './worryDeletion';
 import { createMockSongCards } from './songCards';
@@ -81,6 +83,8 @@ export function createNightMorningDemo(
     nightId?: string;
     nightDate?: string;
     manageWorries?: boolean;
+    writingNamespace?: string;
+    onSubmitted?: (receipt: TextCardSubmission | SongCardSubmission) => void;
   } = {},
 ) {
   const nightId = options.nightId ?? 'demo-night';
@@ -106,22 +110,19 @@ export function createNightMorningDemo(
     morningOpen
       ? finished?.writing_offer.state === 'deferred'
       : finished?.writing_offer.state === 'writing';
-  const textCards = createMockTextCards(writingScenario, {
+  const onSubmitted = (receipt: TextCardSubmission | SongCardSubmission) => {
+    options.onSubmitted?.(receipt);
+    if (finished)
+      finished = { ...finished, writing_offer: { state: 'fulfilled' } };
+  };
+  const writingOptions = {
     sourceNightId: nightId,
     canSubmit,
-    onSubmitted: () => {
-      if (finished)
-        finished = { ...finished, writing_offer: { state: 'fulfilled' } };
-    },
-  });
-  const songCards = createMockSongCards(writingScenario, {
-    sourceNightId: nightId,
-    canSubmit,
-    onSubmitted: () => {
-      if (finished)
-        finished = { ...finished, writing_offer: { state: 'fulfilled' } };
-    },
-  });
+    onSubmitted,
+    namespace: options.writingNamespace,
+  };
+  const textCards = createMockTextCards(writingScenario, writingOptions);
+  const songCards = createMockSongCards(writingScenario, writingOptions);
   const cardWriting = createMockCardWriting(textCards, songCards);
   let fingerprint: string | null = null;
   let closingViewed = false;

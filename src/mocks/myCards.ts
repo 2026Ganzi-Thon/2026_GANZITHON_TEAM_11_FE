@@ -43,9 +43,14 @@ export type MyCardsScenario =
   | 'write-refresh-retry'
   | 'write-slow'
   | 'write-empty-search';
+export interface MockMyCards extends MyCardsWritingSource {
+  acceptSubmission(receipt: TextCardSubmission | SongCardSubmission): void;
+}
+const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 export function createMockMyCards(
   scenario: MyCardsScenario = 'success',
-): MyCardsWritingSource {
+  { now = Date.now }: { now?: () => number } = {},
+): MockMyCards {
   const base = {
     category_id: 'career',
     rejection_reason: null,
@@ -163,6 +168,19 @@ export function createMockMyCards(
   const deleted = new Set<string>();
   let refreshFailure = false;
   let writingSession = 0;
+  const acceptSubmission: MockMyCards['acceptSubmission'] = (receipt) => {
+    // Receipts may be replayed after an uncertain response. Never overwrite
+    // a later resubmission or resurrect a deleted record.
+    if (records.some((item) => item.id === receipt.id)) return;
+    records.unshift({
+      ...clone(receipt),
+      rejection_reason: null,
+      yarn_count: 0,
+      revision: 1,
+      created_at: new Date(now()).toISOString(),
+    });
+    if (scenario === 'write-refresh-retry') refreshFailure = true;
+  };
   function request<T>(
     signal: AbortSignal,
     key: 'load' | 'more' | 'delete' | 'resubmit',
@@ -205,6 +223,7 @@ export function createMockMyCards(
     });
   }
   return {
+    acceptSubmission,
     readDraft(item) {
       const previous = drafts.get(item.id);
       if (previous) return { ...previous };
@@ -339,14 +358,7 @@ export function createMockMyCards(
       ) => {
         if (fulfilled) return;
         fulfilled = true;
-        records.unshift({
-          ...receipt,
-          rejection_reason: null,
-          yarn_count: 0,
-          revision: 1,
-          created_at: new Date().toISOString(),
-        });
-        if (scenario === 'write-refresh-retry') refreshFailure = true;
+        acceptSubmission(receipt);
       };
       const options = {
         sourceNightId: null,
@@ -396,7 +408,7 @@ export function createMockMyCards(
         if (!Number.isInteger(offset) || offset < 0 || offset > items.length)
           throw new ApiError('http', { status: 422, code: 'INVALID_CURSOR' });
         return {
-          items: items.slice(offset, offset + 3),
+          items: items.slice(offset, offset + 3).map(clone),
           next_cursor: offset + 3 < items.length ? String(offset + 3) : null,
         };
       }),

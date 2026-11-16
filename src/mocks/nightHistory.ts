@@ -34,13 +34,15 @@ async function read<T>(signal: AbortSignal, value: () => T): Promise<T> {
   if (signal.aborted) throw new ApiError('aborted');
   return copy(value());
 }
-/** Fixture storage only. The caller selects the night date and opens its morning;
- * clock/bootstrap/expiry and UI navigation are intentionally not implemented here. */
+/** Memory fixture per night. The caller supplies the clock and reconciles expiry;
+ * bootstrap, persistence and UI navigation are not implemented here. */
 export function createMockNightHistory(
   options: {
     scenario?: DemoScenario;
     now?: () => number;
     deletionScenario?: WorryDeletionScenario;
+    expiry?: boolean;
+    expiryScenario?: 'success' | 'check-retry' | 'morning-retry';
   } = {},
 ) {
   const nights = new Map<string, HistoryNight>();
@@ -125,6 +127,9 @@ export function createMockNightHistory(
         .length,
     }),
     getNightById: byId,
+    expireDue: () => {
+      for (const entry of all()) entry.demo.expireIfDue();
+    },
     getNight: (date: string) => nights.get(date) ?? null,
     openNight: (date: string): HistoryNight => {
       if (!parseDate(date)) throw new ApiError('configuration');
@@ -134,6 +139,16 @@ export function createMockNightHistory(
         nightId: `history-night-${date}`,
         nightDate: date,
         sheepId: `history-sheep-${date}`,
+        expiry: options.expiry
+          ? {
+              now: options.now ?? Date.now,
+              closesAt: new Date(
+                Date.parse(`${date}T04:00:00+09:00`) + 86400000,
+              ).toISOString(),
+              checkRetry: options.expiryScenario === 'check-retry',
+              morningRetry: options.expiryScenario === 'morning-retry',
+            }
+          : undefined,
         manageWorries: true,
         writingNamespace: `history-writing-${date}`,
         onSubmitted: cards.acceptSubmission,

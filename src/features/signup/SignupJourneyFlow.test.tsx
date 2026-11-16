@@ -25,10 +25,12 @@ const wrap = (ui: ReactElement) => (
 );
 const press = (name: string) =>
   fireEvent.press(screen.getByRole('button', { name }));
-const tick = () =>
-  act(async () => {
-    await jest.advanceTimersByTimeAsync(3000);
-  });
+const tick = async () => {
+  for (let i = 0; i < 2; i++)
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(1500);
+    });
+};
 function fixture(phase: 'day' | 'night' = 'day') {
   const native = storedDevice(),
     account = createMockReminder(),

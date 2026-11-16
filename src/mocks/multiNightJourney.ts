@@ -20,10 +20,15 @@ export function createMockMultiNightJourney(
   options: SettingsMorningOptions & {
     identity: Registration;
     clock: { now: () => number; advanceMorning: (nightDate: string) => void };
+    expiryScenario?: 'success' | 'check-retry' | 'morning-retry';
   },
 ) {
   const now = options.clock.now,
-    history = createMockNightHistory({ now });
+    history = createMockNightHistory({
+      now,
+      expiry: true,
+      expiryScenario: options.expiryScenario,
+    });
   let activeDate = fortuneDate(now()),
     active = history.openNight(activeDate);
   const advanced = new Set<string>();
@@ -40,6 +45,7 @@ export function createMockMultiNightJourney(
     deletions: history.deletions,
     loadMe: async (signal: AbortSignal) => {
       const value = await original.settings!.loadMe(signal);
+      history.expireDue();
       return { ...value, user: { ...value.user, stats: history.getStats() } };
     },
   };
@@ -76,6 +82,7 @@ export function createMockMultiNightJourney(
     };
   };
   function resolveMorning(snapshot: HomeSnapshot): MorningActions {
+    history.expireDue();
     const date = fortuneDate(Date.parse(snapshot.server_time));
     const entry =
       snapshot.phase === 'day' ? history.getNight(previousDate(date)) : null;
@@ -108,6 +115,7 @@ export function createMockMultiNightJourney(
     clock: {
       load: async (signal) => {
         const value = await original.clock.load(signal);
+        history.expireDue();
         return {
           ...value,
           user: {
@@ -128,6 +136,7 @@ export function createMockMultiNightJourney(
       return active.navigation;
     },
     enterNight: () => {
+      history.expireDue();
       if (homePhase(now()) !== 'night') return false;
       activeDate = fortuneDate(now());
       active = history.openNight(activeDate);

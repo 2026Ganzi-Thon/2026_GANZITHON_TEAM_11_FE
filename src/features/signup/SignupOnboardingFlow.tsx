@@ -1,3 +1,4 @@
+import type { ComponentProps, ReactNode } from 'react';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { BackHandler } from 'react-native';
 import { SignupFlow } from './SignupFlow';
@@ -11,11 +12,13 @@ export interface SignupOnboardingSource {
   signup: SignupActions;
   onboarding: SignupOnboarding;
 }
-export function SignupOnboardingFlow(props: {
+interface SignupOnboardingProps {
   source: SignupOnboardingSource;
   onExit: () => void;
   onNight: (snapshot: HomeSnapshot) => void;
-}) {
+  renderHome?: (props: ComponentProps<typeof HomeFlow>) => ReactNode;
+}
+export function SignupOnboardingFlow(props: SignupOnboardingProps) {
   const [current, setCurrent] = useState({ source: props.source, version: 0 });
   if (current.source !== props.source)
     setCurrent({ source: props.source, version: current.version + 1 });
@@ -25,11 +28,8 @@ function Session({
   source,
   onExit,
   onNight,
-}: {
-  source: SignupOnboardingSource;
-  onExit: () => void;
-  onNight: (snapshot: HomeSnapshot) => void;
-}) {
+  renderHome,
+}: SignupOnboardingProps) {
   const c = source.onboarding;
   const state = useSyncExternalStore(c.subscribe, c.getSnapshot, c.getSnapshot);
   useEffect(() => {
@@ -57,8 +57,10 @@ function Session({
         onComplete={c.begin}
       />
     );
-  if (state.stage === 'home' && state.home)
-    return <HomeFlow source={state.home} onExit={onExit} onNight={onNight} />;
+  if (state.stage === 'home' && state.home) {
+    const props = { source: state.home, onExit, onNight };
+    return renderHome ? renderHome(props) : <HomeFlow {...props} />;
+  }
   if (state.stage === 'intro') return <DaySignupIntro c={c} />;
   return <SignupReminderScreen c={c} />;
 }

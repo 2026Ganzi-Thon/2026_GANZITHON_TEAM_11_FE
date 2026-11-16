@@ -1,5 +1,5 @@
 import { ApiError } from '../api/errors';
-import { birthDateError, parseDate } from '../features/birthDate/date';
+import { birthDateError, kstDate, parseDate } from '../features/birthDate/date';
 import {
   consentIds,
   type ConsentDocuments,
@@ -24,8 +24,9 @@ export type SignupScenario =
 /** In-memory UI adapter; recovery keys and extra choices are not agreed HTTP fields. */
 export function createMockSignup(
   scenario: SignupScenario = 'success',
+  now: () => number = () => Date.parse('2026-11-16T12:00:00+09:00'),
 ): SignupActions {
-  const today = '2026-11-16';
+  const today = () => kstDate(new Date(now()));
   let revision = 'v1',
     account: Registration | null = null,
     birth: BirthDateResult | null = null,
@@ -73,7 +74,9 @@ export function createMockSignup(
     '알림 수신',
   ];
   return {
-    today,
+    get today() {
+      return today();
+    },
     loadDocuments: (signal) =>
       delayed(signal, () => {
         if (scenario === 'documents-retry') failOnce('docs');
@@ -144,7 +147,7 @@ export function createMockSignup(
         if (id !== account?.id || !agreed)
           throw new ApiError('http', { status: 409 });
         const parts = parseDate(date);
-        if (!parts || birthDateError(parts, today))
+        if (!parts || birthDateError(parts, today()))
           throw new ApiError('http', { status: 422 });
         if (scenario === 'age-rejected')
           throw new ApiError('http', { status: 422, code: 'AGE_NOT_ALLOWED' });

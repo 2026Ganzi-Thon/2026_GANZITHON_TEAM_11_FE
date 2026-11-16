@@ -2,15 +2,11 @@ import { useMemo, useState } from 'react';
 import { Redirect, router } from 'expo-router';
 import { ScrollView } from 'react-native';
 import {
-  SignupOnboardingFlow,
-  type SignupOnboardingSource,
-} from '../../features/signup/SignupOnboardingFlow';
-import { createMockSignupOnboarding } from '../../mocks/signupOnboarding';
+  SignupJourneyFlow,
+  type SignupJourneySource,
+} from '../../features/signup/SignupJourneyFlow';
+import { createMockSignupJourney } from '../../mocks/signupJourney';
 import { getNativeReminderSession } from '../../notifications/nativeRuntime';
-import { NightEntryScreen } from '../../features/night/NightEntryScreen';
-import { createMockNightEntry } from '../../mocks/nightEntry';
-import { createMockNightFeed } from '../../mocks/nightFeed';
-import { createMockNightClosing } from '../../mocks/nightClosing';
 import { NightScreen } from '../../ui/NightScreen';
 import { Notice } from '../../ui/Notice';
 import { Button } from '../../ui/Button';
@@ -19,21 +15,10 @@ export default function SignupHomePreview() {
     () => (__DEV__ ? getNativeReminderSession() : null),
     [],
   );
-  const [source, setSource] = useState<SignupOnboardingSource | null>(null),
+  const [source, setSource] = useState<SignupJourneySource | null>(null),
     [open, setOpen] = useState(false),
-    [night, setNight] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(false);
-  const nightSource = useMemo(
-    () =>
-      source
-        ? {
-            entry: createMockNightEntry('success'),
-            closing: createMockNightClosing(),
-          }
-        : null,
-    [source],
-  );
   if (!__DEV__ || !runtime) return <Redirect href="/" />;
   const start = async (phase: 'day' | 'night' | 'slow') => {
     if (busy) return;
@@ -41,7 +26,7 @@ export default function SignupHomePreview() {
     setError(false);
     try {
       await runtime.reset();
-      setSource(createMockSignupOnboarding(runtime.reminder, phase));
+      setSource(createMockSignupJourney(runtime.reminder, phase));
       setOpen(true);
     } catch {
       setError(true);
@@ -49,27 +34,14 @@ export default function SignupHomePreview() {
       setBusy(false);
     }
   };
-  if (source && open && nightSource)
-    return night ? (
-      <NightEntryScreen
-        actions={nightSource.entry}
-        createFeed={createMockNightFeed}
-        closingActions={nightSource.closing}
-        onBack={() => setNight(false)}
-      />
-    ) : (
-      <SignupOnboardingFlow
-        source={source}
-        onExit={() => setOpen(false)}
-        onNight={() => setNight(true)}
-      />
-    );
+  if (source && open)
+    return <SignupJourneyFlow source={source} onExit={() => setOpen(false)} />;
   return (
     <NightScreen>
       <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 20, gap: 16 }}>
         <Notice
-          title="가입 → 알림 → 첫 홈"
-          description="가입·생일·계정 설정·홈 시각은 메모리 mock이며, 기기 알림 권한·예약·취소는 실제 Android 기능입니다. 낮 안내는 같은 시연 계정에서 한 번만 표시합니다. 앱 종료 후 복원과 실제 인증은 연결하지 않았고 정시 배달은 보장하지 않습니다. 밤 입력은 독립 시연입니다."
+          title="가입 → 첫 홈 → 밤·아침"
+          description="가입·생일·계정 설정·홈 시각은 메모리 mock이며, 기기 알림 권한·예약·취소는 실제 Android 기능입니다. 낮 안내는 같은 시연 계정에서 한 번만 표시합니다. 앱 종료 후 복원과 실제 인증은 연결하지 않았고 정시 배달은 보장하지 않습니다. 첫 밤과 다음 아침의 양·회고·내 카드는 같은 계정에 연결합니다. 홈에서 뒤로 가기로 메뉴에 돌아온 뒤 같은 계정의 시각을 밤 9시로 옮길 수 있습니다."
         />
         {error && (
           <Notice
@@ -82,6 +54,16 @@ export default function SignupHomePreview() {
             label="같은 계정 다시 열기"
             onPress={() => setOpen(true)}
             disabled={busy}
+          />
+        )}
+        {source?.onboarding.getSnapshot().stage === 'home' && (
+          <Button
+            label="같은 계정으로 밤 9시로 이동"
+            disabled={busy}
+            onPress={() => {
+              source.advanceNight();
+              setOpen(true);
+            }}
           />
         )}
         <Button
@@ -111,7 +93,6 @@ export default function SignupHomePreview() {
               .then(() => {
                 setSource(null);
                 setOpen(false);
-                setNight(false);
               })
               .catch(() => setError(true))
               .finally(() => setBusy(false));

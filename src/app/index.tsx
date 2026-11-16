@@ -18,7 +18,7 @@ export default function StartScreen() {
               onPress={() => router.push('/dev/home-night-morning')}
             />
             <Button
-              label="가입 → 알림 → 첫 홈"
+              label="가입 → 첫 홈 → 밤·아침"
               onPress={() => router.push('/dev/signup-home')}
             />
             <Button

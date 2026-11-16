@@ -36,6 +36,7 @@ import type {
   EntrustActions,
   EntrustAction,
 } from '../features/night/entrust/types';
+import type { NightExpiryActions } from '../features/night/expiry/types';
 export type DemoScenario =
   | 'success'
   | 'lost-responses'
@@ -90,6 +91,12 @@ export function createNightMorningDemo(
     nightId?: string;
     nightDate?: string;
     sheepId?: string;
+    expiry?: {
+      now: () => number;
+      closesAt: string;
+      checkRetry?: boolean;
+      morningRetry?: boolean;
+    };
     manageWorries?: boolean;
     writingNamespace?: string;
     onSubmitted?: (receipt: TextCardSubmission | SongCardSubmission) => void;
@@ -112,16 +119,59 @@ export function createNightMorningDemo(
   let finished: ClosingResult | null = null;
   let progressRecorded = false;
   let morningOpen = false;
+  let expired = false;
+  const closesAt = options.expiry
+    ? Date.parse(options.expiry.closesAt)
+    : Infinity;
+  function expireIfDue(instant = options.expiry?.now() ?? 0) {
+    if (!options.expiry || instant < closesAt) return false;
+    if (!morningOpen) {
+      if (!finished) {
+        expired = count !== null;
+        const seen = progressRecorded ? position.furthestPosition : 0;
+        finished = {
+          summary: {
+            counted: seen,
+            entrusted_count: 0,
+            fluff_count: (cards ?? [])
+              .slice(0, seen)
+              .filter((c) => c.available && c.content && c.viewer.fluff_saved)
+              .length,
+          },
+          closing_card: null,
+          writing_offer: { state: 'deferred' },
+        };
+      }
+      morningOpen = true;
+      if (
+        finished.writing_offer.state === 'offered' ||
+        finished.writing_offer.state === 'writing'
+      )
+        finished = { ...finished, writing_offer: { state: 'deferred' } };
+    }
+    return true;
+  }
+  function guardNight(code = 'SESSION_CLOSED') {
+    if (options.expiry && (expireIfDue() || morningOpen)) conflict(code);
+  }
+  function nightResponse<T>(signal: AbortSignal, action: () => T) {
+    return delayed(signal, () => {
+      guardNight();
+      return action();
+    });
+  }
   const writingScenario =
     scenario === 'writing-lost-response'
       ? 'lost-response'
       : scenario === 'writing-retry'
         ? 'retry'
         : 'success';
-  const canSubmit = () =>
-    morningOpen
+  const canSubmit = () => {
+    expireIfDue();
+    return morningOpen
       ? finished?.writing_offer.state === 'deferred'
       : finished?.writing_offer.state === 'writing';
+  };
   const onSubmitted = (receipt: TextCardSubmission | SongCardSubmission) => {
     options.onSubmitted?.(receipt);
     if (finished)
@@ -145,7 +195,7 @@ export function createNightMorningDemo(
         (cards ?? [])
           .slice(0, position.furthestPosition)
           .some((c) => c.id === id),
-      isOpen: () => !morningOpen,
+      isOpen: () => !expireIfDue() && !morningOpen,
     },
     scenario === 'slow-fluff' ? 'slow' : 'success',
   );
@@ -197,6 +247,24 @@ export function createNightMorningDemo(
   };
   const savedSongs = new Map<string, string>();
   const failed = new Set<string>();
+  const expiry: NightExpiryActions | undefined = options.expiry
+    ? {
+        load: (signal) =>
+          delayed(signal, () => {
+            const instant = options.expiry!.now();
+            const closed = expireIfDue(instant);
+            if (options.expiry!.checkRetry && !failed.has('expiry-check')) {
+              failed.add('expiry-check');
+              throw new ApiError('network');
+            }
+            return {
+              server_time: new Date(instant).toISOString(),
+              closes_at: new Date(closesAt).toISOString(),
+              closed,
+            };
+          }),
+      }
+    : undefined;
   const baseClosing = createMockNightClosing();
   const failOnce = (key: string) => {
     if (scenario === 'lost-responses' && !failed.has(key)) {
@@ -237,7 +305,9 @@ export function createNightMorningDemo(
     load: (id, signal) =>
       delayed(signal, () => {
         checkNight(id);
+        expireIfDue();
         if (!morningOpen) conflict('MORNING_NOT_OPEN');
+        if (!draft) return { night: null, reflection: null };
         return {
           night: {
             id: nightId,
@@ -253,6 +323,7 @@ export function createNightMorningDemo(
     save: (id, answer, signal) =>
       delayed(signal, () => {
         checkNight(id);
+        expireIfDue();
         if (!morningOpen || draft?.category_id === 'none' || !draft?.worry_text)
           conflict('REFLECTION_NOT_AVAILABLE');
         reflection = { answer, message: reflectionReplies[answer] };
@@ -261,6 +332,7 @@ export function createNightMorningDemo(
   };
   const loadSheep: SheepDetailLoad = (id, signal) =>
     delayed(signal, () => {
+      expireIfDue();
       if (!morningOpen || !adopted || adopted.id !== id)
         conflict('NOT_FOUND', 404);
       const sheep = adopted;
@@ -283,6 +355,7 @@ export function createNightMorningDemo(
   const songs: SongActions = {
     load: (signal) =>
       delayed(signal, () => {
+        expireIfDue();
         if (!morningOpen) conflict('MORNING_NOT_OPEN');
         return [...savedSongs].flatMap(([id, saved_at]) => {
           const card = cards?.find((item) => item.id === id);
@@ -295,6 +368,8 @@ export function createNightMorningDemo(
       delayed(
         signal,
         () => {
+          expireIfDue();
+          if (saved) guardNight('NIGHT_CLOSED');
           const index = cards?.findIndex((item) => item.id === id) ?? -1;
           const card = cards?.[index];
           if (!card || card.kind !== 'song') conflict('NOT_SONG_CARD', 422);
@@ -336,8 +411,21 @@ export function createNightMorningDemo(
     loadSheep,
     loadMorning: (signal, requestedNightId) =>
       delayed(signal, () => {
+        expireIfDue();
         if (!morningOpen) conflict('MORNING_NOT_OPEN');
         if (requestedNightId !== undefined) checkNight(requestedNightId);
+        if (options.expiry?.morningRetry && !failed.has('expiry-morning')) {
+          failed.add('expiry-morning');
+          throw new ApiError('network');
+        }
+        if (!draft || count === null)
+          return {
+            night: null,
+            counted_sheep: null,
+            candidate_cards: [],
+            default_card_id: null,
+            adoption: null,
+          };
         if (
           scenario === 'writing-refresh-retry' &&
           finished?.writing_offer.state === 'fulfilled' &&
@@ -370,6 +458,7 @@ export function createNightMorningDemo(
     adopt: (id, cardId, signal) =>
       delayed(signal, () => {
         checkNight(id);
+        expireIfDue();
         if (!morningOpen) conflict('MORNING_NOT_OPEN');
         if (adopted) {
           if (adopted.card_id !== cardId)
@@ -394,7 +483,7 @@ export function createNightMorningDemo(
   };
   const entry: NightEntryActions = {
     checkWorry: (value, signal) =>
-      delayed(signal, () => {
+      nightResponse(signal, () => {
         if (count !== null) conflict('SESSION_ALREADY_STARTED');
         if (validateWorry(value.category_id, value.worry_text ?? '', 200))
           conflict('INVALID_WORRY', 422);
@@ -406,12 +495,12 @@ export function createNightMorningDemo(
         return { id: nightId, status: 'ready' as const, support: null };
       }),
     continueSupport: (id, signal) =>
-      delayed(signal, () => {
+      nightResponse(signal, () => {
         if (id !== nightId) conflict('NIGHT_NOT_FOUND', 404);
         conflict('SUPPORT_NOT_REQUIRED');
       }),
     startCounting: (value, signal) =>
-      delayed(signal, () => {
+      nightResponse(signal, () => {
         if (!draft || !Number.isInteger(value) || value < 3 || value > 30)
           conflict('INVALID_SESSION', 422);
         if (count !== null) {
@@ -472,10 +561,12 @@ export function createNightMorningDemo(
       }),
   };
   const loadFeed: FeedLoad = async (signal) => {
+    guardNight();
     if (!loader) conflict('SESSION_NOT_STARTED');
-    if (cards) return delayed(signal, () => cards!);
+    if (cards) return nightResponse(signal, () => cards!);
     const loaded = await loader(signal);
     if (signal.aborted) throw new ApiError('aborted');
+    guardNight();
     cards = loaded.map((card, index) => ({
       ...card,
       category_id: card.category_id === null ? null : draft!.category_id,
@@ -496,9 +587,15 @@ export function createNightMorningDemo(
       const next = JSON.stringify(input);
       if (fingerprint && next !== fingerprint)
         conflict('SESSION_ALREADY_FINISHED');
-      if (finished) return delayed(signal, () => finished!);
+      if (finished && fingerprint)
+        return delayed(signal, () => {
+          expireIfDue();
+          return finished!;
+        });
+      guardNight();
       const result = await baseClosing.finish(input, key, signal);
       if (signal.aborted) throw new ApiError('aborted');
+      guardNight();
       result.summary = {
         ...result.summary,
         entrusted_count: entrustAction === 'entrusted' ? 1 : 0,
@@ -518,14 +615,14 @@ export function createNightMorningDemo(
       return result;
     },
     markViewed: (id, _key, signal) =>
-      delayed(signal, () => {
+      nightResponse(signal, () => {
         if (!finished?.closing_card || finished.closing_card.id !== id)
           conflict('INVALID_CARD', 422);
         closingViewed = true;
         stamp(finished.closing_card);
       }),
     chooseWriting: (choice, _key, signal) =>
-      delayed(signal, () => {
+      nightResponse(signal, () => {
         if (!finished) conflict('SESSION_NOT_FINISHED');
         if (finished.writing_offer.state === 'fulfilled')
           conflict('OFFER_ALREADY_DECIDED');
@@ -540,21 +637,28 @@ export function createNightMorningDemo(
     get entrust() {
       return entrust;
     },
+    expiry,
+    expireIfDue,
     worryRecords: records,
     getSession: () =>
       count === null
         ? null
         : {
             sheepCount: count,
-            position: progressRecorded || finished ? position.position : 0,
-            furthestPosition:
-              progressRecorded || finished ? position.furthestPosition : 0,
+            position:
+              progressRecorded || (finished?.summary.counted ?? 0) > 0
+                ? position.position
+                : 0,
+            furthestPosition: progressRecorded
+              ? position.furthestPosition
+              : (finished?.summary.counted ?? 0),
           },
     getRecord: () => ({
       night: readRecord() ?? null,
       finished: !!finished,
       counted: finished?.summary.counted ?? 0,
       morningOpen,
+      expired,
       adopted: adopted ? { ...adopted } : null,
     }),
     fluff,
@@ -569,6 +673,7 @@ export function createNightMorningDemo(
     morning,
     getProgress: () => ({ ...position }),
     progress: (next: FeedPosition) => {
+      if (expireIfDue()) return;
       if (!count || finished) return;
       if (
         !Number.isInteger(next.position) ||

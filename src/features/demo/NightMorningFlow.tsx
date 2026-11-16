@@ -35,6 +35,7 @@ interface NightMorningFlowProps {
   onHome?: () => void;
   onMorning?: () => void;
   entryMode?: 'first-entry' | 'existing-night';
+  blocked?: boolean;
 }
 function NightMorningSession({
   demo,
@@ -44,6 +45,7 @@ function NightMorningSession({
   onHome,
   onMorning,
   entryMode,
+  blocked = false,
 }: NightMorningFlowProps) {
   const [writingOpen, setWritingOpen] = useState(false);
   const openWriting = useCallback(() => setWritingOpen(true), []);
@@ -99,7 +101,7 @@ function NightMorningSession({
           onRest={() => setPage('rest')}
           onWrite={openWriting}
         />
-        {writingOpen && (
+        {writingOpen && !blocked && (
           <CardWritingScreen
             modal
             actions={demo.cardWriting}

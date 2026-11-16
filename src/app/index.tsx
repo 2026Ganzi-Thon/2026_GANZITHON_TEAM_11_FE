@@ -26,6 +26,10 @@ export default function StartScreen() {
               onPress={() => router.push('/dev/entrust')}
             />
             <Button
+              label="04시 마감·아침 전환"
+              onPress={() => router.push('/dev/night-expiry')}
+            />
+            <Button
               label="밤→아침 시연"
               onPress={() => router.push('/dev/night-morning')}
             />

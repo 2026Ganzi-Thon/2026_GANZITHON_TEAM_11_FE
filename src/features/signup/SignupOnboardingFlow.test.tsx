@@ -5,7 +5,10 @@ import {
   render as renderNative,
   screen,
 } from '@testing-library/react-native';
-import type { ReactElement } from 'react';
+import type { ComponentProps, ReactElement } from 'react';
+import { HomeFlow } from '../home/HomeFlow';
+import { SettingsScreen } from '../settings/SettingsScreen';
+import type { SettingsData } from '../settings/types';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { SignupOnboardingFlow } from './SignupOnboardingFlow';
 import { createMockSignupOnboarding } from '../../mocks/signupOnboarding';
@@ -244,4 +247,76 @@ it('removes a stale delivery promise when the permission changes on the intro sc
   });
   expect(screen.queryByText('오후 11:00에 알려 드릴게요')).toBeNull();
   expect(screen.getByText('밤 9시가 되면 다시 들러 주세요')).toBeTruthy();
+});
+
+const accountHome = ({ source, onExit }: ComponentProps<typeof HomeFlow>) => (
+  <SettingsScreen actions={source.settings!} onBack={onExit} />
+);
+it.each(['day', 'night'] as const)(
+  'mounts the supplied account home only after %s onboarding and preserves it on reopen',
+  async (phase) => {
+    const f = fixture(phase),
+      exit = jest.fn();
+    const ui = () => (
+      <SignupOnboardingFlow
+        source={f.source}
+        onExit={exit}
+        onNight={() => {}}
+        renderHome={accountHome}
+      />
+    );
+    await render(ui());
+    await birth();
+    expect(screen.queryByText('new@example.com')).toBeNull();
+    await press('나중에 할게요');
+    await tick();
+    if (phase === 'day') {
+      expect(screen.getByText('밤 9시가 되면 다시 들러 주세요')).toBeTruthy();
+      expect(screen.queryByText('new@example.com')).toBeNull();
+      await press('밤에 만나요');
+    }
+    await tick();
+    expect(screen.getByText('new@example.com')).toBeTruthy();
+    expect(screen.getByText('2004.06.14 · 수정 1회')).toBeTruthy();
+    await press('아침 홈으로 돌아가기');
+    expect(exit).toHaveBeenCalledTimes(1);
+    await screen.unmount();
+    await render(ui());
+    await tick();
+    expect(screen.getByText('new@example.com')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: '밤에 만나요' })).toBeNull();
+  },
+);
+it('unmounts the previous custom home and aborts its query when the signup source changes', async () => {
+  const f = fixture('night'),
+    late = deferred<SettingsData>();
+  const ui = (source: typeof f.source) => (
+    <SignupOnboardingFlow
+      source={source}
+      onExit={() => {}}
+      onNight={() => {}}
+      renderHome={accountHome}
+    />
+  );
+  await render(ui(f.source));
+  await birth();
+  const home = f.source.onboarding.getSnapshot().home!,
+    signal = new AbortController().signal;
+  const original = home.settings!.loadMe(signal);
+  await tick();
+  const receipt = await original;
+  const request = jest
+    .spyOn(home.settings!, 'loadMe')
+    .mockImplementation(() => late.promise);
+  await press('나중에 할게요');
+  await tick();
+  expect(request).toHaveBeenCalledTimes(1);
+  await screen.rerender(wrap(ui(fixture().source)));
+  expect(request.mock.calls[0][0].aborted).toBe(true);
+  await act(async () => late.resolve(receipt));
+  await tick();
+  expect(
+    screen.getByRole('button', { name: '이메일로 회원가입' }),
+  ).toBeTruthy();
+  expect(screen.queryByText('new@example.com')).toBeNull();
 });

@@ -195,3 +195,30 @@ it('uses the same mock account date for birth validation and the next morning cl
     (await settle(source.home.settings!.birthDate!.load(signal()))).today,
   ).toBe('2026-11-17');
 });
+it('keeps an injected signup identity and clock through the next morning', async () => {
+  let time = Date.parse('2026-11-16T14:20:00+09:00');
+  const options = {
+    identity: { id: 'registered-account', email: 'joined@example.com' },
+    clock: {
+      now: () => time,
+      advanceMorning: () => {
+        time = Date.parse('2026-11-17T04:00:00+09:00');
+      },
+    },
+  };
+  const source = createMockHomeJourney('success', options);
+  expect((await settle(source.home.clock.load(signal()))).phase).toBe('day');
+  expect(
+    (await settle(source.home.settings!.loadMe(signal()))).user,
+  ).toMatchObject({
+    id: 'registered-account',
+    email: 'joined@example.com',
+  });
+  time = Date.parse('2026-11-16T21:00:00+09:00');
+  await finish(source);
+  source.advanceMorning();
+  expect(time).toBe(Date.parse('2026-11-17T04:00:00+09:00'));
+  expect(
+    (await settle(source.home.settings!.birthDate!.load(signal()))).today,
+  ).toBe('2026-11-17');
+});

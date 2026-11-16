@@ -7,7 +7,16 @@ import type { Morning } from '../features/morning/types';
 import { createMockBirthDate } from './birthDate';
 import { createMockHome } from './firstNightHome';
 import type { SettingsMorningOptions } from './settingsMorning';
+import type { Registration } from '../features/signup/types';
 import { createNightMorningDemo } from './nightMorningDemo';
+export interface JourneyClock {
+  now: () => number;
+  advanceMorning: () => void;
+}
+interface HomeJourneyOptions extends SettingsMorningOptions {
+  identity?: Registration;
+  clock?: JourneyClock;
+}
 export type HomeJourneyScenario =
   | 'success'
   | 'lost-responses'
@@ -16,12 +25,12 @@ export type HomeJourneyScenario =
   | 'writing-lost-response';
 export function createMockHomeJourney(
   scenario: HomeJourneyScenario = 'success',
-  options: SettingsMorningOptions = {},
+  options: HomeJourneyOptions = {},
 ) {
   const nightDate = '2026-11-16';
   let base = Date.parse(`${nightDate}T21:30:00+09:00`),
     started = performance.now();
-  const now = () => base + performance.now() - started;
+  const now = options.clock?.now ?? (() => base + performance.now() - started);
   const cards = createMockMyCards('empty', { now });
   const night = createNightMorningDemo(
     scenario === 'lost-responses' || scenario === 'writing-lost-response'
@@ -41,7 +50,10 @@ export function createMockHomeJourney(
       options.birthDate ??
       createMockBirthDate('success', () => new Date(now())),
     now,
-    identity: { id: 'journey-account', email: 'journey@example.com' },
+    identity: options.identity ?? {
+      id: 'journey-account',
+      email: 'journey@example.com',
+    },
   });
   const stats = () => {
     const record = night.getRecord();
@@ -133,6 +145,7 @@ export function createMockHomeJourney(
       if (advanced) return;
       night.advanceMorning();
       advanced = true;
+      options.clock?.advanceMorning();
       base = Date.parse('2026-11-17T04:00:00+09:00');
       started = performance.now();
     },

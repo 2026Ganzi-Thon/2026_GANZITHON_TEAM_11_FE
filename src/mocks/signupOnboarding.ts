@@ -3,13 +3,26 @@ import {
   createSignupOnboarding,
   type OnboardingReminder,
 } from '../features/signup/onboarding';
+import type { HomeSource } from '../features/home/types';
+import type { Registration } from '../features/signup/types';
 import type { MockReminder } from './reminder';
-import { createMockBirthDate } from './birthDate';
+import { createMockBirthDate, type MockBirthDate } from './birthDate';
 import { createMockHome } from './firstNightHome';
 import { createMockSignup } from './signup';
+export interface SignupHomeContext {
+  identity: Registration;
+  birthDate: MockBirthDate;
+  reminder: MockReminder & OnboardingReminder;
+  now: () => number;
+}
+export interface SignupOnboardingOptions {
+  now?: () => number;
+  createHome?: (context: SignupHomeContext) => HomeSource;
+}
 export function createMockSignupOnboarding(
   reminder: MockReminder & OnboardingReminder,
   phase: 'day' | 'night' | 'slow' = 'day',
+  options: SignupOnboardingOptions = {},
 ) {
   const started = performance.now(),
     base = Date.parse(
@@ -17,7 +30,10 @@ export function createMockSignupOnboarding(
         ? '2026-11-16T14:20:00+09:00'
         : '2026-11-16T21:30:00+09:00',
     ),
-    now = () => base + performance.now() - started;
+    now = options.now ?? (() => base + performance.now() - started);
+  const createHome =
+    options.createHome ??
+    ((context: SignupHomeContext) => createMockHome('day', context));
   const connected =
     phase !== 'slow'
       ? reminder
@@ -47,10 +63,10 @@ export function createMockSignupOnboarding(
           },
         };
   return {
-    signup: createMockSignup(),
+    signup: createMockSignup('success', now),
     onboarding: createSignupOnboarding(connected, (identity, birth) =>
-      createMockHome('day', {
-        identity,
+      createHome({
+        identity: { ...identity },
         now,
         reminder,
         birthDate: createMockBirthDate('success', () => new Date(now()), birth),

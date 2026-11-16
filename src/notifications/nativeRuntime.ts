@@ -21,6 +21,7 @@ function createSession() {
   const connected = createReminderConnection(account, service);
   const reminder = { ...account, ...connected };
   return {
+    reminder,
     source: createSettingsMorning('success', { reminder }),
     device: connected.device,
     async reset() {

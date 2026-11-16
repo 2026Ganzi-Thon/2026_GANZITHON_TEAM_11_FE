@@ -33,9 +33,15 @@ it('uses Retry-After seconds and HTTP dates, including already-expired values', 
   expect(retryDeadline('0', now)).toBe(now);
   expect(retryDeadline(new Date(now - 5000).toUTCString(), now)).toBe(now);
 });
-it.each([undefined, '', '-1', '1.5', 'Infinity', 'not a date'])(
-  'does not invent a cooldown for invalid Retry-After %s',
-  (value) => {
-    expect(retryDeadline(value, Date.now())).toBeNull();
-  },
-);
+it.each([
+  undefined,
+  '',
+  '-1',
+  '1.5',
+  'Infinity',
+  'not a date',
+  '2099 GMT',
+  'Tue, 31 Nov 2026 00:00:00 GMT',
+])('does not invent a cooldown for invalid Retry-After %s', (value) => {
+  expect(retryDeadline(value, Date.now())).toBeNull();
+});

@@ -28,7 +28,14 @@ export function retryDeadline(
     const deadline = now + Number(raw) * 1000;
     return Number.isSafeInteger(deadline) ? deadline : null;
   }
-  if (!/[a-z]/i.test(raw) || !/GMT$/i.test(raw)) return null;
+  if (
+    !/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun), \d{2} (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{4} \d{2}:\d{2}:\d{2} GMT$/.test(
+      raw,
+    )
+  )
+    return null;
   const deadline = Date.parse(raw);
-  return Number.isFinite(deadline) ? Math.max(now, deadline) : null;
+  return Number.isFinite(deadline) && new Date(deadline).toUTCString() === raw
+    ? Math.max(now, deadline)
+    : null;
 }

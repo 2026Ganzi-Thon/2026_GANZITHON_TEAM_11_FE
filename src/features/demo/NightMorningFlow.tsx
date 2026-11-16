@@ -82,6 +82,7 @@ function NightMorningSession({
       <FeedScreen
         load={demo.loadFeed}
         entrust={demo.entrust}
+        stopOffer={demo.stopOffer}
         blocked={blocked}
         songs={demo.songs}
         yarn={demo.yarn}
@@ -98,6 +99,7 @@ function NightMorningSession({
         <ClosingScreen
           input={request}
           actions={demo.closing}
+          blocked={blocked}
           onExit={() => pause('closing')}
           onRest={() => setPage('rest')}
           onWrite={openWriting}

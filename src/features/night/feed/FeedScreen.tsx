@@ -38,6 +38,8 @@ import { useFeedMotion } from './useFeedMotion';
 import type { EntrustActions } from '../entrust/types';
 import { useEntrustPause } from '../entrust/useEntrustPause';
 import { EntrustPanel } from '../entrust/EntrustPanel';
+import { StopOfferPanel } from '../stopOffer/StopOfferScreen';
+import type { StopOfferItem } from '../stopOffer/model';
 
 export function FeedScreen({
   load,
@@ -50,6 +52,7 @@ export function FeedScreen({
   yarn,
   fluff,
   entrust,
+  stopOffer,
   blocked = false,
 }: {
   load: FeedLoad;
@@ -62,6 +65,7 @@ export function FeedScreen({
   yarn?: YarnActions;
   fluff?: FluffActions;
   entrust?: EntrustActions;
+  stopOffer?: StopOfferItem;
   blocked?: boolean;
 }) {
   const { fontScale } = useWindowDimensions();
@@ -117,6 +121,7 @@ export function FeedScreen({
   });
   const current = useRef(position);
   const isEntrust = entrust?.item.position === position.position;
+  const isStopOffer = stopOffer?.position === position.position;
   const pauseFlow = useEntrustPause(entrust, blocked);
   const { stop: stopPause, isBusy: pauseBusy, acknowledge } = pauseFlow;
   const controller = useRef<AbortController | null>(null);
@@ -226,7 +231,7 @@ export function FeedScreen({
     yarnFlow.stateFor(target).error !== 'unavailable' &&
     fluffFlow.stateFor(target).error !== 'unavailable';
   const visibleCard =
-    card && !isCardAvailable(card)
+    card && (isEntrust || isStopOffer || !isCardAvailable(card))
       ? { ...card, available: false, content: null }
       : card;
   const reactionsVisible = !!visibleCard?.available && !!visibleCard.content;
@@ -260,6 +265,7 @@ export function FeedScreen({
       <ClosingScreen
         input={closingRequest}
         actions={closingActions}
+        blocked={blocked}
         onExit={back}
       />
     );
@@ -268,15 +274,19 @@ export function FeedScreen({
   return (
     <NightScreen
       background={
-        isEntrust
-          ? require('../../../../assets/images/entrust/background.svg')
-          : undefined
+        isStopOffer
+          ? require('../../../../assets/images/stop-offer/background.svg')
+          : isEntrust
+            ? require('../../../../assets/images/entrust/background.svg')
+            : undefined
       }
     >
       <View
         style={[
           styles.topbar,
-          isEntrust && fontScale > 1.3 && styles.expandedTopbar,
+          (isEntrust || isStopOffer) &&
+            fontScale > 1.3 &&
+            styles.expandedTopbar,
         ]}
       >
         <View>
@@ -314,7 +324,11 @@ export function FeedScreen({
               (canFinish &&
                 (moving || fluffPending || (isEntrust && pauseFlow.busy))),
           }}
-          onPress={canFinish ? () => finish('leave') : back}
+          onPress={
+            canFinish
+              ? () => finish(isStopOffer ? 'stop_pause' : 'leave')
+              : back
+          }
           style={styles.exit}
         >
           <Text style={styles.exitLabel}>
@@ -368,7 +382,19 @@ export function FeedScreen({
               style={styles.feedScroll}
               contentContainerStyle={styles.content}
             >
-              {isEntrust && entrust ? (
+              {isStopOffer ? (
+                <StopOfferPanel
+                  onStop={() => finish('stop_pause')}
+                  onContinue={() => move(1)}
+                  disabled={
+                    blocked ||
+                    moving ||
+                    songPending ||
+                    fluffPending ||
+                    !canFinish
+                  }
+                />
+              ) : isEntrust && entrust ? (
                 <EntrustPanel
                   worry={entrust.item.worry_text}
                   flow={pauseFlow}
@@ -570,28 +596,30 @@ export function FeedScreen({
             >
               <Text style={styles.previousLabel}>← 이전 양</Text>
             </Pressable>
-            <View style={styles.next}>
-              <Button
-                label={
-                  position.position === cards.length
-                    ? closingActions || onFinish
-                      ? '마무리하기'
-                      : '미리보기 마치기'
-                    : '다음 양'
-                }
-                disabled={
-                  blocked ||
-                  moving ||
-                  songPending ||
-                  (isEntrust && (pauseFlow.busy || !pauseFlow.action)) ||
-                  (position.position === cards.length && fluffPending)
-                }
-                onPress={() => {
-                  if (position.position === cards.length) finish('completed');
-                  else move(1);
-                }}
-              />
-            </View>
+            {!isStopOffer && (
+              <View style={styles.next}>
+                <Button
+                  label={
+                    position.position === cards.length
+                      ? closingActions || onFinish
+                        ? '마무리하기'
+                        : '미리보기 마치기'
+                      : '다음 양'
+                  }
+                  disabled={
+                    blocked ||
+                    moving ||
+                    songPending ||
+                    (isEntrust && (pauseFlow.busy || !pauseFlow.action)) ||
+                    (position.position === cards.length && fluffPending)
+                  }
+                  onPress={() => {
+                    if (position.position === cards.length) finish('completed');
+                    else move(1);
+                  }}
+                />
+              </View>
+            )}
           </View>
         </>
       )}

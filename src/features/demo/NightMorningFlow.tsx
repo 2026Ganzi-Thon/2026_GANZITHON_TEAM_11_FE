@@ -79,6 +79,7 @@ function NightMorningSession({
     return (
       <FeedScreen
         load={demo.loadFeed}
+        entrust={demo.entrust}
         songs={demo.songs}
         yarn={demo.yarn}
         fluff={demo.fluff}

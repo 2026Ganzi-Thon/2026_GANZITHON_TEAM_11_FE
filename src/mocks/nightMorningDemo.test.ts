@@ -215,3 +215,34 @@ describe('one-night demo records', () => {
     ).toBe(false);
   });
 });
+it('uses a supplied sheep identity for adoption and its detail without changing the default fixture', async () => {
+  jest.useFakeTimers();
+  const options = {
+    nightId: 'night-16',
+    nightDate: '2026-11-16',
+    sheepId: 'sheep-16',
+  };
+  const d = createNightMorningDemo('success', options);
+  await settle(
+    d.entry.checkWorry(
+      { category_id: 'career', worry_text: '첫째 밤 고민' },
+      signal(),
+    ),
+  );
+  await settle(d.entry.startCounting(3, signal()));
+  const cards = await settle(d.loadFeed(signal()));
+  d.progress({ position: 3, furthestPosition: 3 });
+  await settle(
+    d.closing.finish(
+      { reason: 'completed', position: 3, furthestPosition: 3, sheepCount: 3 },
+      'complete',
+      signal(),
+    ),
+  );
+  d.advanceMorning();
+  const sheep = await settle(d.morning.adopt(d.nightId, cards[0].id, signal()));
+  expect(sheep.id).toBe('sheep-16');
+  expect(
+    (await settle(d.morning.loadSheep('sheep-16', signal()))).night,
+  ).toMatchObject({ night_date: '2026-11-16', worry_text: '첫째 밤 고민' });
+});

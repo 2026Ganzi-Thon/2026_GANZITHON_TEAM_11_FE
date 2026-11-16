@@ -82,6 +82,7 @@ export function createNightMorningDemo(
   options: {
     nightId?: string;
     nightDate?: string;
+    sheepId?: string;
     manageWorries?: boolean;
     writingNamespace?: string;
     onSubmitted?: (receipt: TextCardSubmission | SongCardSubmission) => void;
@@ -99,6 +100,7 @@ export function createNightMorningDemo(
   let loader: FeedLoad | null = null;
   let position: FeedPosition = { position: 1, furthestPosition: 1 };
   let finished: ClosingResult | null = null;
+  let progressRecorded = false;
   let morningOpen = false;
   const writingScenario =
     scenario === 'writing-lost-response'
@@ -368,7 +370,7 @@ export function createNightMorningDemo(
         );
         if (!item) conflict('INVALID_ADOPTION_CARD', 422);
         adopted = {
-          id: 'demo-sheep',
+          id: options.sheepId ?? 'demo-sheep',
           night_id: nightId,
           night_date: nightDate,
           card_id: cardId,
@@ -473,6 +475,16 @@ export function createNightMorningDemo(
   };
   return {
     nightId,
+    worryRecords: records,
+    getSession: () =>
+      count === null
+        ? null
+        : {
+            sheepCount: count,
+            position: progressRecorded || finished ? position.position : 0,
+            furthestPosition:
+              progressRecorded || finished ? position.furthestPosition : 0,
+          },
     getRecord: () => ({
       night: readRecord() ?? null,
       finished: !!finished,
@@ -504,6 +516,7 @@ export function createNightMorningDemo(
       for (let i = position.furthestPosition; i < next.furthestPosition; i++)
         if (cards?.[i]) stamp(cards[i]);
       if (cards?.[next.position - 1]) stamp(cards[next.position - 1]);
+      progressRecorded = true;
       position = {
         position: next.position,
         furthestPosition: Math.max(

@@ -7,6 +7,7 @@ import {
 } from '@testing-library/react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import type { ReactElement } from 'react';
+import { BackHandler } from 'react-native';
 import { SignupJourneyFlow } from './SignupJourneyFlow';
 import { createMockSignupJourney } from '../../mocks/signupJourney';
 import { createMockReminder } from '../../mocks/reminder';
@@ -191,4 +192,136 @@ it('aborts the previous account home and ignores its late response on source rep
   ).toBeTruthy();
   expect(screen.queryByText('나의 양떼')).toBeNull();
   expect(next.source.getJourney()).toBeNull();
+});
+it('continues a second night on the same registered account and deletes one dated worry without losing either sheep', async () => {
+  const f = fixture('night');
+  const ui = () =>
+    wrap(<SignupJourneyFlow source={f.source} onExit={() => {}} />);
+  await nativeRender(ui());
+  await signup();
+  await press('나중에 할게요');
+  await tick();
+  await tick();
+  for (let day = 0; day < 2; day++) {
+    if (day) {
+      await screen.unmount();
+      f.source.advanceNight();
+      await nativeRender(ui());
+      await tick();
+      await tick();
+    }
+    await press('오늘 밤 양 세러 가기');
+    await tick();
+    await fireEvent.press(screen.getByRole('radio', { name: '취업' }));
+    await fireEvent.changeText(
+      screen.getByLabelText('오늘의 고민'),
+      day ? '둘째 밤 고민' : '첫째 밤 고민',
+    );
+    await press('다음');
+    await tick();
+    await press('양 세기 시작');
+    await tick();
+    await press('다음 양');
+    await tick();
+    await press('다음 양');
+    await tick();
+    await press('마무리하기');
+    await tick();
+    await press('다음');
+    await press('아침에 쓸게요');
+    await tick();
+    await press('밤 마무리 확인');
+    await press('다음 아침으로 이동');
+    await tick();
+    await tick();
+    await press('이 양 데려오기');
+    await tick();
+    await press('어젯밤 돌아보기');
+    await tick();
+    await fireEvent.press(
+      screen.getByRole('radio', { name: day ? '더 커졌어요' : '작아졌어요' }),
+    );
+    await press('회고 저장하기');
+    await tick();
+    await press('양떼 보러 가기');
+  }
+  const source = f.source.getJourney()!;
+  const flock = await act(async () => {
+    const p = source.home.morning.loadFlock(new AbortController().signal);
+    await jest.advanceTimersByTimeAsync(1000);
+    return p;
+  });
+  expect(flock.map((s) => s.night_date)).toEqual(['2026-11-17', '2026-11-16']);
+  await press('설정 열기');
+  await tick();
+  expect(screen.getByText('joined@example.com')).toBeTruthy();
+  expect(screen.getByText('2밤째 양을 세는 중')).toBeTruthy();
+  await press('고민 기록 열기');
+  await tick();
+  expect(screen.getByText('첫째 밤 고민')).toBeTruthy();
+  expect(screen.getByText('둘째 밤 고민')).toBeTruthy();
+  await fireEvent.press(
+    screen.getByRole('checkbox', { name: '2026-11-16 고민 선택' }),
+  );
+  await press('선택한 1개 지우기');
+  await press('지울게요');
+  await tick();
+  expect(screen.queryByText('첫째 밤 고민')).toBeNull();
+  expect(screen.getByText('둘째 밤 고민')).toBeTruthy();
+  await press('설정으로 돌아가기');
+  await tick();
+  expect(screen.getByText('1개')).toBeTruthy();
+  expect(screen.getByText('2밤째 양을 세는 중')).toBeTruthy();
+});
+it('resumes the same dated session after returning through home without starting or counting another night', async () => {
+  const f = fixture('night');
+  f.source.onboarding.begin(
+    { id: 'returning', email: 'returning@example.com' },
+    { birth_date: '2001-03-12', edits_remaining: 1, zodiac: 'pisces' },
+  );
+  f.source.onboarding.skip();
+  await jest.runAllTimersAsync();
+  let back: (() => boolean | null | undefined) | undefined;
+  jest
+    .spyOn(BackHandler, 'addEventListener')
+    .mockImplementation((_event, callback) => {
+      back = () => callback({} as Parameters<typeof callback>[0]);
+      return { remove: () => {} };
+    });
+  const journey = f.source.getJourney()!,
+    count = jest.spyOn(journey.night.entry, 'startCounting');
+  await nativeRender(
+    wrap(<SignupJourneyFlow source={f.source} onExit={() => {}} />),
+  );
+  await tick();
+  await press('오늘 밤 양 세러 가기');
+  await tick();
+  await fireEvent.press(screen.getByRole('radio', { name: '취업' }));
+  await fireEvent.changeText(
+    screen.getByLabelText('오늘의 고민'),
+    '잠깐 쉬었다 이어 볼 고민',
+  );
+  await press('다음');
+  await tick();
+  await press('양 세기 시작');
+  await tick();
+  await press('다음 양');
+  await tick();
+  await act(async () => {
+    back?.();
+  });
+  await press('홈으로 돌아가기');
+  await tick();
+  await tick();
+  await press('오늘 밤 양 세러 가기');
+  await tick();
+  await press('이어 보기');
+  await tick();
+  expect(screen.getByLabelText('양 세기 진행')).toHaveTextContent('2 / 3');
+  expect(count).toHaveBeenCalledTimes(1);
+  expect(journey.history.getStats()).toEqual({
+    night_count: 1,
+    counted_sheep_total: 2,
+    worry_record_count: 1,
+  });
 });

@@ -22,6 +22,10 @@ export default function StartScreen() {
               />
             )}
             <Button
+              label="고민 맡기기·아침 반영"
+              onPress={() => router.push('/dev/entrust')}
+            />
+            <Button
               label="04시 마감·아침 전환"
               onPress={() => router.push('/dev/night-expiry')}
             />

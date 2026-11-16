@@ -32,6 +32,10 @@ import type { SheepDetailLoad } from '../features/flock/types';
 import { createMockNightFeed } from './nightFeed';
 import { createMockNightClosing } from './nightClosing';
 import { reflectionReplies } from './reflection';
+import type {
+  EntrustActions,
+  EntrustAction,
+} from '../features/night/entrust/types';
 import type { NightExpiryActions } from '../features/night/expiry/types';
 export type DemoScenario =
   | 'success'
@@ -44,6 +48,10 @@ export type DemoScenario =
   | 'writing-refresh-retry'
   | 'received-yarn'
   | 'fortune'
+  | 'entrust-slow'
+  | 'entrust-retry'
+  | 'entrust-slow-retry'
+  | 'entrust-lost-response'
   | 'worry-delete';
 function delayed<T>(
   signal: AbortSignal,
@@ -100,8 +108,11 @@ export function createNightMorningDemo(
   let draft: WorryDraft | null = null;
   let count: number | null = null;
   let cards: Card[] | null = null;
+  let entrust: EntrustActions | undefined;
+  let entrustAction: EntrustAction | null = null;
+  const isPause = (index: number) => index + 1 === entrust?.item.position;
   const yarn = createMockYarn(
-    () => cards ?? [],
+    () => (cards ?? []).filter((_card, index) => !isPause(index)),
     scenario === 'slow-yarn' ? 'slow' : 'success',
   );
   let loader: FeedLoad | null = null;
@@ -122,7 +133,7 @@ export function createNightMorningDemo(
         finished = {
           summary: {
             counted: seen,
-            entrusted_count: 0,
+            entrusted_count: entrustAction === 'entrusted' ? 1 : 0,
             fluff_count: (cards ?? [])
               .slice(0, seen)
               .filter((c) => c.available && c.content && c.viewer.fluff_saved)
@@ -180,7 +191,7 @@ export function createNightMorningDemo(
   let closingViewed = false;
   const fluff = createMockFluff(
     {
-      cards: () => cards ?? [],
+      cards: () => (cards ?? []).filter((_card, index) => !isPause(index)),
       viewed: (id) =>
         (cards ?? [])
           .slice(0, position.furthestPosition)
@@ -209,7 +220,7 @@ export function createNightMorningDemo(
           category_id: draft.category_id,
           worry_text: draft.worry_text,
           worry_saved_at: draft.worry_text ? `${nightDate}T16:12:00Z` : null,
-          entrusted: false,
+          entrusted: entrustAction === 'entrusted',
           reflection: reflection ? { ...reflection } : null,
         }
       : undefined;
@@ -276,7 +287,8 @@ export function createNightMorningDemo(
         position: (index + 1) as number | null,
         sheep_count: count!,
         last_viewed_at: viewedAt.get(card.id) ?? `${nightDate}T16:12:00Z`,
-      }));
+      }))
+      .filter((item) => item.position !== entrust?.item.position);
     if (closingViewed && finished?.closing_card)
       items.push({
         card: finished.closing_card,
@@ -304,7 +316,7 @@ export function createNightMorningDemo(
             category_id: draft!.category_id,
             worry_text: draft!.worry_text,
             worry_saved_at: draft!.worry_text ? `${nightDate}T16:12:00Z` : null,
-            entrusted: false,
+            entrusted: entrustAction === 'entrusted',
           },
           reflection,
         };
@@ -497,6 +509,63 @@ export function createNightMorningDemo(
           return;
         }
         count = value;
+        if (value >= 7 && draft!.category_id !== 'none' && draft!.worry_text) {
+          const item = {
+            id: `${nightId}-entrust`,
+            position: Math.min(6, Math.ceil(value / 2)),
+            get worry_text() {
+              return draft?.worry_text ?? '';
+            },
+          };
+          const read = () => ({ item_id: item.id, action: entrustAction });
+          entrust = {
+            item,
+            load: (signal) => delayed(signal, read),
+            save: (action, signal) =>
+              delayed(
+                signal,
+                () => {
+                  guardNight('NIGHT_CLOSED');
+                  if (morningOpen || finished) conflict('NIGHT_CLOSED');
+                  if (
+                    !progressRecorded ||
+                    position.furthestPosition < item.position
+                  )
+                    conflict('PAUSE_NOT_VIEWED', 422);
+                  if (action !== 'entrusted' && action !== 'skipped')
+                    conflict('VALIDATION_ERROR', 422);
+                  if (entrustAction !== null) {
+                    if (entrustAction !== action)
+                      conflict('PAUSE_ALREADY_DECIDED');
+                    return read();
+                  }
+                  if (action === 'entrusted' && !draft?.worry_text)
+                    conflict('WORRY_NOT_AVAILABLE');
+                  if (
+                    (scenario === 'entrust-retry' ||
+                      scenario === 'entrust-slow-retry') &&
+                    !failed.has('entrust')
+                  ) {
+                    failed.add('entrust');
+                    throw new ApiError('network');
+                  }
+                  entrustAction = action;
+                  if (
+                    scenario === 'entrust-lost-response' &&
+                    !failed.has('entrust')
+                  ) {
+                    failed.add('entrust');
+                    throw new ApiError('network');
+                  }
+                  return read();
+                },
+                scenario === 'entrust-slow' ||
+                  (scenario === 'entrust-slow-retry' && failed.has('entrust'))
+                  ? 5000
+                  : 400,
+              ),
+          };
+        }
         loader = createMockNightFeed(value);
       }),
   };
@@ -507,9 +576,10 @@ export function createNightMorningDemo(
     const loaded = await loader(signal);
     if (signal.aborted) throw new ApiError('aborted');
     guardNight();
-    cards = loaded.map((card) => ({
+    cards = loaded.map((card, index) => ({
       ...card,
       category_id: card.category_id === null ? null : draft!.category_id,
+      ...(isPause(index) ? { available: false, content: null } : {}),
     }));
     stamp(cards[0]);
     return cards;
@@ -537,6 +607,7 @@ export function createNightMorningDemo(
       guardNight();
       result.summary = {
         ...result.summary,
+        entrusted_count: entrustAction === 'entrusted' ? 1 : 0,
         fluff_count: new Set(
           cards
             .slice(0, input.furthestPosition)
@@ -572,6 +643,9 @@ export function createNightMorningDemo(
   };
   return {
     nightId,
+    get entrust() {
+      return entrust;
+    },
     expiry,
     expireIfDue,
     worryRecords: records,

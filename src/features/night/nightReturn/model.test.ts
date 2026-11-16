@@ -97,3 +97,43 @@ it('can show totals above a single-session thirty-sheep limit', () => {
     ),
   ).toMatchObject({ kind: 'return', record: { summary: { counted: 45 } } });
 });
+
+it.each(['NIGHT_SHEEP_COUNT', 'NIGHT_WORRY'] as const)(
+  'does not hand off %s when a previous closing card is still unconfirmed',
+  (next_screen) => {
+    expect(() =>
+      readNightReturnRoute(
+        snapshot({
+          next_screen,
+          last_session: lastSession({
+            status: 'stopped',
+            closing_card: {
+              id: 'pending-warm',
+              kind: 'text',
+              tone: 'warm',
+              category_id: null,
+              author_type: 'seed',
+              author_label: null,
+              available: true,
+              viewer: {
+                yarn_sent: false,
+                fluff_saved: false,
+                song_saved: false,
+              },
+              content: { text: '오늘은 여기까지 해도 괜찮아.' },
+            },
+          }),
+        }),
+      ),
+    ).toThrow();
+  },
+);
+it('rejects a noon finish even when it shares the same fortune date', () => {
+  expect(() =>
+    readNightReturnRoute(
+      snapshot({
+        last_session: lastSession({ finished_at: '2026-11-16T03:00:00Z' }),
+      }),
+    ),
+  ).toThrow();
+});

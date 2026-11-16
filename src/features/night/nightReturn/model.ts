@@ -65,7 +65,12 @@ function readSummary(
   )
     return invalid();
   const finished = instant(v.finished_at);
-  if (finished > now || fortuneDate(finished) !== nightDate) return invalid();
+  if (
+    finished > now ||
+    homePhase(finished) !== 'night' ||
+    fortuneDate(finished) !== nightDate
+  )
+    return invalid();
   return {
     counted: v.counted as number,
     status: v.status as NightSummary['status'],
@@ -94,6 +99,13 @@ export function readNightReturnRoute(value: unknown): ReturnRoute {
     return { kind: 'morning', nightId };
   }
   if (v.next_screen === 'HOME') return { kind: 'home' };
+  if (
+    (v.next_screen === 'NIGHT_WORRY' ||
+      v.next_screen === 'NIGHT_SHEEP_COUNT') &&
+    v.last_session !== null &&
+    object(v.last_session).closing_card !== null
+  )
+    return invalid();
   if (v.next_screen === 'NIGHT_WORRY' && v.active_session_id === null)
     return { kind: 'entry', step: 'worry', nightId };
   if (!id(nightId)) return invalid();
@@ -124,4 +136,8 @@ export function returnRecordKey(record: NightReturnRecord): string {
     s.fluff_count,
     s.yarn_sent_count,
   ]);
+}
+
+export interface NightReturnActions {
+  load(signal: AbortSignal): Promise<ReturnBootstrap>;
 }

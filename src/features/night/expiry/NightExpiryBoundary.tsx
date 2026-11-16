@@ -34,13 +34,14 @@ function Session({
   const state = useNightExpiry(actions),
     blocked = state.phase !== 'open' || !state.foreground;
   useEffect(() => {
-    if (state.phase !== 'expired') return;
+    if (state.opened && state.phase !== 'expired') return;
     const listener = BackHandler.addEventListener('hardwareBackPress', () => {
-      onMorning();
+      if (state.phase === 'expired') onMorning();
+      else onHome();
       return true;
     });
     return () => listener.remove();
-  }, [state.phase, onMorning]);
+  }, [state.phase, state.opened, onMorning, onHome]);
   const status = (
     <NightScreen>
       <ScrollView contentContainerStyle={styles.content}>

@@ -9,6 +9,7 @@ import type { SongActions } from '../../songs/types';
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type ComponentRef,
@@ -21,6 +22,7 @@ import {
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import type { Card } from '../../../api/contracts';
 import { Button } from '../../../ui/Button';
@@ -33,6 +35,9 @@ import type { ClosingActions, ClosingRequest } from '../closing/types';
 import { movePosition, type FeedLoad, type FeedPosition } from './model';
 import { SheepStage } from './SheepStage';
 import { useFeedMotion } from './useFeedMotion';
+import type { EntrustActions } from '../entrust/types';
+import { useEntrustPause } from '../entrust/useEntrustPause';
+import { EntrustPanel } from '../entrust/EntrustPanel';
 
 export function FeedScreen({
   load,
@@ -44,6 +49,8 @@ export function FeedScreen({
   songs,
   yarn,
   fluff,
+  entrust,
+  blocked = false,
 }: {
   load: FeedLoad;
   onBack: () => void;
@@ -54,7 +61,10 @@ export function FeedScreen({
   songs?: SongActions;
   yarn?: YarnActions;
   fluff?: FluffActions;
+  entrust?: EntrustActions;
+  blocked?: boolean;
 }) {
+  const { fontScale } = useWindowDimensions();
   const [start] = useState(
     () => initialPosition ?? { position: 1, furthestPosition: 1 },
   );
@@ -106,9 +116,18 @@ export function FeedScreen({
     furthestPosition: 1,
   });
   const current = useRef(position);
+  const isEntrust = entrust?.item.position === position.position;
+  const pauseFlow = useEntrustPause(entrust, blocked);
+  const { stop: stopPause, isBusy: pauseBusy, acknowledge } = pauseFlow;
   const controller = useRef<AbortController | null>(null);
   const body = useRef<ComponentRef<typeof ScrollView>>(null);
   const { progress, direction, moving, run, cancel } = useFeedMotion();
+  useLayoutEffect(() => {
+    if (blocked) {
+      cancel();
+      acknowledge();
+    }
+  }, [blocked, cancel, acknowledge]);
   useEffect(() => {
     const request = new AbortController();
     controller.current = request;
@@ -143,8 +162,9 @@ export function FeedScreen({
     cancel();
     stopYarn();
     stopFluff();
+    stopPause();
     onBack();
-  }, [cancel, onBack, stopYarn, stopFluff]);
+  }, [cancel, onBack, stopYarn, stopFluff, stopPause]);
   useEffect(() => {
     if (closingRequest) return;
     const subscription = BackHandler.addEventListener(
@@ -158,9 +178,18 @@ export function FeedScreen({
   }, [back, closingRequest]);
   const move = useCallback(
     (delta: -1 | 1) => {
-      if (songPendingRef.current || status !== 'ready' || !cards.length) return;
+      if (
+        blocked ||
+        songPendingRef.current ||
+        status !== 'ready' ||
+        !cards.length
+      )
+        return;
+      if (isEntrust && (pauseBusy() || (delta === 1 && !pauseFlow.action)))
+        return;
       const next = movePosition(current.current, delta, cards.length);
       if (next.position === current.current.position) return;
+      if (isEntrust) acknowledge();
       run(delta, () => {
         current.current = next;
         setPosition(next);
@@ -168,8 +197,26 @@ export function FeedScreen({
         body.current?.scrollTo({ y: 0, animated: false });
       });
     },
-    [cards.length, run, status, onProgress],
+    [
+      cards.length,
+      run,
+      status,
+      onProgress,
+      isEntrust,
+      pauseBusy,
+      pauseFlow.action,
+      acknowledge,
+      blocked,
+    ],
   );
+  useEffect(() => {
+    if (blocked || !isEntrust || !pauseFlow.justSaved) return;
+    const timer = setTimeout(() => move(1), 1600);
+    return () => clearTimeout(timer);
+  }, [blocked, isEntrust, pauseFlow.justSaved, move]);
+  useEffect(() => {
+    if (isEntrust) body.current?.scrollTo({ y: 0, animated: false });
+  }, [isEntrust, pauseFlow.phase, pauseFlow.action]);
   const card = cards[position.position - 1];
   const yarnState = card ? yarnFlow.stateFor(card) : null;
   const fluffState = card ? fluffFlow.stateFor(card) : null;
@@ -185,7 +232,9 @@ export function FeedScreen({
   const reactionsVisible = !!visibleCard?.available && !!visibleCard.content;
   const finish = (reason: ClosingRequest['reason']) => {
     if (
+      blocked ||
       moving ||
+      (isEntrust && pauseBusy()) ||
       fluffFlow.hasPending() ||
       (reason === 'completed' && songPendingRef.current) ||
       status !== 'ready' ||
@@ -217,8 +266,19 @@ export function FeedScreen({
   const canFinish =
     !!(closingActions || onFinish) && status === 'ready' && !!card;
   return (
-    <NightScreen>
-      <View style={styles.topbar}>
+    <NightScreen
+      background={
+        isEntrust
+          ? require('../../../../assets/images/entrust/background.svg')
+          : undefined
+      }
+    >
+      <View
+        style={[
+          styles.topbar,
+          isEntrust && fontScale > 1.3 && styles.expandedTopbar,
+        ]}
+      >
         <View>
           <Text
             accessibilityLabel="양 세기 진행"
@@ -243,9 +303,16 @@ export function FeedScreen({
                 : '나가면 남은 솜털 요청을 취소해요.'
               : undefined
           }
-          disabled={canFinish && (moving || fluffPending)}
+          disabled={
+            blocked ||
+            (canFinish &&
+              (moving || fluffPending || (isEntrust && pauseFlow.busy)))
+          }
           accessibilityState={{
-            disabled: canFinish && (moving || fluffPending),
+            disabled:
+              blocked ||
+              (canFinish &&
+                (moving || fluffPending || (isEntrust && pauseFlow.busy))),
           }}
           onPress={canFinish ? () => finish('leave') : back}
           style={styles.exit}
@@ -301,41 +368,51 @@ export function FeedScreen({
               style={styles.feedScroll}
               contentContainerStyle={styles.content}
             >
-              <SheepStage
-                progress={progress}
-                direction={direction}
-                onMove={move}
-              />
-              <Text style={styles.hint}>양 위에서 위·아래로 넘겨요</Text>
-              <FeedCard
-                key={card.id}
-                card={visibleCard}
-                yarn={
-                  yarn && yarnState
-                    ? {
-                        state: yarnState,
-                        onToggle: () => {
-                          if (!isCardAvailable(card)) return;
-                          setFeedback({ cardId: card.id, kind: 'yarn' });
-                          yarnFlow.toggle(card);
-                        },
-                      }
-                    : undefined
-                }
-                fluff={
-                  fluff && fluffState
-                    ? {
-                        state: fluffState,
-                        onToggle: () => {
-                          if (!isCardAvailable(card)) return;
-                          setFeedback({ cardId: card.id, kind: 'fluff' });
-                          fluffFlow.toggle(card);
-                        },
-                      }
-                    : undefined
-                }
-                isLast={position.position === cards.length}
-              />
+              {isEntrust && entrust ? (
+                <EntrustPanel
+                  worry={entrust.item.worry_text}
+                  flow={pauseFlow}
+                  disabled={moving || blocked}
+                />
+              ) : (
+                <>
+                  <SheepStage
+                    progress={progress}
+                    direction={direction}
+                    onMove={move}
+                  />
+                  <Text style={styles.hint}>양 위에서 위·아래로 넘겨요</Text>
+                  <FeedCard
+                    key={card.id}
+                    card={visibleCard}
+                    yarn={
+                      yarn && yarnState
+                        ? {
+                            state: yarnState,
+                            onToggle: () => {
+                              if (!isCardAvailable(card)) return;
+                              setFeedback({ cardId: card.id, kind: 'yarn' });
+                              yarnFlow.toggle(card);
+                            },
+                          }
+                        : undefined
+                    }
+                    fluff={
+                      fluff && fluffState
+                        ? {
+                            state: fluffState,
+                            onToggle: () => {
+                              if (!isCardAvailable(card)) return;
+                              setFeedback({ cardId: card.id, kind: 'fluff' });
+                              fluffFlow.toggle(card);
+                            },
+                          }
+                        : undefined
+                    }
+                    isLast={position.position === cards.length}
+                  />
+                </>
+              )}
               {reactionsVisible && fluffState?.error === 'failed' && (
                 <View
                   style={styles.yarnStatus}
@@ -465,14 +542,29 @@ export function FeedScreen({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="이전 양"
-              disabled={moving || songPending || position.position === 1}
+              disabled={
+                blocked ||
+                moving ||
+                songPending ||
+                position.position === 1 ||
+                (isEntrust && pauseFlow.busy)
+              }
               accessibilityState={{
-                disabled: moving || songPending || position.position === 1,
+                disabled:
+                  blocked ||
+                  moving ||
+                  songPending ||
+                  position.position === 1 ||
+                  (isEntrust && pauseFlow.busy),
               }}
               onPress={() => move(-1)}
               style={[
                 styles.previous,
-                (moving || songPending || position.position === 1) &&
+                (blocked ||
+                  moving ||
+                  songPending ||
+                  position.position === 1 ||
+                  (isEntrust && pauseFlow.busy)) &&
                   styles.disabled,
               ]}
             >
@@ -488,8 +580,10 @@ export function FeedScreen({
                     : '다음 양'
                 }
                 disabled={
+                  blocked ||
                   moving ||
                   songPending ||
+                  (isEntrust && (pauseFlow.busy || !pauseFlow.action)) ||
                   (position.position === cards.length && fluffPending)
                 }
                 onPress={() => {
@@ -542,6 +636,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  expandedTopbar: { flexDirection: 'column', alignItems: 'stretch', gap: 4 },
   progress: {
     fontFamily: theme.font,
     fontWeight: '700',

@@ -11,6 +11,7 @@ import { createMockBirthDate } from './birthDate';
 import { createMockHome } from './firstNightHome';
 import { createMockNightHistory } from './nightHistory';
 import type { SettingsMorningOptions } from './settingsMorning';
+import type { DemoScenario } from './nightMorningDemo';
 const previousDate = (date: string) =>
   new Date(Date.parse(`${date}T00:00:00Z`) - 86400000)
     .toISOString()
@@ -21,6 +22,7 @@ export function createMockMultiNightJourney(
     identity: Registration;
     clock: { now: () => number; advanceMorning: (nightDate: string) => void };
     expiryScenario?: 'success' | 'check-retry' | 'morning-retry';
+    nightScenario?: DemoScenario;
   },
 ) {
   const now = options.clock.now,
@@ -28,6 +30,7 @@ export function createMockMultiNightJourney(
       now,
       expiry: true,
       expiryScenario: options.expiryScenario,
+      scenario: options.nightScenario,
     });
   let activeDate = fortuneDate(now()),
     active = history.openNight(activeDate);

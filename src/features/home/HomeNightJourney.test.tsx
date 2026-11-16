@@ -257,3 +257,16 @@ it('aborts a previous account finish and ignores its late result after a new acc
   expect(screen.getByText('아직 센 양이 없어요')).toBeTruthy();
   expect(screen.queryByText('3마리 다 셌어요')).toBeNull();
 });
+it('keeps the home visible when the entry guard refuses a stale night action', async () => {
+  const source = {
+    ...createMockHomeJourney(),
+    enterNight: jest.fn(() => false),
+  };
+  await render(<HomeNightJourney source={source} onExit={() => {}} />);
+  await tick();
+  await press('오늘 밤 양 세러 가기');
+  await tick();
+  expect(source.enterNight).toHaveBeenCalledTimes(1);
+  expect(screen.getByText('아직 센 양이 없어요')).toBeTruthy();
+  expect(screen.queryByLabelText('오늘의 고민')).toBeNull();
+});

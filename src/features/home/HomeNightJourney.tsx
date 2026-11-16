@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { HomeFlow } from './HomeFlow';
 import { NightMorningFlow } from '../demo/NightMorningFlow';
 import type { createMockHomeJourney } from '../../mocks/homeJourney';
-export type HomeNightJourneySource = ReturnType<typeof createMockHomeJourney>;
+export type HomeNightJourneySource = ReturnType<
+  typeof createMockHomeJourney
+> & { enterNight?: () => boolean | void };
 export function HomeNightJourney(props: {
   source: HomeNightJourneySource;
   onExit: () => void;
@@ -38,7 +40,10 @@ function Session({
     <HomeFlow
       source={source.home}
       onExit={onExit}
-      onNight={() => setNightOpen(true)}
+      onNight={() => {
+        if (source.enterNight?.() === false) return;
+        setNightOpen(true);
+      }}
     />
   );
 }

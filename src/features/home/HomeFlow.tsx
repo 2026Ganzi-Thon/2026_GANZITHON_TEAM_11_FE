@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { HomeTime } from './HomeTime';
+import type { HomeContext } from './useHomeContext';
 import { FirstNightHome } from './FirstNightHome';
 import { HomeNightButton } from './HomeNightButton';
 import { MorningScreen } from '../morning/MorningScreen';
@@ -13,14 +14,6 @@ export function HomeFlow(props: {
   onExit: () => void;
 }) {
   const [current, setCurrent] = useState({ source: props.source, version: 0 });
-  const morning = useMemo(
-    () => ({
-      ...props.source.morning,
-      fortune: props.source.fortune,
-      settings: props.source.settings ?? props.source.morning.settings,
-    }),
-    [props.source],
-  );
   if (current.source !== props.source)
     setCurrent({ source: props.source, version: current.version + 1 });
   return (
@@ -49,20 +42,51 @@ export function HomeFlow(props: {
             onExit={props.onExit}
           />
         ) : (
-          <MorningScreen
-            fortuneKey={fortuneDate(Date.parse(flow.snapshot.server_time))}
-            homeWhenNoCandidates
-            actions={morning}
-            myCards={props.source.cards}
-            loadDetail={props.source.loadDetail}
+          <MorningHome
+            source={props.source}
+            flow={flow}
             onExit={props.onExit}
-            homeFooter={(blocked) => (
-              <HomeNightButton flow={flow} blocked={blocked} />
-            )}
           />
         )
       }
     </HomeTime>
+  );
+}
+function MorningHome({
+  source,
+  flow,
+  onExit,
+}: {
+  source: HomeSource;
+  flow: HomeContext;
+  onExit: () => void;
+}) {
+  const snapshot = flow.snapshot!;
+  const date = fortuneDate(Date.parse(snapshot.server_time));
+  const selected = useMemo(
+    () => source.resolveMorning?.(snapshot) ?? source.morning,
+    [source, snapshot],
+  );
+  const morning = useMemo(
+    () => ({
+      ...selected,
+      fortune: source.fortune,
+      settings: source.settings ?? selected.settings,
+    }),
+    [source, selected],
+  );
+  return (
+    <MorningScreen
+      fortuneKey={date}
+      homeWhenNoCandidates
+      actions={morning}
+      myCards={source.cards}
+      loadDetail={source.loadDetail}
+      onExit={onExit}
+      homeFooter={(blocked) => (
+        <HomeNightButton flow={flow} blocked={blocked} />
+      )}
+    />
   );
 }
 const styles = StyleSheet.create({

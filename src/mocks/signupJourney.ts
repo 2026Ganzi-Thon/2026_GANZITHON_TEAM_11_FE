@@ -1,7 +1,9 @@
-import { createMockHomeJourney } from './homeJourney';
+import { createMockMultiNightJourney } from './multiNightJourney';
+import { homePhase } from '../features/home/model';
+import { kstDate } from '../features/birthDate/date';
 import { createMockSignupOnboarding } from './signupOnboarding';
 import type { SignupHomeContext } from './signupOnboarding';
-/** One registration, first night and next morning; discarded with this preview. */
+/** One registration, dated nights and mornings; discarded with this preview. */
 export function createMockSignupJourney(
   reminder: SignupHomeContext['reminder'],
   phase: 'day' | 'night' | 'slow' = 'day',
@@ -21,19 +23,27 @@ export function createMockSignupJourney(
   };
   const clock = {
     now,
-    advanceMorning: () => advanceTo('2026-11-17T04:00:00+09:00'),
+    advanceMorning: (nightDate: string) =>
+      advanceTo(
+        new Date(
+          Date.parse(`${nightDate}T04:00:00+09:00`) + 86400000,
+        ).toISOString(),
+      ),
   };
-  let journey: ReturnType<typeof createMockHomeJourney> | null = null;
+  let journey: ReturnType<typeof createMockMultiNightJourney> | null = null;
   const source = createMockSignupOnboarding(reminder, phase, {
     now,
     createHome: (context) => {
-      journey = createMockHomeJourney('success', { ...context, clock });
+      journey = createMockMultiNightJourney({ ...context, clock });
       return journey.home;
     },
   });
   return {
     ...source,
     getJourney: () => journey,
-    advanceNight: () => advanceTo('2026-11-16T21:00:00+09:00'),
+    advanceNight: () => {
+      if (homePhase(now()) === 'day')
+        advanceTo(`${kstDate(new Date(now()))}T21:00:00+09:00`);
+    },
   };
 }

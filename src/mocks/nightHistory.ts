@@ -124,6 +124,7 @@ export function createMockNightHistory(
       worry_record_count: records.all().filter((r) => !!r.worry_text?.trim())
         .length,
     }),
+    getNightById: byId,
     getNight: (date: string) => nights.get(date) ?? null,
     openNight: (date: string): HistoryNight => {
       if (!parseDate(date)) throw new ApiError('configuration');

@@ -125,7 +125,21 @@ it('does not recreate a joined journey on duplicate begin or expose its records 
     { id: 'a', email: 'a@example.com' },
     { birth_date: '2001-03-12', edits_remaining: 1, zodiac: 'pisces' },
   );
-  const original = a.source.getJourney();
+  const original = a.source.getJourney()!;
+  await settle(
+    original.home.cards!.createWritingSession().text.submit(
+      {
+        kind: 'text',
+        category_id: 'career',
+        content: { text: '첫 계정의 카드' },
+      },
+      'account-a-writing',
+      signal(),
+    ),
+  );
+  expect(
+    (await settle(original.home.cards!.load({}, signal()))).items,
+  ).toHaveLength(1);
   a.source.onboarding.begin(
     { id: 'ignored', email: 'ignored@example.com' },
     { birth_date: '2002-04-10', edits_remaining: 1, zodiac: 'aries' },

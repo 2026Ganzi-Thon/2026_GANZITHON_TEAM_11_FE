@@ -6,7 +6,7 @@ import {
   createEntrustPreview,
   type EntrustPreview,
 } from '../../mocks/entrustPreview';
-import { NightMorningFlow } from '../../features/demo/NightMorningFlow';
+import { HomeNightJourney } from '../../features/home/HomeNightJourney';
 import { NightScreen } from '../../ui/NightScreen';
 import { Notice } from '../../ui/Notice';
 import { Button } from '../../ui/Button';
@@ -43,9 +43,9 @@ export default function EntrustPreviewRoute() {
   };
   if (source && open)
     return (
-      <NightMorningFlow
-        demo={source.demo}
-        navigation={source.navigation}
+      <HomeNightJourney
+        source={source.journey}
+        initialNightOpen
         onExit={() => setOpen(false)}
       />
     );
@@ -54,7 +54,7 @@ export default function EntrustPreviewRoute() {
       <ScrollView contentContainerStyle={{ padding: 20, gap: 16, flexGrow: 1 }}>
         <Notice
           title="걱정 맡기기 · 밤부터 아침까지"
-          description="7마리 중 4번째 칸에서 시작해요. 처음 적은 고민을 맡기거나 넘긴 뒤 마무리·아침 회고를 확인해요. 계정·기록은 메모리 mock이며 서버 저장·실제 시간 마감·앱 종료 후 복원은 연결하지 않았어요."
+          description="7마리 중 4번째 칸에서 시작해요. 계정·시각·기록은 메모리 mock이에요. 만료 시연은 준비 후 약 20초 뒤 마감돼요. 느린 저장·재시도는 5초 걸리므로 마감 직전에 눌러 확인해요. 실제 서버·앱 종료 후 복원은 연결하지 않았어요."
         />
         {error && (
           <Notice
@@ -70,6 +70,21 @@ export default function EntrustPreviewRoute() {
             onPress={() => setOpen(true)}
           />
         )}
+        <Button
+          label="맡기기 화면 04시 마감"
+          disabled={busy}
+          onPress={() => void start('expiry')}
+        />
+        <Button
+          label="맡기기 저장 중 마감"
+          disabled={busy}
+          onPress={() => void start('expiry-save')}
+        />
+        <Button
+          label="맡기기 재시도 중 마감"
+          disabled={busy}
+          onPress={() => void start('expiry-retry')}
+        />
         <Button
           label="맡기기부터 아침까지"
           busy={busy}

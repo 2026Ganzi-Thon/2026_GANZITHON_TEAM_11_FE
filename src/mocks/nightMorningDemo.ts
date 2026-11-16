@@ -50,6 +50,7 @@ export type DemoScenario =
   | 'fortune'
   | 'entrust-slow'
   | 'entrust-retry'
+  | 'entrust-slow-retry'
   | 'entrust-lost-response'
   | 'worry-delete';
 function delayed<T>(
@@ -132,7 +133,7 @@ export function createNightMorningDemo(
         finished = {
           summary: {
             counted: seen,
-            entrusted_count: 0,
+            entrusted_count: entrustAction === 'entrusted' ? 1 : 0,
             fluff_count: (cards ?? [])
               .slice(0, seen)
               .filter((c) => c.available && c.content && c.viewer.fluff_saved)
@@ -524,6 +525,7 @@ export function createNightMorningDemo(
               delayed(
                 signal,
                 () => {
+                  guardNight('NIGHT_CLOSED');
                   if (morningOpen || finished) conflict('NIGHT_CLOSED');
                   if (
                     !progressRecorded ||
@@ -539,7 +541,11 @@ export function createNightMorningDemo(
                   }
                   if (action === 'entrusted' && !draft?.worry_text)
                     conflict('WORRY_NOT_AVAILABLE');
-                  if (scenario === 'entrust-retry' && !failed.has('entrust')) {
+                  if (
+                    (scenario === 'entrust-retry' ||
+                      scenario === 'entrust-slow-retry') &&
+                    !failed.has('entrust')
+                  ) {
                     failed.add('entrust');
                     throw new ApiError('network');
                   }
@@ -553,7 +559,10 @@ export function createNightMorningDemo(
                   }
                   return read();
                 },
-                scenario === 'entrust-slow' ? 5000 : 400,
+                scenario === 'entrust-slow' ||
+                  (scenario === 'entrust-slow-retry' && failed.has('entrust'))
+                  ? 5000
+                  : 400,
               ),
           };
         }

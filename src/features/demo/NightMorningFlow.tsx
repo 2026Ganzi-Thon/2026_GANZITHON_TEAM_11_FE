@@ -82,6 +82,7 @@ function NightMorningSession({
       <FeedScreen
         load={demo.loadFeed}
         entrust={demo.entrust}
+        blocked={blocked}
         songs={demo.songs}
         yarn={demo.yarn}
         fluff={demo.fluff}

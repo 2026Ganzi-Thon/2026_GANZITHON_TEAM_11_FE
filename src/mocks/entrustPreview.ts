@@ -1,21 +1,43 @@
 import { ApiError } from '../api/errors';
-import { createNightMorningNavigation } from '../features/demo/navigation';
-import { createNightMorningDemo } from './nightMorningDemo';
+import { createMockMultiNightJourney } from './multiNightJourney';
 export type EntrustPreview =
-  'success' | 'slow' | 'retry' | 'lost' | 'long' | 'none';
+  | 'success'
+  | 'slow'
+  | 'retry'
+  | 'lost'
+  | 'long'
+  | 'none'
+  | 'expiry'
+  | 'expiry-save'
+  | 'expiry-retry';
 export async function createEntrustPreview(
   preset: EntrustPreview,
   signal: AbortSignal,
 ) {
-  const demo = createNightMorningDemo(
-    preset === 'slow'
-      ? 'entrust-slow'
-      : preset === 'retry'
-        ? 'entrust-retry'
-        : preset === 'lost'
-          ? 'entrust-lost-response'
-          : 'success',
-  );
+  let base = Date.parse('2026-11-16T21:30:00+09:00'),
+    started = performance.now();
+  const now = () => base + performance.now() - started;
+  const journey = createMockMultiNightJourney({
+    identity: { id: 'entrust-preview', email: 'entrust@example.com' },
+    nightScenario:
+      preset === 'slow' || preset === 'expiry-save'
+        ? 'entrust-slow'
+        : preset === 'retry'
+          ? 'entrust-retry'
+          : preset === 'expiry-retry'
+            ? 'entrust-slow-retry'
+            : preset === 'lost'
+              ? 'entrust-lost-response'
+              : 'success',
+    clock: {
+      now,
+      advanceMorning: (date) => {
+        base = Math.max(now(), Date.parse(`${date}T04:00:00+09:00`) + 86400000);
+        started = performance.now();
+      },
+    },
+  });
+  const demo = journey.night;
   const worry =
     preset === 'none'
       ? null
@@ -32,7 +54,11 @@ export async function createEntrustPreview(
   await demo.loadFeed(signal);
   if (signal.aborted) throw new ApiError('aborted');
   demo.progress({ position: 4, furthestPosition: 4 });
-  const navigation = createNightMorningNavigation();
+  const navigation = journey.navigation;
   navigation.setPage('feed');
-  return { demo, navigation };
+  if (preset.startsWith('expiry')) {
+    base = Date.parse('2026-11-17T04:00:00+09:00') - 20000;
+    started = performance.now();
+  }
+  return { demo, navigation, journey };
 }

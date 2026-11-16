@@ -37,7 +37,8 @@ it('connects entrusting to the closing count and morning reflection while omitti
   await tick();
   await press('밤 마무리 확인');
   await press('다음 아침으로 이동');
-  await tick();
+  // The shared home first checks the account clock, then reads that night's morning.
+  for (let i = 0; i < 3; i++) await tick();
   expect(screen.queryByRole('radio', { name: '4번째 양' })).toBeNull();
   expect(screen.getByRole('radio', { name: '7번째 양' })).toBeTruthy();
   await press('이 양 데려오기');

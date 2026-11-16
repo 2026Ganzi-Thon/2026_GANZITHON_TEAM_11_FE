@@ -19,7 +19,7 @@ function read(value: EntrustState, id: string, target: EntrustAction | null) {
     throw new ApiError('invalid-response');
   return value.action;
 }
-export function useEntrustPause(actions?: EntrustActions) {
+export function useEntrustPause(actions?: EntrustActions, blocked = false) {
   const [state, setState] = useState<State>({
     source: actions,
     phase: actions ? 'loading' : 'ready',
@@ -33,7 +33,7 @@ export function useEntrustPause(actions?: EntrustActions) {
     isBusy: () => boolean;
   } | null>(null);
   useEffect(() => {
-    if (!actions) {
+    if (!actions || blocked) {
       commands.current = null;
       return;
     }
@@ -104,21 +104,34 @@ export function useEntrustPause(actions?: EntrustActions) {
       stop();
       commands.current = null;
     };
-  }, [actions]);
+  }, [actions, blocked]);
   const matches = state.source === actions;
-  const phase = matches ? state.phase : actions ? 'loading' : 'ready';
+  const phase = blocked
+    ? 'loading'
+    : matches
+      ? state.phase
+      : actions
+        ? 'loading'
+        : 'ready';
   return {
     phase,
     action: matches ? state.action : null,
-    justSaved: matches && state.justSaved,
+    justSaved: !blocked && matches && state.justSaved,
     busy: phase === 'loading' || phase === 'saving',
     choose: useCallback(
-      (value: EntrustAction) => commands.current?.choose(value),
-      [],
+      (value: EntrustAction) =>
+        blocked ? undefined : commands.current?.choose(value),
+      [blocked],
     ),
-    retry: useCallback(() => commands.current?.retry(), []),
+    retry: useCallback(
+      () => (blocked ? undefined : commands.current?.retry()),
+      [blocked],
+    ),
     stop: useCallback(() => commands.current?.stop(), []),
-    isBusy: useCallback(() => commands.current?.isBusy() ?? false, []),
+    isBusy: useCallback(
+      () => blocked || (commands.current?.isBusy() ?? false),
+      [blocked],
+    ),
     acknowledge: useCallback(
       () => setState((s) => ({ ...s, justSaved: false })),
       [],

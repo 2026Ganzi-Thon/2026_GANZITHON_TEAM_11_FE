@@ -9,6 +9,7 @@ import type { SongActions } from '../../songs/types';
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type ComponentRef,
@@ -49,6 +50,7 @@ export function FeedScreen({
   yarn,
   fluff,
   entrust,
+  blocked = false,
 }: {
   load: FeedLoad;
   onBack: () => void;
@@ -60,6 +62,7 @@ export function FeedScreen({
   yarn?: YarnActions;
   fluff?: FluffActions;
   entrust?: EntrustActions;
+  blocked?: boolean;
 }) {
   const { fontScale } = useWindowDimensions();
   const [start] = useState(
@@ -114,11 +117,17 @@ export function FeedScreen({
   });
   const current = useRef(position);
   const isEntrust = entrust?.item.position === position.position;
-  const pauseFlow = useEntrustPause(entrust);
+  const pauseFlow = useEntrustPause(entrust, blocked);
   const { stop: stopPause, isBusy: pauseBusy, acknowledge } = pauseFlow;
   const controller = useRef<AbortController | null>(null);
   const body = useRef<ComponentRef<typeof ScrollView>>(null);
   const { progress, direction, moving, run, cancel } = useFeedMotion();
+  useLayoutEffect(() => {
+    if (blocked) {
+      cancel();
+      acknowledge();
+    }
+  }, [blocked, cancel, acknowledge]);
   useEffect(() => {
     const request = new AbortController();
     controller.current = request;
@@ -169,7 +178,13 @@ export function FeedScreen({
   }, [back, closingRequest]);
   const move = useCallback(
     (delta: -1 | 1) => {
-      if (songPendingRef.current || status !== 'ready' || !cards.length) return;
+      if (
+        blocked ||
+        songPendingRef.current ||
+        status !== 'ready' ||
+        !cards.length
+      )
+        return;
       if (isEntrust && (pauseBusy() || (delta === 1 && !pauseFlow.action)))
         return;
       const next = movePosition(current.current, delta, cards.length);
@@ -191,13 +206,14 @@ export function FeedScreen({
       pauseBusy,
       pauseFlow.action,
       acknowledge,
+      blocked,
     ],
   );
   useEffect(() => {
-    if (!isEntrust || !pauseFlow.justSaved) return;
+    if (blocked || !isEntrust || !pauseFlow.justSaved) return;
     const timer = setTimeout(() => move(1), 1600);
     return () => clearTimeout(timer);
-  }, [isEntrust, pauseFlow.justSaved, move]);
+  }, [blocked, isEntrust, pauseFlow.justSaved, move]);
   useEffect(() => {
     if (isEntrust) body.current?.scrollTo({ y: 0, animated: false });
   }, [isEntrust, pauseFlow.phase, pauseFlow.action]);
@@ -216,6 +232,7 @@ export function FeedScreen({
   const reactionsVisible = !!visibleCard?.available && !!visibleCard.content;
   const finish = (reason: ClosingRequest['reason']) => {
     if (
+      blocked ||
       moving ||
       (isEntrust && pauseBusy()) ||
       fluffFlow.hasPending() ||
@@ -287,13 +304,15 @@ export function FeedScreen({
               : undefined
           }
           disabled={
-            canFinish &&
-            (moving || fluffPending || (isEntrust && pauseFlow.busy))
+            blocked ||
+            (canFinish &&
+              (moving || fluffPending || (isEntrust && pauseFlow.busy)))
           }
           accessibilityState={{
             disabled:
-              canFinish &&
-              (moving || fluffPending || (isEntrust && pauseFlow.busy)),
+              blocked ||
+              (canFinish &&
+                (moving || fluffPending || (isEntrust && pauseFlow.busy))),
           }}
           onPress={canFinish ? () => finish('leave') : back}
           style={styles.exit}
@@ -353,7 +372,7 @@ export function FeedScreen({
                 <EntrustPanel
                   worry={entrust.item.worry_text}
                   flow={pauseFlow}
-                  disabled={moving}
+                  disabled={moving || blocked}
                 />
               ) : (
                 <>
@@ -524,6 +543,7 @@ export function FeedScreen({
               accessibilityRole="button"
               accessibilityLabel="이전 양"
               disabled={
+                blocked ||
                 moving ||
                 songPending ||
                 position.position === 1 ||
@@ -531,6 +551,7 @@ export function FeedScreen({
               }
               accessibilityState={{
                 disabled:
+                  blocked ||
                   moving ||
                   songPending ||
                   position.position === 1 ||
@@ -539,7 +560,8 @@ export function FeedScreen({
               onPress={() => move(-1)}
               style={[
                 styles.previous,
-                (moving ||
+                (blocked ||
+                  moving ||
                   songPending ||
                   position.position === 1 ||
                   (isEntrust && pauseFlow.busy)) &&
@@ -558,6 +580,7 @@ export function FeedScreen({
                     : '다음 양'
                 }
                 disabled={
+                  blocked ||
                   moving ||
                   songPending ||
                   (isEntrust && (pauseFlow.busy || !pauseFlow.action)) ||

@@ -63,7 +63,7 @@ export function getNativeReminderSession() {
   if (!session) session = createSession();
   return session;
 }
-/** Explicit startup from the development root; reads never request permission. */
+/** Explicit startup in mock builds; reads never request permission. */
 export function startNativeReminderRuntime() {
   const current = getNativeReminderSession();
   Notifications.setNotificationHandler({

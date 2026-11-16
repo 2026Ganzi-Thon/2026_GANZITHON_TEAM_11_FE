@@ -1,3 +1,4 @@
+import { canUseMock } from '../../config/runtime';
 import { useMemo, useState } from 'react';
 import { Redirect, router } from 'expo-router';
 import { ScrollView, StyleSheet } from 'react-native';
@@ -44,7 +45,7 @@ export default function SupportPreview() {
     writing.choose({ kind: scenario, category_id: 'career' });
     return writing;
   }, [scenario]);
-  if (!__DEV__) return <Redirect href="/" />;
+  if (!canUseMock()) return <Redirect href="/" />;
   if (actions)
     return (
       <CardWritingScreen

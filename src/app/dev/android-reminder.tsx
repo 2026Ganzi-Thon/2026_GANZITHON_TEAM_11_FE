@@ -1,3 +1,4 @@
+import { canUseMock } from '../../config/runtime';
 import { useMemo, useState, useSyncExternalStore } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { Redirect, router } from 'expo-router';
@@ -9,10 +10,10 @@ import { Button } from '../../ui/Button';
 import { theme } from '../../ui/theme';
 export default function NativeReminderPreview() {
   const session = useMemo(
-    () => (__DEV__ ? getNativeReminderSession() : null),
+    () => (canUseMock() ? getNativeReminderSession() : null),
     [],
   );
-  if (!__DEV__ || !session) return <Redirect href="/" />;
+  if (!canUseMock() || !session) return <Redirect href="/" />;
   return <Session session={session} />;
 }
 function Session({

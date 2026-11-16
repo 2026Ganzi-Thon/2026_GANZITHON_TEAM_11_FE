@@ -32,7 +32,7 @@ npm run android
 <details>
 <summary>네이티브 의존성·설정을 변경한 경우</summary>
 
-`app.json`, config plugin, 네이티브 의존성을 바꿨다면 재생성 후 다시 빌드합니다. Metro 새로고침만으로는 반영되지 않습니다.
+`app.json`·`app.config.js`, config plugin, 네이티브 의존성을 바꿨다면 재생성 후 다시 빌드합니다. Metro 새로고침만으로는 반영되지 않습니다.
 
 ```sh
 npx expo prebuild --clean --platform android
@@ -43,6 +43,33 @@ npm run android
 
 </details>
 
+## Android 테스트 체험판
+
+체험판 APK는 Metro 없이 실행되며 기존 개발 앱과 함께 설치할 수 있습니다. 앱 이름은 **양 세는 밤 · 체험판**, 패키지는 `com.ganzithon.yangsebam.preview`입니다. 시작 화면에서 밤→아침 시연과 가입→첫 홈을 선택합니다. 계정·기록은 mock이며 앱 재실행 시 초기화됩니다. 기기 알림과 외부 앱 열기는 실제로 동작합니다.
+
+로컬 빌드는 Android SDK·Build Tools 37·JDK 21과 저장소 밖의 전용 PKCS12 서명 키가 필요합니다. 키 저장소와 개인 키는 같은 비밀번호를 사용합니다. 다음 환경 변수를 설정한 뒤 실행합니다. 키와 비밀번호는 커밋·공유 파일에 넣지 않습니다.
+
+- `ANDROID_HOME`: Android SDK 경로
+- `JAVA_HOME`: JDK 21 경로
+- `PREVIEW_KEYSTORE_FILE`: 체험판 서명 키 경로
+- `PREVIEW_PASSWORD_FILE`: 키 비밀번호 한 줄을 담은 비공개 파일 경로
+- `PREVIEW_KEY_ALIAS`: 기본값 `yangsebam-preview`
+
+```sh
+npm run build:preview:android
+```
+
+이 명령은 `android/`를 재생성하므로 생성 폴더의 수동 변경을 먼저 보존합니다. 결과 APK와 SHA-256은 `dist/preview/`에 생성합니다. 후속 업데이트에도 같은 서명 키를 사용하고 `versionCode`를 올립니다. EAS 계정을 연결한 환경에서는 `eas.json`의 `preview` 프로필도 사용할 수 있습니다.
+
+체험판을 만든 뒤 개발 빌드를 다시 만들 때는 생성된 네이티브 설정도 기본 모드로 되돌립니다. `npm run android`만 실행하면 이전 체험판 설정을 재사용할 수 있습니다.
+
+```sh
+APP_VARIANT=production npx expo prebuild --clean --platform android
+APP_VARIANT=production npm run android
+```
+
+`APP_VARIANT=preview`는 체험판 전용입니다. 기본값 `production`에서는 mock 진입을 허용하지 않습니다. 체험판은 스토어 출시 빌드와 분리합니다.
+
 ## 환경 변수
 
 API 연동 시 `.env.example`을 `.env`로 복사하고 `EXPO_PUBLIC_API_BASE_URL`에 `/api/v1`을 포함한 서버 주소를 지정합니다. 현재 mock 시연에는 실제 서버가 필요하지 않습니다.
@@ -51,7 +78,7 @@ API 연동 시 `.env.example`을 `.env`로 복사하고 `EXPO_PUBLIC_API_BASE_UR
 
 ## 개발용 미리보기
 
-개발 빌드의 시작 화면에서 기능별 미리보기를 엽니다. `/dev/*` 경로는 배포 빌드에서 차단합니다.
+개발 빌드의 시작 화면에서 기능별 미리보기를 엽니다. `/dev/*` 경로는 일반 배포 빌드에서 차단하며, 별도 패키지의 테스트 체험판에서만 허용합니다.
 
 | 대표 경로                 | 확인할 흐름                                       |
 | ------------------------- | ------------------------------------------------- |

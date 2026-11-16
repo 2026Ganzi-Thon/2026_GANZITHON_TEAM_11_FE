@@ -53,6 +53,7 @@ export function HomeFlow(props: {
             fortuneKey={fortuneDate(Date.parse(flow.snapshot.server_time))}
             homeWhenNoCandidates
             actions={morning}
+            myCards={props.source.cards}
             loadDetail={props.source.loadDetail}
             onExit={props.onExit}
             homeFooter={(blocked) => (

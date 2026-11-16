@@ -1,3 +1,6 @@
+import type { TextCardSubmission } from '../features/cards/types';
+import type { SongCardSubmission } from '../features/cards/songTypes';
+import type { MockWorryRecords } from './worryRecords';
 import { createMockWorryDeletion } from './worryDeletion';
 import { createMockSongCards } from './songCards';
 import { createMockReceivedYarn } from './receivedYarn';
@@ -74,9 +77,18 @@ function conflict(code: string, status = 409): never {
   throw new ApiError('http', { status, code });
 }
 /** One deterministic, memory-only night for development demonstrations. */
-export function createNightMorningDemo(scenario: DemoScenario = 'success') {
-  const nightId = 'demo-night';
-  const nightDate = '2026-11-12';
+export function createNightMorningDemo(
+  scenario: DemoScenario = 'success',
+  options: {
+    nightId?: string;
+    nightDate?: string;
+    manageWorries?: boolean;
+    writingNamespace?: string;
+    onSubmitted?: (receipt: TextCardSubmission | SongCardSubmission) => void;
+  } = {},
+) {
+  const nightId = options.nightId ?? 'demo-night';
+  const nightDate = options.nightDate ?? '2026-11-12';
   let draft: WorryDraft | null = null;
   let count: number | null = null;
   let cards: Card[] | null = null;
@@ -98,22 +110,19 @@ export function createNightMorningDemo(scenario: DemoScenario = 'success') {
     morningOpen
       ? finished?.writing_offer.state === 'deferred'
       : finished?.writing_offer.state === 'writing';
-  const textCards = createMockTextCards(writingScenario, {
+  const onSubmitted = (receipt: TextCardSubmission | SongCardSubmission) => {
+    options.onSubmitted?.(receipt);
+    if (finished)
+      finished = { ...finished, writing_offer: { state: 'fulfilled' } };
+  };
+  const writingOptions = {
     sourceNightId: nightId,
     canSubmit,
-    onSubmitted: () => {
-      if (finished)
-        finished = { ...finished, writing_offer: { state: 'fulfilled' } };
-    },
-  });
-  const songCards = createMockSongCards(writingScenario, {
-    sourceNightId: nightId,
-    canSubmit,
-    onSubmitted: () => {
-      if (finished)
-        finished = { ...finished, writing_offer: { state: 'fulfilled' } };
-    },
-  });
+    onSubmitted,
+    namespace: options.writingNamespace,
+  };
+  const textCards = createMockTextCards(writingScenario, writingOptions);
+  const songCards = createMockSongCards(writingScenario, writingOptions);
   const cardWriting = createMockCardWriting(textCards, songCards);
   let fingerprint: string | null = null;
   let closingViewed = false;
@@ -139,6 +148,41 @@ export function createNightMorningDemo(scenario: DemoScenario = 'success') {
         Date.parse(`${nightDate}T16:12:00Z`) + ++viewSequence * 1000,
       ).toISOString(),
     );
+  const deletedRecords = new Set<string>();
+  const readRecord = () =>
+    draft
+      ? {
+          id: nightId,
+          night_date: nightDate,
+          category_id: draft.category_id,
+          worry_text: draft.worry_text,
+          worry_saved_at: draft.worry_text ? `${nightDate}T16:12:00Z` : null,
+          entrusted: false,
+          reflection: reflection ? { ...reflection } : null,
+        }
+      : undefined;
+  const records: MockWorryRecords = {
+    get: (id) => (id === nightId ? readRecord() : undefined),
+    all: () => {
+      const record = readRecord();
+      return record ? [record] : [];
+    },
+    erase: (id) => {
+      if (id !== nightId || !draft) conflict('NOT_FOUND', 404);
+      draft = { ...draft!, worry_text: null };
+    },
+    eraseRecord: (id) => {
+      records.erase(id);
+      reflection = null;
+      deletedRecords.add(id);
+    },
+    isRecordDeleted: (id) => deletedRecords.has(id),
+    saveReflection: (id, value) => {
+      if (id !== nightId || !draft || deletedRecords.has(id))
+        conflict('REFLECTION_NOT_AVAILABLE');
+      reflection = { ...value };
+    },
+  };
   const savedSongs = new Map<string, string>();
   const failed = new Set<string>();
   const baseClosing = createMockNightClosing();
@@ -259,12 +303,16 @@ export function createNightMorningDemo(scenario: DemoScenario = 'success') {
     loadSheep: SheepDetailLoad;
   } = {
     worries:
-      scenario === 'worry-delete'
-        ? createMockWorryDeletion((id) => {
-            checkNight(id);
-            if (!morningOpen || !draft) conflict('NOT_FOUND', 404);
-            draft = { ...draft!, worry_text: null };
-          })
+      scenario === 'worry-delete' || options.manageWorries
+        ? createMockWorryDeletion(
+            (id) => {
+              checkNight(id);
+              if (!morningOpen || !draft) conflict('NOT_FOUND', 404);
+              records.erase(id);
+            },
+            'success',
+            options.manageWorries ? records : undefined,
+          )
         : undefined,
     writing: cardWriting,
     fortune: scenario === 'fortune' ? createMockFortune() : undefined,
@@ -425,6 +473,13 @@ export function createNightMorningDemo(scenario: DemoScenario = 'success') {
   };
   return {
     nightId,
+    getRecord: () => ({
+      night: readRecord() ?? null,
+      finished: !!finished,
+      counted: finished?.summary.counted ?? 0,
+      morningOpen,
+      adopted: adopted ? { ...adopted } : null,
+    }),
     fluff,
     yarn,
     textCards,

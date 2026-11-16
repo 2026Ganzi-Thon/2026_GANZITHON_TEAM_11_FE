@@ -150,7 +150,7 @@ it('shows the mock limits and representative entry points in the preview release
   await fireEvent.press(screen.getByRole('button', { name: '밤→아침 시연' }));
   expect(mockPush).toHaveBeenCalledWith('/dev/night-morning');
   await fireEvent.press(
-    screen.getByRole('button', { name: '가입 → 알림 → 첫 홈' }),
+    screen.getByRole('button', { name: '가입 → 첫 홈 → 밤·아침' }),
   );
   expect(mockPush).toHaveBeenCalledWith('/dev/signup-home');
   await fireEvent.press(

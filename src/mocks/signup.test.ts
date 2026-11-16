@@ -104,3 +104,40 @@ it('cleans up aborted mock work without committing registration', async () => {
     ).email,
   ).toBe('a@example.com');
 });
+
+it('validates birth dates against the same injected KST day exposed to the signup form', async () => {
+  jest.useFakeTimers();
+  let time = Date.parse('2026-11-16T23:59:59+09:00');
+  const a = createMockSignup('success', () => time);
+  const user = await run(
+    a.register(
+      'clock-key',
+      { email: 'clock@example.com', password: 'password' },
+      signal(),
+    ),
+  );
+  await run(
+    a.consent(
+      user.id,
+      {
+        revision: 'v1',
+        choices: {
+          terms: true,
+          privacy: true,
+          processing: true,
+          notifications: false,
+        },
+      },
+      signal(),
+    ),
+  );
+  const rejected = expect(
+    a.birth(user.id, '2026-11-17', signal()),
+  ).rejects.toMatchObject({ status: 422 });
+  await jest.runAllTimersAsync();
+  await rejected;
+  time = Date.parse('2026-11-17T00:00:00+09:00');
+  const receipt = await run(a.birth(user.id, '2026-11-17', signal()));
+  expect(receipt.birth_date).toBe('2026-11-17');
+  expect(a.today).toBe('2026-11-17');
+});

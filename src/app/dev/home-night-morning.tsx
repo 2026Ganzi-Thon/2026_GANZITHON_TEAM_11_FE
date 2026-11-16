@@ -32,7 +32,7 @@ export default function HomeJourneyPreview() {
       <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 20, gap: 16 }}>
         <Notice
           title="첫 홈 → 밤 → 아침"
-          description="같은 예시 계정의 밤 기록·양떼·회고·고민 목록을 이어 봐요. 낮·밤 시각과 데이터는 메모리 mock이며 다음 아침 이동은 시연용입니다. 홈으로 돌아와도 같은 시연의 진행을 유지해요. 앱 재실행 복원·실제 서버·새 카드의 내 카드 목록 통합은 연결하지 않았어요. 알림 권한·기기 예약은 실제로 동작해요."
+          description="같은 예시 계정의 밤 기록·양떼·회고·고민 목록을 이어 봐요. 낮·밤 시각과 데이터는 메모리 mock이며 다음 아침 이동은 시연용입니다. 홈으로 돌아와도 같은 시연의 진행을 유지해요. 밤·아침에서 맡긴 글과 노래는 같은 내 카드 목록에 검수 중으로 표시해요. 앱 재실행 복원·실제 서버는 연결하지 않았어요. 알림 권한·기기 예약은 실제로 동작해요."
         />
         {source && (
           <Button
@@ -44,6 +44,10 @@ export default function HomeJourneyPreview() {
         <Button
           label="마무리·채택 응답 유실"
           onPress={() => start('lost-responses')}
+        />
+        <Button
+          label="작성 접수 응답 유실"
+          onPress={() => start('writing-lost-response')}
         />
         <Button
           label="홈 조회 실패·재시도"

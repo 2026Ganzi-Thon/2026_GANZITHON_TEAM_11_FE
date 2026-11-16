@@ -1,3 +1,4 @@
+import { createMockMyCards } from './myCards';
 import { ApiError } from '../api/errors';
 import { createNightMorningNavigation } from '../features/demo/navigation';
 import type { HomeSource } from '../features/home/types';
@@ -8,19 +9,32 @@ import { createMockHome } from './firstNightHome';
 import type { SettingsMorningOptions } from './settingsMorning';
 import { createNightMorningDemo } from './nightMorningDemo';
 export type HomeJourneyScenario =
-  'success' | 'lost-responses' | 'home-retry' | 'morning-retry';
+  | 'success'
+  | 'lost-responses'
+  | 'home-retry'
+  | 'morning-retry'
+  | 'writing-lost-response';
 export function createMockHomeJourney(
   scenario: HomeJourneyScenario = 'success',
   options: SettingsMorningOptions = {},
 ) {
   const nightDate = '2026-11-16';
-  const night = createNightMorningDemo(
-    scenario === 'lost-responses' ? 'lost-responses' : 'success',
-    { nightId: 'journey-night', nightDate, manageWorries: true },
-  );
   let base = Date.parse(`${nightDate}T21:30:00+09:00`),
     started = performance.now();
   const now = () => base + performance.now() - started;
+  const cards = createMockMyCards('empty', { now });
+  const night = createNightMorningDemo(
+    scenario === 'lost-responses' || scenario === 'writing-lost-response'
+      ? scenario
+      : 'success',
+    {
+      nightId: 'journey-night',
+      nightDate,
+      manageWorries: true,
+      writingNamespace: 'journey-night-writing',
+      onSubmitted: cards.acceptSubmission,
+    },
+  );
   const original = createMockHome('night', {
     ...options,
     birthDate:
@@ -71,6 +85,7 @@ export function createMockHomeJourney(
   };
   const home: HomeSource = {
     ...original,
+    cards,
     settings,
     loadDetail: night.morning.loadSheep,
     clock: {

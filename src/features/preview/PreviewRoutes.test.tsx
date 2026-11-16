@@ -32,6 +32,7 @@ import Route24 from '../../app/dev/text-card';
 import Route25 from '../../app/dev/worry-deletion';
 import Route26 from '../../app/dev/yarn';
 import Route27 from '../../app/dev/home-night-morning';
+import Route28 from '../../app/dev/night-expiry';
 import { getNativeReminderSession } from '../../notifications/nativeRuntime';
 jest.mock('expo-constants', () => ({
   __esModule: true,
@@ -115,6 +116,7 @@ const routes = [
   ['worry-deletion', Route25],
   ['yarn', Route26],
   ['home-night-morning', Route27],
+  ['night-expiry', Route28],
 ] as const;
 it.each(routes)(
   'opens %s in a preview release without a development server',

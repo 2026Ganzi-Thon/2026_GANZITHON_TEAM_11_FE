@@ -156,3 +156,24 @@ it('refuses opening a night after the clock has crossed into daytime', () => {
   expect(source.enterNight()).toBe(false);
   expect(source.night).toBe(before);
 });
+it('reconciles an unfinished night on the first daytime home read and keeps the next night separate', async () => {
+  const { source, setTime } = fixture();
+  await start(source.night, 5);
+  source.night.progress({ position: 2, furthestPosition: 2 });
+  setTime('2026-11-17T04:00:00+09:00');
+  const morning = source.home.resolveMorning!(
+    await settle(source.home.clock.load(signal())),
+  );
+  const value = await settle(morning.loadMorning(signal()));
+  expect(value.counted_sheep).toBe(2);
+  expect(value.candidate_cards).toHaveLength(2);
+  expect(source.night.getRecord().expired).toBe(true);
+  setTime('2026-11-17T21:00:00+09:00');
+  expect(source.enterNight()).toBe(true);
+  expect(source.night.getRecord().night).toBeNull();
+  expect(source.history.getStats()).toEqual({
+    night_count: 1,
+    counted_sheep_total: 2,
+    worry_record_count: 1,
+  });
+});

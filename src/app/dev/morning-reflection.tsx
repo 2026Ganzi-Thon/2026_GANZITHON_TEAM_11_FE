@@ -1,3 +1,4 @@
+import { canUseMock } from '../../config/runtime';
 import { useMemo, useState } from 'react';
 import { Redirect, router } from 'expo-router';
 import { ScrollView, StyleSheet, Text } from 'react-native';
@@ -26,7 +27,7 @@ export default function MorningReflectionPreview() {
       scenario ? createMockMorning('existing', 'success', scenario) : null,
     [scenario],
   );
-  if (!__DEV__) return <Redirect href="/" />;
+  if (!canUseMock()) return <Redirect href="/" />;
   if (actions)
     return (
       <MorningScreen

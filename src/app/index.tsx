@@ -1,3 +1,5 @@
+import { Notice } from '../ui/Notice';
+import { canUseMock, isPreviewBuild } from '../config/runtime';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -11,8 +13,18 @@ export default function StartScreen() {
           양 세는 밤
         </Text>
         <Text style={styles.description}>잠이 안 오는 밤, 양을 같이 세요.</Text>
-        {__DEV__ && (
+        {canUseMock() && (
           <>
+            {isPreviewBuild() && (
+              <Notice
+                title="테스트 체험판"
+                description="가입·고민·카드는 예시 데이터로 동작해요. 실제 계정은 만들지 않으며, 앱을 재실행하면 기록이 초기화돼요. 가상의 정보로 확인해 주세요. 알림 권한·기기 예약·외부 앱 열기는 실제로 동작해요."
+              />
+            )}
+            <Button
+              label="밤→아침 시연"
+              onPress={() => router.push('/dev/night-morning')}
+            />
             <Button
               label="가입 → 알림 → 첫 홈"
               onPress={() => router.push('/dev/signup-home')}
@@ -84,10 +96,6 @@ export default function StartScreen() {
             <Button
               label="담은 노래 미리보기"
               onPress={() => router.push('/dev/saved-songs')}
-            />
-            <Button
-              label="밤→아침 시연"
-              onPress={() => router.push('/dev/night-morning')}
             />
             <Button
               label="아침 회고 미리보기"

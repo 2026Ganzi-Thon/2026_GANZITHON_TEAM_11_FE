@@ -1,0 +1,17 @@
+// Keep local compiler assertion strings independent of the build machine.
+allprojects { project ->
+    project.plugins.withId('com.android.application') {
+        def root = project.rootProject.projectDir.parentFile
+        def prefixes = [
+            (System.getProperty('user.home')): '/build-user',
+            (root.canonicalPath): '/app',
+            (new File(root, 'node_modules').canonicalPath): '/app/node_modules'
+        ]
+        def flags = prefixes.collect { from, to ->
+            '-ffile-prefix-map="' + from.replace('"', '\\"') + '=' + to + '"'
+        }.join(' ')
+        project.extensions.getByName('android').defaultConfig.externalNativeBuild.cmake.arguments.add(
+            '-DCMAKE_CXX_FLAGS=' + flags
+        )
+    }
+}

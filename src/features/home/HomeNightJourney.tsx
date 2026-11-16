@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { HomeFlow } from './HomeFlow';
-import { NightMorningFlow } from '../demo/NightMorningFlow';
+import { NightReturnJourney } from '../night/nightReturn/NightReturnJourney';
 import { NightExpiryBoundary } from '../night/expiry/NightExpiryBoundary';
 import type { createMockHomeJourney } from '../../mocks/homeJourney';
 export type HomeNightJourneySource = ReturnType<
@@ -26,13 +26,10 @@ function Session({ source, onExit, initialNightOpen = false }: Props) {
       onHome={() => setNightOpen(false)}
     >
       {(blocked) => (
-        <NightMorningFlow
+        <NightReturnJourney
           demo={source.night}
           navigation={source.navigation}
           blocked={blocked}
-          entryMode={
-            source.night.getRecord().night ? 'existing-night' : 'first-entry'
-          }
           onExit={onExit}
           onHome={() => setNightOpen(false)}
           onMorning={() => {

@@ -169,7 +169,9 @@ it('reopens confirmed worry input at count selection without submitting another 
 });
 it('keeps a closing request across home and recovers a morning query without counting a second night', async () => {
   const source = createMockHomeJourney('morning-retry');
-  await render(<HomeNightJourney source={source} onExit={() => {}} />);
+  const view = await render(
+    <HomeNightJourney source={source} onExit={() => {}} />,
+  );
   await tick();
   await start();
   await complete();
@@ -182,7 +184,12 @@ it('keeps a closing request across home and recovers a morning query without cou
   await press('아침 홈으로 돌아가기');
   await press('오늘 밤 양 세러 가기');
   await tick();
-  await press('다음 아침으로 이동');
+  expect(screen.getByText('다시 깼구나, 괜찮아요')).toBeTruthy();
+  await press('그냥 누워 있을게요');
+  await tick();
+  source.advanceMorning();
+  await view.unmount();
+  await render(<HomeNightJourney source={source} onExit={() => {}} />);
   await tick();
   await tick();
   expect(screen.getByRole('button', { name: '다시 불러오기' })).toBeTruthy();

@@ -58,8 +58,12 @@ export function createMockHomeJourney(
   const stats = () => {
     const record = night.getRecord();
     return {
-      night_count: record.finished && record.counted > 0 ? 1 : 0,
-      counted_sheep_total: record.counted,
+      night_count:
+        (record.finished || record.previousSessions > 0) &&
+        night.getTotalCount() > 0
+          ? 1
+          : 0,
+      counted_sheep_total: night.getTotalCount(),
       worry_record_count: record.night?.worry_text?.trim() ? 1 : 0,
     };
   };

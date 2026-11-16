@@ -53,15 +53,21 @@ function Action({
     </Pressable>
   );
 }
-const candidateLabel = (item: MorningCandidate) =>
-  item.position === null ? '마무리 카드' : `${item.position}번째 양`;
-function CandidateDetail({ item }: { item: MorningCandidate }) {
+const candidateLabel = (item: MorningCandidate, withSession: boolean) =>
+  `${withSession ? `${item.session_number ?? 1}번째 세기 · ` : ''}${item.position === null ? '마무리 카드' : `${item.position}번째 양`}`;
+function CandidateDetail({
+  item,
+  withSession,
+}: {
+  item: MorningCandidate;
+  withSession: boolean;
+}) {
   if (!item.card.available || !item.card.content) return null;
   const { card } = item;
   return (
     <View style={styles.card}>
       <Text style={[styles.text, styles.small]}>
-        {candidateLabel(item)} ·{' '}
+        {candidateLabel(item, withSession)} ·{' '}
         {card.kind === 'song' ? '노래 추천' : '짧은 글'}
         {item.fluff_saved ? ' · 담은 솜털' : ''}
       </Text>
@@ -116,6 +122,9 @@ function MorningSession({
   const [fortuneVersion, setFortuneVersion] = useState(0);
   const flow = useMorningFlow(actions, onExit, homeWhenNoCandidates);
   const { morning, busy, failure } = flow;
+  const multipleSessions =
+    morning?.candidate_cards.some((item) => (item.session_number ?? 1) > 1) ??
+    false;
   const hasCandidates =
     !!morning?.night && morning.candidate_cards.some(canAdopt);
   return (
@@ -282,9 +291,15 @@ function MorningSession({
                     !item.card.available || !item.card.content;
                   const disabled = busy || !canAdopt(item);
                   const selected = item.card.id === flow.selected?.card.id;
-                  const label = `${candidateLabel(item)}${unavailable ? ' · 볼 수 없는 카드' : !item.can_adopt ? ' · 데려올 수 없는 양' : ''}`;
+                  const label = `${candidateLabel(item, multipleSessions)}${unavailable ? ' · 볼 수 없는 카드' : !item.can_adopt ? ' · 데려올 수 없는 양' : ''}`;
                   return (
-                    <View style={styles.cell} key={item.card.id}>
+                    <View
+                      style={[
+                        styles.cell,
+                        multipleSessions && styles.sessionCell,
+                      ]}
+                      key={item.card.id}
+                    >
                       <Pressable
                         accessibilityRole="radio"
                         accessibilityLabel={label}
@@ -298,6 +313,7 @@ function MorningSession({
                         onPress={() => flow.select(item.card.id)}
                         style={[
                           styles.choice,
+                          multipleSessions && styles.sessionChoice,
                           selected && styles.selected,
                           !canAdopt(item) && styles.dim,
                         ]}
@@ -305,6 +321,11 @@ function MorningSession({
                         <SheepArt
                           colorKey={unavailable ? null : item.card.category_id}
                         />
+                        {multipleSessions && (
+                          <Text style={[styles.text, styles.candidateLabel]}>
+                            {candidateLabel(item, true).replace(' · ', ' ·\n')}
+                          </Text>
+                        )}
                         {item.fluff_saved && (
                           <Text style={[styles.text, styles.fluffMark]}>
                             솜털
@@ -321,7 +342,12 @@ function MorningSession({
                 })}
               </View>
             )}
-            {flow.selected && <CandidateDetail item={flow.selected} />}
+            {flow.selected && (
+              <CandidateDetail
+                item={flow.selected}
+                withSession={multipleSessions}
+              />
+            )}
             {hasCandidates && !flow.selected && (
               <View style={styles.card}>
                 <Text style={styles.text}>데려올 양을 골라 주세요.</Text>
@@ -492,6 +518,14 @@ const styles = StyleSheet.create({
     alignContent: 'center',
   },
   cell: { width: '20%', alignItems: 'center', paddingVertical: 8 },
+  sessionCell: { width: '50%', paddingHorizontal: 2 },
+  sessionChoice: {
+    width: '100%',
+    padding: 6,
+    gap: 4,
+    backgroundColor: '#F2F4FF',
+  },
+  candidateLabel: { fontSize: 12, lineHeight: 18, textAlign: 'center' },
   choice: {
     width: 50,
     minHeight: 48,

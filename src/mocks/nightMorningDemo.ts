@@ -40,9 +40,15 @@ import type {
   EntrustActions,
   EntrustAction,
 } from '../features/night/entrust/types';
+import { fortuneDate, homePhase } from '../features/home/model';
+import type {
+  NightReturnActions,
+  ReturnBootstrap,
+} from '../features/night/nightReturn/model';
 import type { NightExpiryActions } from '../features/night/expiry/types';
 export type DemoScenario =
   | 'success'
+  | 'return-create-lost'
   | 'lost-responses'
   | 'slow-songs'
   | 'slow-yarn'
@@ -154,6 +160,11 @@ export function createNightMorningDemo(
       }
       morningOpen = true;
       if (
+        writingOffer?.state === 'offered' ||
+        writingOffer?.state === 'writing'
+      )
+        writingOffer = { state: 'deferred' };
+      if (
         finished.writing_offer.state === 'offered' ||
         finished.writing_offer.state === 'writing'
       )
@@ -179,11 +190,12 @@ export function createNightMorningDemo(
   const canSubmit = () => {
     expireIfDue();
     return morningOpen
-      ? finished?.writing_offer.state === 'deferred'
-      : finished?.writing_offer.state === 'writing';
+      ? (writingOffer ?? finished?.writing_offer)?.state === 'deferred'
+      : writingOffer?.state === 'writing';
   };
   const onSubmitted = (receipt: TextCardSubmission | SongCardSubmission) => {
     options.onSubmitted?.(receipt);
+    writingOffer = { state: 'fulfilled' };
     if (finished)
       finished = { ...finished, writing_offer: { state: 'fulfilled' } };
   };
@@ -198,6 +210,26 @@ export function createNightMorningDemo(
   const cardWriting = createMockCardWriting(textCards, songCards);
   let fingerprint: string | null = null;
   let closingViewed = false;
+  let closingConfirmed = false;
+  let sessionIndex = 1;
+  let finishedAt: string | null = null;
+  let writingOffer: ClosingResult['writing_offer'] | null = null;
+  const archived: {
+    counted: number;
+    candidates: MorningCandidate[];
+    entrusted: boolean;
+  }[] = [];
+  const instant = () =>
+    options.expiry?.now() ?? Date.parse(`${nightDate}T22:00:00+09:00`);
+  const totalCount = () =>
+    archived.reduce((sum, item) => sum + item.counted, 0) +
+    (finished?.summary.counted ??
+      (progressRecorded ? position.furthestPosition : 0));
+  const allCards = () => [
+    ...archived.flatMap((item) => item.candidates.map((x) => x.card)),
+    ...(cards ?? []),
+  ];
+
   const fluff = createMockFluff(
     {
       cards: () => (cards ?? []).filter((_card, index) => !isPause(index)),
@@ -214,12 +246,7 @@ export function createNightMorningDemo(
   const viewedAt = new Map<string, string>();
   let viewSequence = 0;
   const stamp = (card: Card) =>
-    viewedAt.set(
-      card.id,
-      new Date(
-        Date.parse(`${nightDate}T16:12:00Z`) + ++viewSequence * 1000,
-      ).toISOString(),
-    );
+    viewedAt.set(card.id, new Date(instant() + ++viewSequence).toISOString());
   const deletedRecords = new Set<string>();
   const readRecord = () =>
     draft
@@ -229,7 +256,9 @@ export function createNightMorningDemo(
           category_id: draft.category_id,
           worry_text: draft.worry_text,
           worry_saved_at: draft.worry_text ? `${nightDate}T16:12:00Z` : null,
-          entrusted: entrustAction === 'entrusted',
+          entrusted:
+            entrustAction === 'entrusted' ||
+            archived.some((item) => item.entrusted),
           reflection: reflection ? { ...reflection } : null,
         }
       : undefined;
@@ -275,7 +304,7 @@ export function createNightMorningDemo(
           }),
       }
     : undefined;
-  const baseClosing = createMockNightClosing();
+  let baseClosing = createMockNightClosing();
   const failOnce = (key: string) => {
     if (
       (scenario === 'lost-responses' ||
@@ -289,7 +318,7 @@ export function createNightMorningDemo(
   const checkNight = (id: string) => {
     if (id !== nightId) conflict('NOT_FOUND', 404);
   };
-  const candidates = (): MorningCandidate[] => {
+  const sessionCandidates = (): MorningCandidate[] => {
     const items = (cards ?? [])
       .slice(0, finished?.summary.counted ?? 0)
       .map((card, index) => ({
@@ -299,6 +328,7 @@ export function createNightMorningDemo(
           card.available && !!card.content && card.viewer.fluff_saved,
         position: (index + 1) as number | null,
         sheep_count: count!,
+        session_number: sessionIndex,
         last_viewed_at: viewedAt.get(card.id) ?? `${nightDate}T16:12:00Z`,
       }))
       .filter(
@@ -314,11 +344,16 @@ export function createNightMorningDemo(
         fluff_saved: false,
         position: null,
         sheep_count: count!,
+        session_number: sessionIndex,
         last_viewed_at:
           viewedAt.get(finished.closing_card.id) ?? `${nightDate}T16:13:00Z`,
       });
     return [...new Map(items.map((item) => [item.card.id, item])).values()];
   };
+  const candidates = () => [
+    ...archived.flatMap((item) => item.candidates),
+    ...sessionCandidates(),
+  ];
   const reflectionActions: ReflectionActions = {
     load: (id, signal) =>
       delayed(signal, () => {
@@ -333,7 +368,9 @@ export function createNightMorningDemo(
             category_id: draft!.category_id,
             worry_text: draft!.worry_text,
             worry_saved_at: draft!.worry_text ? `${nightDate}T16:12:00Z` : null,
-            entrusted: entrustAction === 'entrusted',
+            entrusted:
+              entrustAction === 'entrusted' ||
+              archived.some((item) => item.entrusted),
           },
           reflection,
         };
@@ -361,7 +398,7 @@ export function createNightMorningDemo(
         sheep: adopted,
         card: candidate.card,
         position: candidate.position,
-        sheep_count: count,
+        sheep_count: candidate.sheep_count,
         night: {
           night_date: nightDate,
           category_id: draft!.category_id,
@@ -376,7 +413,7 @@ export function createNightMorningDemo(
         expireIfDue();
         if (!morningOpen) conflict('MORNING_NOT_OPEN');
         return [...savedSongs].flatMap(([id, saved_at]) => {
-          const card = cards?.find((item) => item.id === id);
+          const card = allCards().find((item) => item.id === id);
           return card?.kind === 'song' && card.available && card.content
             ? [{ card_id: id, track: card.content.track, saved_at }]
             : [];
@@ -389,9 +426,9 @@ export function createNightMorningDemo(
           expireIfDue();
           if (saved) guardNight('NIGHT_CLOSED');
           const index = cards?.findIndex((item) => item.id === id) ?? -1;
-          const card = cards?.[index];
+          const card = allCards().find((item) => item.id === id);
           if (!card || card.kind !== 'song') conflict('NOT_SONG_CARD', 422);
-          if (index >= position.furthestPosition)
+          if (index >= position.furthestPosition || (index < 0 && !morningOpen))
             conflict('CARD_NOT_VIEWED', 422);
           if (!card.available || !card.content) conflict('CARD_UNAVAILABLE');
           if (saved && morningOpen) conflict('NIGHT_CLOSED');
@@ -466,11 +503,11 @@ export function createNightMorningDemo(
         const eligible = recent.filter((item) => item.can_adopt);
         return {
           night: { id: nightId, night_date: nightDate },
-          counted_sheep: finished!.summary.counted,
+          counted_sheep: totalCount(),
           candidate_cards: items,
           default_card_id: (warm[0] ?? eligible[0])?.card.id ?? null,
           adoption: adopted,
-          writing_offer: { ...finished!.writing_offer },
+          writing_offer: { ...(writingOffer ?? finished!.writing_offer) },
         };
       }),
     adopt: (id, cardId, signal) =>
@@ -499,6 +536,77 @@ export function createNightMorningDemo(
       }),
     loadFlock: (signal) => delayed(signal, () => (adopted ? [adopted] : [])),
   };
+  function beginSession(value: number) {
+    if (!draft || !Number.isInteger(value) || value < 3 || value > 30)
+      conflict('INVALID_SESSION', 422);
+    if (count !== null) {
+      if (count !== value) conflict('SESSION_ALREADY_STARTED');
+      return;
+    }
+    count = value;
+    const stopPosition = stopOfferPosition(value);
+    stopOffer =
+      stopPosition === null
+        ? undefined
+        : { id: `${nightId}-stop-offer`, position: stopPosition };
+    if (value >= 7 && draft!.category_id !== 'none' && draft!.worry_text) {
+      const item = {
+        id: `${nightId}-entrust`,
+        position: Math.min(6, Math.ceil(value / 2)),
+        get worry_text() {
+          return draft?.worry_text ?? '';
+        },
+      };
+      const read = () => ({ item_id: item.id, action: entrustAction });
+      entrust = {
+        item,
+        load: (signal) => delayed(signal, read),
+        save: (action, signal) =>
+          delayed(
+            signal,
+            () => {
+              guardNight('NIGHT_CLOSED');
+              if (morningOpen || finished) conflict('NIGHT_CLOSED');
+              if (
+                !progressRecorded ||
+                position.furthestPosition < item.position
+              )
+                conflict('PAUSE_NOT_VIEWED', 422);
+              if (action !== 'entrusted' && action !== 'skipped')
+                conflict('VALIDATION_ERROR', 422);
+              if (entrustAction !== null) {
+                if (entrustAction !== action) conflict('PAUSE_ALREADY_DECIDED');
+                return read();
+              }
+              if (action === 'entrusted' && !draft?.worry_text)
+                conflict('WORRY_NOT_AVAILABLE');
+              if (
+                (scenario === 'entrust-retry' ||
+                  scenario === 'entrust-slow-retry') &&
+                !failed.has('entrust')
+              ) {
+                failed.add('entrust');
+                throw new ApiError('network');
+              }
+              entrustAction = action;
+              if (
+                scenario === 'entrust-lost-response' &&
+                !failed.has('entrust')
+              ) {
+                failed.add('entrust');
+                throw new ApiError('network');
+              }
+              return read();
+            },
+            scenario === 'entrust-slow' ||
+              (scenario === 'entrust-slow-retry' && failed.has('entrust'))
+              ? 5000
+              : 400,
+          ),
+      };
+    }
+    loader = createMockNightFeed(value);
+  }
   const entry: NightEntryActions = {
     checkWorry: (value, signal) =>
       nightResponse(signal, () => {
@@ -519,76 +627,7 @@ export function createNightMorningDemo(
       }),
     startCounting: (value, signal) =>
       nightResponse(signal, () => {
-        if (!draft || !Number.isInteger(value) || value < 3 || value > 30)
-          conflict('INVALID_SESSION', 422);
-        if (count !== null) {
-          if (count !== value) conflict('SESSION_ALREADY_STARTED');
-          return;
-        }
-        count = value;
-        const stopPosition = stopOfferPosition(value);
-        stopOffer =
-          stopPosition === null
-            ? undefined
-            : { id: `${nightId}-stop-offer`, position: stopPosition };
-        if (value >= 7 && draft!.category_id !== 'none' && draft!.worry_text) {
-          const item = {
-            id: `${nightId}-entrust`,
-            position: Math.min(6, Math.ceil(value / 2)),
-            get worry_text() {
-              return draft?.worry_text ?? '';
-            },
-          };
-          const read = () => ({ item_id: item.id, action: entrustAction });
-          entrust = {
-            item,
-            load: (signal) => delayed(signal, read),
-            save: (action, signal) =>
-              delayed(
-                signal,
-                () => {
-                  guardNight('NIGHT_CLOSED');
-                  if (morningOpen || finished) conflict('NIGHT_CLOSED');
-                  if (
-                    !progressRecorded ||
-                    position.furthestPosition < item.position
-                  )
-                    conflict('PAUSE_NOT_VIEWED', 422);
-                  if (action !== 'entrusted' && action !== 'skipped')
-                    conflict('VALIDATION_ERROR', 422);
-                  if (entrustAction !== null) {
-                    if (entrustAction !== action)
-                      conflict('PAUSE_ALREADY_DECIDED');
-                    return read();
-                  }
-                  if (action === 'entrusted' && !draft?.worry_text)
-                    conflict('WORRY_NOT_AVAILABLE');
-                  if (
-                    (scenario === 'entrust-retry' ||
-                      scenario === 'entrust-slow-retry') &&
-                    !failed.has('entrust')
-                  ) {
-                    failed.add('entrust');
-                    throw new ApiError('network');
-                  }
-                  entrustAction = action;
-                  if (
-                    scenario === 'entrust-lost-response' &&
-                    !failed.has('entrust')
-                  ) {
-                    failed.add('entrust');
-                    throw new ApiError('network');
-                  }
-                  return read();
-                },
-                scenario === 'entrust-slow' ||
-                  (scenario === 'entrust-slow-retry' && failed.has('entrust'))
-                  ? 5000
-                  : 400,
-              ),
-          };
-        }
-        loader = createMockNightFeed(value);
+        beginSession(value);
       }),
   };
   const loadFeed: FeedLoad = async (signal) => {
@@ -600,6 +639,10 @@ export function createNightMorningDemo(
     guardNight();
     cards = loaded.map((card, index) => ({
       ...card,
+      id:
+        sessionIndex === 1
+          ? card.id
+          : `${nightId}-session-${sessionIndex}-${card.id}`,
       category_id: card.category_id === null ? null : draft!.category_id,
       ...(isPause(index) ? { available: false, content: null } : {}),
     }));
@@ -651,7 +694,20 @@ export function createNightMorningDemo(
             .map((card) => card.id),
         ).size,
       };
+      if (result.closing_card && sessionIndex > 1) {
+        result.closing_card = {
+          ...result.closing_card,
+          id: `${nightId}-session-${sessionIndex}-closing`,
+          content: {
+            text: `오늘 밤 ${sessionIndex}번째로 만난 양이 말해요.\n조금씩 쉬어 가도 괜찮아요.`,
+          },
+          kind: 'text',
+        };
+      }
+      writingOffer ??= { ...result.writing_offer };
+      result.writing_offer = { ...writingOffer };
       fingerprint = next;
+      finishedAt = new Date(instant()).toISOString();
       finished = result;
       failOnce('finish');
       return result;
@@ -668,14 +724,121 @@ export function createNightMorningDemo(
         if (!finished) conflict('SESSION_NOT_FINISHED');
         if (finished.writing_offer.state === 'fulfilled')
           conflict('OFFER_ALREADY_DECIDED');
-        finished = {
-          ...finished,
-          writing_offer: { state: choice === 'now' ? 'writing' : 'deferred' },
+        writingOffer = { state: choice === 'now' ? 'writing' : 'deferred' };
+        finished = { ...finished, writing_offer: { ...writingOffer } };
+      }),
+  };
+  const returning: NightReturnActions & {
+    create: (value: number, signal: AbortSignal) => Promise<void>;
+  } = {
+    load: (signal) =>
+      delayed(signal, (): ReturnBootstrap => {
+        expireIfDue();
+        const time = instant();
+        const phase = homePhase(time);
+        const next_screen =
+          phase === 'day' || morningOpen
+            ? 'MORNING_ADOPTION'
+            : count === null
+              ? draft
+                ? 'NIGHT_SHEEP_COUNT'
+                : 'NIGHT_WORRY'
+              : !finished
+                ? 'NIGHT_FEED'
+                : !closingConfirmed
+                  ? 'NIGHT_CLOSING'
+                  : 'NIGHT_RETURN';
+        return {
+          server_time: new Date(time).toISOString(),
+          timezone: 'Asia/Seoul',
+          phase,
+          night_date: fortuneDate(time),
+          next_screen,
+          night_id: draft ? nightId : null,
+          active_session_id:
+            count !== null && !finished
+              ? `${nightId}-session-${sessionIndex}`
+              : null,
+          last_session:
+            finished && finishedAt
+              ? {
+                  counted: totalCount(),
+                  status:
+                    JSON.parse(fingerprint!).reason === 'completed'
+                      ? 'completed'
+                      : 'stopped',
+                  finished_at: finishedAt,
+                  entrusted_count: Number(
+                    entrustAction === 'entrusted' ||
+                      archived.some((item) => item.entrusted),
+                  ),
+                  fluff_count: candidates().filter((item) => item.fluff_saved)
+                    .length,
+                  yarn_sent_count: candidates().filter(
+                    (item) => item.card.viewer.yarn_sent,
+                  ).length,
+                  closing_card: closingConfirmed ? null : finished.closing_card,
+                }
+              : null,
         };
+      }),
+    create: (value, signal) =>
+      nightResponse(signal, () => {
+        if (!Number.isInteger(value) || value < 3 || value > 30)
+          conflict('INVALID_SHEEP_COUNT', 422);
+        if (!finished) conflict('ACTIVE_SESSION_EXISTS');
+        if (!closingConfirmed) conflict('CLOSING_NOT_CONFIRMED');
+        archived.push({
+          counted: finished.summary.counted,
+          candidates: sessionCandidates(),
+          entrusted: entrustAction === 'entrusted',
+        });
+        count = null;
+        cards = null;
+        loader = null;
+        finished = null;
+        fingerprint = null;
+        finishedAt = null;
+        closingViewed = false;
+        closingConfirmed = false;
+        progressRecorded = false;
+        position = { position: 1, furthestPosition: 1 };
+        entrust = undefined;
+        entrustAction = null;
+        stopOffer = undefined;
+        baseClosing = createMockNightClosing();
+        sessionIndex++;
+        beginSession(value);
+        if (scenario === 'return-create-lost' && !failed.has('return-create')) {
+          failed.add('return-create');
+          throw new ApiError('network');
+        }
       }),
   };
   return {
     nightId,
+    returning,
+    getTotalCount: totalCount,
+    getClosingRequest: () =>
+      fingerprint
+        ? (JSON.parse(
+            fingerprint,
+          ) as import('../features/night/closing/types').ClosingRequest)
+        : null,
+    confirmClosing: () => {
+      if (expireIfDue() || morningOpen) return false;
+      if (
+        !finished ||
+        (finished.closing_card?.available &&
+          finished.closing_card.content &&
+          !closingViewed) ||
+        finished.writing_offer.state === 'offered' ||
+        finished.writing_offer.state === 'writing'
+      )
+        conflict('CLOSING_NOT_CONFIRMED');
+      closingConfirmed = true;
+      return true;
+    },
     get stopOffer() {
       return stopOffer;
     },
@@ -701,6 +864,7 @@ export function createNightMorningDemo(
     getRecord: () => ({
       night: readRecord() ?? null,
       finished: !!finished,
+      previousSessions: archived.length,
       counted: finished?.summary.counted ?? 0,
       morningOpen,
       expired,
@@ -743,6 +907,12 @@ export function createNightMorningDemo(
     advanceMorning: () => {
       if (!finished) throw new Error('Finish the demo night first');
       morningOpen = true;
+      if (
+        writingOffer?.state === 'offered' ||
+        writingOffer?.state === 'writing'
+      )
+        writingOffer = { state: 'deferred' };
+
       if (
         finished.writing_offer.state === 'offered' ||
         finished.writing_offer.state === 'writing'

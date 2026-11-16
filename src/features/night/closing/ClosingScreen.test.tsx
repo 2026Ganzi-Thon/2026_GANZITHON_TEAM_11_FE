@@ -248,3 +248,36 @@ describe('night closing flow', () => {
     expect(screen.queryByText('카드 작성 화면은 준비 중이에요')).toBeNull();
   });
 });
+it('restores an unfinished writing offer on closing replay and still lets it be deferred', async () => {
+  const api = actions();
+  jest.mocked(api.finish).mockResolvedValue({
+    ...result,
+    closing_card: null,
+    writing_offer: { state: 'writing' },
+  });
+  const onWrite = jest.fn();
+  await render(
+    <ClosingScreen
+      input={{
+        reason: 'completed',
+        position: 3,
+        furthestPosition: 3,
+        sheepCount: 3,
+      }}
+      actions={api}
+      onWrite={onWrite}
+      onExit={() => {}}
+    />,
+  );
+  await press('다음');
+  expect(onWrite).toHaveBeenCalledTimes(1);
+  expect(screen.getByRole('button', { name: '카드 이어 쓰기' })).toBeTruthy();
+  expect(screen.queryByRole('button', { name: '밤 마무리 확인' })).toBeNull();
+  await press('아침에 쓸게요');
+  expect(api.chooseWriting).toHaveBeenCalledWith(
+    'morning',
+    expect.any(String),
+    expect.any(AbortSignal),
+  );
+  expect(screen.getByText('편안한 밤 보내요')).toBeTruthy();
+});

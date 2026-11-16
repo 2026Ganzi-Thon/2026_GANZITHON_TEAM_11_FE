@@ -34,6 +34,7 @@ interface NightMorningFlowProps {
   navigation?: NightMorningNavigation;
   onHome?: () => void;
   onMorning?: () => void;
+  onReturn?: () => void;
   entryMode?: 'first-entry' | 'existing-night';
   blocked?: boolean;
 }
@@ -44,6 +45,7 @@ function NightMorningSession({
   navigation,
   onHome,
   onMorning,
+  onReturn,
   entryMode,
   blocked = false,
 }: NightMorningFlowProps) {
@@ -101,7 +103,10 @@ function NightMorningSession({
           actions={demo.closing}
           blocked={blocked}
           onExit={() => pause('closing')}
-          onRest={() => setPage('rest')}
+          onRest={() => {
+            if (demo.confirmClosing()) setPage('rest');
+            else onHome?.();
+          }}
           onWrite={openWriting}
         />
         {writingOpen && !blocked && (
@@ -112,7 +117,8 @@ function NightMorningSession({
             onBack={() => setWritingOpen(false)}
             onDone={() => {
               setWritingOpen(false);
-              setPage('rest');
+              if (demo.confirmClosing()) setPage('rest');
+              else onHome?.();
             }}
           />
         )}
@@ -152,6 +158,9 @@ function NightMorningSession({
               onMorning?.();
             }}
           />
+        )}
+        {page === 'rest' && onReturn && (
+          <Button label="다시 양 세기" onPress={onReturn} />
         )}
         <Button
           label={onHome ? '홈으로 돌아가기' : '시연 끝내기'}

@@ -15,6 +15,8 @@ export interface MorningCandidate {
   fluff_saved: boolean;
   position: number | null;
   sheep_count: number;
+  /** Optional memory-preview metadata for the counting round within one night. */
+  session_number?: number;
   last_viewed_at: string;
 }
 export interface Sheep {

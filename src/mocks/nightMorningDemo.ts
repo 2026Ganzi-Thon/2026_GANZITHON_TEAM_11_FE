@@ -328,6 +328,7 @@ export function createNightMorningDemo(
           card.available && !!card.content && card.viewer.fluff_saved,
         position: (index + 1) as number | null,
         sheep_count: count!,
+        session_number: sessionIndex,
         last_viewed_at: viewedAt.get(card.id) ?? `${nightDate}T16:12:00Z`,
       }))
       .filter(
@@ -343,6 +344,7 @@ export function createNightMorningDemo(
         fluff_saved: false,
         position: null,
         sheep_count: count!,
+        session_number: sessionIndex,
         last_viewed_at:
           viewedAt.get(finished.closing_card.id) ?? `${nightDate}T16:13:00Z`,
       });

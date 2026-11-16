@@ -1,3 +1,4 @@
+import { canUseMock } from '../../config/runtime';
 import { useMemo, useState } from 'react';
 import { Redirect, router } from 'expo-router';
 import { ScrollView, StyleSheet } from 'react-native';
@@ -58,7 +59,7 @@ export default function WorryDeletionPreview() {
       scenario === 'night' ? createNightMorningDemo('worry-delete') : null,
     [scenario],
   );
-  if (!__DEV__) return <Redirect href="/" />;
+  if (!canUseMock()) return <Redirect href="/" />;
   if (demo)
     return <NightMorningFlow demo={demo} onExit={() => setScenario(null)} />;
   if (actions && home)

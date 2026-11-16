@@ -1,3 +1,4 @@
+import { canUseMock } from '../../config/runtime';
 import { useEffect, useMemo, useState } from 'react';
 import { Redirect, router } from 'expo-router';
 import { BackHandler, ScrollView, StyleSheet, Text } from 'react-native';
@@ -15,7 +16,7 @@ export default function LoginPreview() {
     [scenario],
   );
   useEffect(() => {
-    if (!__DEV__ || !scenario) return;
+    if (!canUseMock() || !scenario) return;
     const subscription = BackHandler.addEventListener(
       'hardwareBackPress',
       () => {
@@ -26,7 +27,7 @@ export default function LoginPreview() {
     return () => subscription.remove();
   }, [scenario]);
 
-  if (!__DEV__) return <Redirect href="/" />;
+  if (!canUseMock()) return <Redirect href="/" />;
   if (submit)
     return <LoginScreen submit={submit} onBack={() => setScenario(null)} />;
   return (

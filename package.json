@@ -18,7 +18,8 @@
     "check": "npm run typecheck && npm run lint && npm run format:check",
     "bundle:android": "expo export --platform android",
     "test": "jest",
-    "test:ci": "jest --ci --runInBand"
+    "test:ci": "jest --ci --runInBand",
+    "build:preview:android": "bash scripts/build-preview-android.sh"
   },
   "dependencies": {
     "@expo-google-fonts/noto-sans-kr": "0.4.4",

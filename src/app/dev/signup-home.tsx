@@ -1,3 +1,4 @@
+import { canUseMock } from '../../config/runtime';
 import { useMemo, useState } from 'react';
 import { Redirect, router } from 'expo-router';
 import { ScrollView } from 'react-native';
@@ -16,7 +17,7 @@ import { Notice } from '../../ui/Notice';
 import { Button } from '../../ui/Button';
 export default function SignupHomePreview() {
   const runtime = useMemo(
-    () => (__DEV__ ? getNativeReminderSession() : null),
+    () => (canUseMock() ? getNativeReminderSession() : null),
     [],
   );
   const [source, setSource] = useState<SignupOnboardingSource | null>(null),
@@ -34,7 +35,7 @@ export default function SignupHomePreview() {
         : null,
     [source],
   );
-  if (!__DEV__ || !runtime) return <Redirect href="/" />;
+  if (!canUseMock() || !runtime) return <Redirect href="/" />;
   const start = async (phase: 'day' | 'night' | 'slow') => {
     if (busy) return;
     setBusy(true);

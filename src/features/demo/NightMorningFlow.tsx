@@ -1,49 +1,76 @@
 import { CardWritingScreen } from '../cards/CardWritingScreen';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
+import {
+  createNightMorningNavigation,
+  type NightMorningNavigation,
+} from './navigation';
 import { BackHandler, ScrollView, StyleSheet } from 'react-native';
 import { NightEntryScreen } from '../night/NightEntryScreen';
 import { FeedScreen } from '../night/feed/FeedScreen';
 import { ClosingScreen } from '../night/closing/ClosingScreen';
-import type { ClosingRequest } from '../night/closing/types';
 import { MorningScreen } from '../morning/MorningScreen';
 import { NightScreen } from '../../ui/NightScreen';
 import { Notice } from '../../ui/Notice';
 import { Button } from '../../ui/Button';
 import type { createNightMorningDemo } from '../../mocks/nightMorningDemo';
-type Page = 'entry' | 'feed' | 'closing' | 'paused' | 'rest' | 'morning';
-export function NightMorningFlow({
-  demo,
-  onExit,
-  initialCount = 3,
-}: {
+export function NightMorningFlow(props: NightMorningFlowProps) {
+  const [source, setSource] = useState({
+    demo: props.demo,
+    navigation: props.navigation,
+    version: 0,
+  });
+  if (source.demo !== props.demo || source.navigation !== props.navigation)
+    setSource({
+      demo: props.demo,
+      navigation: props.navigation,
+      version: source.version + 1,
+    });
+  return <NightMorningSession key={source.version} {...props} />;
+}
+interface NightMorningFlowProps {
   demo: ReturnType<typeof createNightMorningDemo>;
   onExit: () => void;
   initialCount?: number;
-}) {
+  navigation?: NightMorningNavigation;
+  onHome?: () => void;
+  onMorning?: () => void;
+  entryMode?: 'first-entry' | 'existing-night';
+}
+function NightMorningSession({
+  demo,
+  onExit,
+  initialCount = 3,
+  navigation,
+  onHome,
+  onMorning,
+  entryMode,
+}: NightMorningFlowProps) {
   const [writingOpen, setWritingOpen] = useState(false);
   const openWriting = useCallback(() => setWritingOpen(true), []);
-  const [page, setPage] = useState<Page>('entry');
-  const [resume, setResume] = useState<'feed' | 'closing'>('feed');
-  const [request, setRequest] = useState<ClosingRequest | null>(null);
-  const [wasMorning, setWasMorning] = useState(false);
+  const [nav] = useState(() => navigation ?? createNightMorningNavigation());
+  const { page, resume, request, wasMorning } = useSyncExternalStore(
+    nav.subscribe,
+    nav.getSnapshot,
+    nav.getSnapshot,
+  );
+  const setPage = nav.setPage;
   useEffect(() => {
     if (page !== 'paused' && page !== 'rest') return;
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (page === 'paused') setPage(resume);
+      if (onHome) onHome();
+      else if (page === 'paused') setPage(resume);
       else onExit();
       return true;
     });
     return () => sub.remove();
-  }, [page, resume, onExit]);
-  const pause = (from: 'feed' | 'closing') => {
-    setResume(from);
-    setPage('paused');
-  };
+  }, [page, resume, onExit, onHome, setPage]);
+  const pause = nav.pause;
   if (page === 'entry')
     return (
       <NightEntryScreen
         actions={demo.entry}
-        onBack={onExit}
+        onBack={onHome ?? onExit}
+        mode={entryMode}
         initialCount={initialCount}
         onStarted={() => setPage('feed')}
       />
@@ -57,10 +84,7 @@ export function NightMorningFlow({
         fluff={demo.fluff}
         initialPosition={demo.getProgress()}
         onProgress={demo.progress}
-        onFinish={(input) => {
-          setRequest(input);
-          setPage('closing');
-        }}
+        onFinish={nav.closing}
         onBack={() => pause('feed')}
       />
     );
@@ -118,12 +142,15 @@ export function NightMorningFlow({
             label={wasMorning ? '아침 다시 보기' : '다음 아침으로 이동'}
             onPress={() => {
               demo.advanceMorning();
-              setWasMorning(true);
-              setPage('morning');
+              nav.showMorning();
+              onMorning?.();
             }}
           />
         )}
-        <Button label="시연 끝내기" onPress={onExit} />
+        <Button
+          label={onHome ? '홈으로 돌아가기' : '시연 끝내기'}
+          onPress={onHome ?? onExit}
+        />
       </ScrollView>
     </NightScreen>
   );

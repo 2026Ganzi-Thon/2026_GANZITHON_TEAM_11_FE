@@ -44,6 +44,9 @@ export type MyCardsScenario =
   | 'write-slow'
   | 'write-empty-search';
 export interface MockMyCards extends MyCardsWritingSource {
+  seedPublishedText(id: string, text: string): void;
+  readPublished(id: string): Submission | null;
+  recordReceivedYarn(id: string, receiptId: string): boolean;
   acceptSubmission(receipt: TextCardSubmission | SongCardSubmission): void;
 }
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
@@ -166,6 +169,7 @@ export function createMockMyCards(
     JSON.stringify([value.category_id, value.text.trim()]);
   const failures = new Set<string>();
   const deleted = new Set<string>();
+  const incoming = new Map<string, Set<string>>();
   let refreshFailure = false;
   let writingSession = 0;
   const acceptSubmission: MockMyCards['acceptSubmission'] = (receipt) => {
@@ -224,6 +228,44 @@ export function createMockMyCards(
   }
   return {
     acceptSubmission,
+    seedPublishedText(id, text) {
+      if (records.some((item) => item.id === id) || deleted.has(id)) return;
+      records.unshift({
+        id,
+        kind: 'text',
+        category_id: 'career',
+        content: { text },
+        moderation_status: 'approved',
+        rejection_reason: null,
+        yarn_count: 0,
+        created_at: new Date(now()).toISOString(),
+        revision: 1,
+      });
+    },
+    readPublished(id) {
+      const card = records.find(
+        (item) =>
+          item.id === id &&
+          !deleted.has(id) &&
+          item.moderation_status === 'approved',
+      );
+      return card ? clone(card) : null;
+    },
+    recordReceivedYarn(id, receiptId) {
+      const card = records.find(
+        (item) =>
+          item.id === id &&
+          !deleted.has(id) &&
+          item.moderation_status === 'approved',
+      );
+      if (!card) return false;
+      const received = incoming.get(id) ?? new Set<string>();
+      if (received.has(receiptId)) return false;
+      received.add(receiptId);
+      incoming.set(id, received);
+      card.yarn_count += 1;
+      return true;
+    },
     readDraft(item) {
       const previous = drafts.get(item.id);
       if (previous) return { ...previous };

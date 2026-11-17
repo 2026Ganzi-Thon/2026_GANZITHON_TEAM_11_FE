@@ -5,6 +5,7 @@ interface Snapshot {
   summary: ReceivedYarnSummary | null;
   visible: boolean;
   displayed: boolean;
+  manual: boolean;
   seen: 'idle' | 'pending' | 'saved' | 'error';
 }
 function valid(value: unknown): value is ReceivedYarnSummary {
@@ -44,6 +45,7 @@ export function createReceivedYarnController(actions: ReceivedYarnActions) {
     summary: null,
     visible: false,
     displayed: false,
+    manual: false,
     seen: 'idle',
   };
   const listeners = new Set<() => void>();
@@ -51,7 +53,7 @@ export function createReceivedYarnController(actions: ReceivedYarnActions) {
     data = next;
     listeners.forEach((listener) => listener());
   };
-  async function load() {
+  async function load(manual = false) {
     if (!active || request) return;
     const controller = new AbortController();
     request = controller;
@@ -60,10 +62,13 @@ export function createReceivedYarnController(actions: ReceivedYarnActions) {
       summary: null,
       visible: false,
       displayed: false,
+      manual,
       seen: 'idle',
     });
     try {
-      const summary = await actions.load(controller.signal);
+      const summary = await (manual
+        ? actions.loadLatest!(controller.signal)
+        : actions.load(controller.signal));
       if (!active || request !== controller || controller.signal.aborted)
         return;
       if (summary !== null && !valid(summary))
@@ -127,8 +132,12 @@ export function createReceivedYarnController(actions: ReceivedYarnActions) {
       request = null;
       if (data.seen === 'pending') data = { ...data, seen: 'error' };
     },
+    open() {
+      if (!active || blocked || request || !actions.loadLatest) return;
+      void load(true);
+    },
     retryLoad() {
-      if (data.phase === 'error') void load();
+      if (data.phase === 'error') void load(data.manual);
     },
     shown() {
       if (

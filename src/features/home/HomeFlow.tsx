@@ -79,6 +79,7 @@ function MorningHome({
     <MorningScreen
       fortuneKey={date}
       homeWhenNoCandidates
+      homeBlocked={flow.pending || !!flow.error}
       actions={morning}
       myCards={source.cards}
       loadDetail={source.loadDetail}

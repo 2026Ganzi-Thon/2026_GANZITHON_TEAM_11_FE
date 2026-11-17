@@ -1,3 +1,4 @@
+import type { ReceivedYarnScenario } from './receivedYarn';
 import { ApiError } from '../api/errors';
 import { createMockAccountScope } from './accountScope';
 import { createMockSignup } from './signup';
@@ -11,7 +12,10 @@ import type { SignupHomeContext } from './signupOnboarding';
 export function createMockSignupJourney(
   reminder: SignupHomeContext['reminder'],
   phase: 'day' | 'night' | 'slow' = 'day',
-  options: { withdrawalScenario?: 'success' | 'retry' | 'slow' } = {},
+  options: {
+    withdrawalScenario?: 'success' | 'retry' | 'slow';
+    receivedYarnScenario?: ReceivedYarnScenario;
+  } = {},
 ) {
   let base = Date.parse(
       phase === 'night'
@@ -107,7 +111,11 @@ export function createMockSignupJourney(
         ),
       ),
       createHome: (context) => {
-        const raw = createMockMultiNightJourney({ ...context, clock });
+        const raw = createMockMultiNightJourney({
+          ...context,
+          clock,
+          receivedYarnScenario: options.receivedYarnScenario,
+        });
         raw.home.settings!.withdrawal = withdrawal;
         journey = scope.protect(raw);
         return journey.home;

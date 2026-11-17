@@ -1,3 +1,5 @@
+import { createMockReceivedYarnInbox } from './receivedYarnInbox';
+import type { ReceivedYarnScenario } from './receivedYarn';
 import { createMockDecoration } from './decoration';
 import { ApiError } from '../api/errors';
 import {
@@ -24,6 +26,7 @@ export function createMockMultiNightJourney(
     clock: { now: () => number; advanceMorning: (nightDate: string) => void };
     expiryScenario?: 'success' | 'check-retry' | 'morning-retry';
     nightScenario?: DemoScenario;
+    receivedYarnScenario?: ReceivedYarnScenario;
   },
 ) {
   const now = options.clock.now,
@@ -33,6 +36,13 @@ export function createMockMultiNightJourney(
       expiryScenario: options.expiryScenario,
       scenario: options.nightScenario,
     });
+  const inbox = createMockReceivedYarnInbox({
+    ownerId: options.identity.id,
+    now,
+    cards: history.cards,
+    scenario: options.receivedYarnScenario,
+  });
+  let receiptBatch = 0;
   let activeDate = fortuneDate(now()),
     active = history.openNight(activeDate);
   const advanced = new Set<string>();
@@ -55,6 +65,9 @@ export function createMockMultiNightJourney(
   };
   const decoration = createMockDecoration(history.loadSheep, { now });
   const common: MorningActions = {
+    get receivedYarn() {
+      return inbox.forDate(fortuneDate(now()), homePhase(now()) === 'day');
+    },
     decoration,
     loadFlock: async (signal) =>
       (await history.loadFlock(signal)).map(decoration.decorate),
@@ -99,6 +112,7 @@ export function createMockMultiNightJourney(
     if (cached) return cached;
     const result: MorningActions = {
       ...common,
+      receivedYarn: inbox.forDate(date, snapshot.phase === 'day'),
       writing: available?.morning.writing,
       songs: available?.morning.songs,
       loadMorning: async (signal, id) => {
@@ -139,6 +153,29 @@ export function createMockMultiNightJourney(
   return {
     home,
     history,
+    previewReceiveYarn(amount: 1 | 3 = 3) {
+      const ids = [
+        `${options.identity.id}-published-a`,
+        `${options.identity.id}-published-b`,
+      ];
+      history.cards.seedPublishedText(
+        ids[0],
+        '결과를 기다리는 밤이 길게 느껴져도, 오늘 하루 버틴 자신을 다독여 주세요.',
+      );
+      history.cards.seedPublishedText(
+        ids[1],
+        '잠깐 쉬어도 괜찮아요. 내일의 속도는 내일 정해도 돼요.',
+      );
+      const batch = ++receiptBatch,
+        receivedAt = now();
+      for (let i = 0; i < amount; i++)
+        inbox.receive({
+          id: `${options.identity.id}-receipt-${batch}-${i}`,
+          cardId: ids[i === 2 ? 1 : 0],
+          senderKey: `incoming-${batch}-${i === 2 ? 0 : i}`,
+          receivedAt,
+        });
+    },
     get night() {
       return active.demo;
     },

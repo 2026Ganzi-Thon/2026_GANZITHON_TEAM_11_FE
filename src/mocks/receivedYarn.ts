@@ -62,6 +62,13 @@ export function createMockReceivedYarn(
     }
   };
   return {
+    loadLatest: (signal) =>
+      delayed(
+        signal,
+        () =>
+          scenario === 'none' || scenario === 'zero' ? null : { ...summary },
+        scenario === 'slow-load' ? 5000 : 400,
+      ),
     load: (signal) =>
       delayed(
         signal,

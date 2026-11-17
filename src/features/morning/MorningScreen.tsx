@@ -104,6 +104,7 @@ function MorningSession({
   loadDetail,
   homeFooter,
   homeWhenNoCandidates = false,
+  homeBlocked = false,
   fortuneKey,
   myCards,
 }: {
@@ -112,6 +113,7 @@ function MorningSession({
   loadDetail?: SheepDetailLoad;
   homeFooter?: (blocked: boolean) => ReactNode;
   homeWhenNoCandidates?: boolean;
+  homeBlocked?: boolean;
   fortuneKey?: string;
   myCards?: MyCardsWritingSource;
 }) {
@@ -155,6 +157,7 @@ function MorningSession({
               <ReceivedYarnSection
                 actions={actions.receivedYarn}
                 blocked={
+                  homeBlocked ||
                   decorationPicking ||
                   decorationId !== null ||
                   cardsOpen ||

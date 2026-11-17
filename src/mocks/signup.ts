@@ -1,3 +1,4 @@
+import { createMockPasswordReset } from './passwordReset';
 import { ApiError } from '../api/errors';
 import { birthDateError, kstDate, parseDate } from '../features/birthDate/date';
 import {
@@ -75,6 +76,9 @@ export function createMockSignup(
     '알림 수신',
   ];
   return {
+    passwordReset: createMockPasswordReset(
+      scenario === 'slow' ? 'slow' : 'success',
+    ),
     get today() {
       return today();
     },

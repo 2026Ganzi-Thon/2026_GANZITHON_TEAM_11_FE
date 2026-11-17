@@ -26,11 +26,15 @@ export type LoginSubmit = (
 export function LoginScreen({
   submit,
   onBack,
+  onResetPassword,
+  initialEmail = '',
 }: {
   submit: LoginSubmit;
   onBack: () => void;
+  onResetPassword?: (email: string) => void;
+  initialEmail?: string;
 }) {
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<{ email?: string; password?: string }>(
     {},
@@ -164,7 +168,9 @@ export function LoginScreen({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="비밀번호를 잊었어요"
-            onPress={() => setResetNotice(true)}
+            onPress={() =>
+              onResetPassword ? onResetPassword(email) : setResetNotice(true)
+            }
             style={styles.reset}
           >
             <Image

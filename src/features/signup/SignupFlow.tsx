@@ -1,6 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { BackHandler, Text } from 'react-native';
-import { LoginScreen } from '../auth/LoginScreen';
+import { LoginRecoveryFlow } from '../auth/LoginRecoveryFlow';
 import type { Registration, SignupActions } from './types';
 import type { BirthDateResult } from '../birthDate/types';
 import { createSignupController } from './controller';
@@ -44,7 +44,8 @@ function SignupSession({
       onComplete(state.registration, state.result);
   }, [state.stage, state.registration, state.result, onComplete]);
   useEffect(() => {
-    if (state.stage === 'complete' && onComplete) return;
+    if (state.stage === 'login' || (state.stage === 'complete' && onComplete))
+      return;
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
       if (state.stage === 'welcome' || state.stage === 'complete') {
         c.stop();
@@ -57,7 +58,13 @@ function SignupSession({
   if (state.stage === 'welcome')
     return <WelcomeScreen onSignup={c.openSignup} onLogin={c.openLogin} />;
   if (state.stage === 'login')
-    return <LoginScreen submit={actions.login} onBack={c.back} />;
+    return (
+      <LoginRecoveryFlow
+        submit={actions.login}
+        resetActions={actions.passwordReset}
+        onExit={c.back}
+      />
+    );
   if (state.stage === 'email') return <EmailSignup state={state} c={c} />;
   if (state.stage === 'consents') return <ConsentScreen state={state} c={c} />;
   if (state.stage === 'birth')

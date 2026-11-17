@@ -20,6 +20,7 @@ import { WorryListScreen } from './WorryListScreen';
 import { useSettings } from './useSettings';
 import { ReminderScreen } from '../reminder/ReminderScreen';
 import { reminderLabel } from '../reminder/time';
+import { WithdrawalDialog } from '../withdrawal/WithdrawalDialog';
 import { BirthDateScreen } from '../birthDate/BirthDateScreen';
 export function SettingsScreen(props: Parameters<typeof SettingsSession>[0]) {
   const [source, setSource] = useState({ actions: props.actions, version: 0 });
@@ -39,6 +40,7 @@ function SettingsSession({
   const flow = useSettings(actions);
   const { refresh } = flow;
   const [list, setList] = useState(false);
+  const [withdrawalOpen, setWithdrawalOpen] = useState(false);
   const [birthDateOpen, setBirthDateOpen] = useState(false);
   const [reminderOpen, setReminderOpen] = useState(false);
   const back = () => {
@@ -203,6 +205,11 @@ function SettingsSession({
                 <View style={styles.divider} />
                 <Row
                   label="탈퇴"
+                  onPress={
+                    actions.withdrawal
+                      ? () => setWithdrawalOpen(true)
+                      : undefined
+                  }
                   icon={require('../../../assets/images/settings/withdraw.svg')}
                   destructive
                 />
@@ -233,6 +240,13 @@ function SettingsSession({
   return (
     <>
       {screen}
+      {withdrawalOpen && actions.withdrawal && (
+        <WithdrawalDialog
+          actions={actions.withdrawal}
+          onCancel={() => setWithdrawalOpen(false)}
+          onWithdrawn={() => setWithdrawalOpen(false)}
+        />
+      )}
       {reminderOpen && actions.reminder && (
         <ReminderScreen
           modal

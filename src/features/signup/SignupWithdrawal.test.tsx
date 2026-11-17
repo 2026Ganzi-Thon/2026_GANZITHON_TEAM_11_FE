@@ -80,7 +80,7 @@ it('returns to a blank signup on the same source, cannot reopen the withdrawn ho
   const old = f.source.getJourney()!;
   await press('탈퇴 열기');
   await press('조금 더 있을래요');
-  expect(screen.getByText('old@example.com')).toBeTruthy();
+  expect(screen.getByLabelText('로그인 정보: old@example.com')).toBeTruthy();
   expect(f.source.getJourney()).toBe(old);
   await press('탈퇴 열기');
   await press('탈퇴하기');
@@ -99,7 +99,7 @@ it('returns to a blank signup on the same source, cannot reopen the withdrawn ho
   await signup('new@example.com');
   await press('설정 열기');
   await tick();
-  expect(screen.getByText('new@example.com')).toBeTruthy();
+  expect(screen.getByLabelText('로그인 정보: new@example.com')).toBeTruthy();
   expect(screen.getByText('0밤째 양을 세는 중')).toBeTruthy();
   const me = f.source
     .getJourney()!

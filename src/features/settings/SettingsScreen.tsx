@@ -1,3 +1,4 @@
+import { LegalDocumentsScreen } from '../legal/LegalDocumentsScreen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import {
@@ -40,11 +41,13 @@ function SettingsSession({
   const flow = useSettings(actions);
   const { refresh } = flow;
   const [list, setList] = useState(false);
+  const [legal, setLegal] = useState(false);
   const [withdrawalOpen, setWithdrawalOpen] = useState(false);
   const [birthDateOpen, setBirthDateOpen] = useState(false);
   const [reminderOpen, setReminderOpen] = useState(false);
   const back = () => {
-    if (list) {
+    if (legal) setLegal(false);
+    else if (list) {
       setList(false);
       refresh();
     } else {
@@ -55,17 +58,23 @@ function SettingsSession({
   useEffect(() => {
     if (modal) return;
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (list) {
+      if (legal) setLegal(false);
+      else if (list) {
         setList(false);
         refresh();
       } else onBack();
       return true;
     });
     return () => sub.remove();
-  }, [list, modal, onBack, refresh]);
+  }, [legal, list, modal, onBack, refresh]);
   const data = flow.data;
   const content =
-    list && data ? (
+    legal && actions.documents ? (
+      <LegalDocumentsScreen
+        actions={actions.documents}
+        onBack={() => setLegal(false)}
+      />
+    ) : list && data ? (
       <WorryListScreen
         actions={actions.worries}
         total={
@@ -193,6 +202,8 @@ function SettingsSession({
                 <View style={styles.divider} />
                 <Row
                   label="로그인 정보"
+                  value={data.user.email}
+                  readOnly
                   icon={require('../../../assets/images/settings/login.svg')}
                 />
               </View>
@@ -200,6 +211,7 @@ function SettingsSession({
               <View style={styles.panel}>
                 <Row
                   label="약관 · 개인정보"
+                  onPress={actions.documents ? () => setLegal(true) : undefined}
                   icon={require('../../../assets/images/settings/legal.svg')}
                 />
                 <View style={styles.divider} />
@@ -276,22 +288,17 @@ function Row({
   icon,
   onPress,
   destructive = false,
+  readOnly = false,
 }: {
   label: string;
   value?: string;
   icon: ImageSource;
   onPress?: () => void;
   destructive?: boolean;
+  readOnly?: boolean;
 }) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={onPress ? `${label} 열기` : `${label} · 준비 중`}
-      accessibilityState={{ disabled: !onPress }}
-      disabled={!onPress}
-      onPress={onPress}
-      style={styles.row}
-    >
+  const content = (
+    <>
       <Image
         source={icon}
         style={{ width: 26, height: 26 }}
@@ -301,7 +308,9 @@ function Row({
         <Text style={[styles.body, destructive && styles.destructive]}>
           {label}
         </Text>
-        <Text style={styles.caption}>{onPress ? value : '준비 중'}</Text>
+        <Text style={styles.caption}>
+          {readOnly || onPress ? value : '준비 중'}
+        </Text>
       </View>
       {onPress && (
         <Image
@@ -310,6 +319,29 @@ function Row({
           accessible={false}
         />
       )}
+    </>
+  );
+  if (readOnly)
+    return (
+      <View
+        accessible
+        accessibilityRole="text"
+        accessibilityLabel={`${label}: ${value}`}
+        style={styles.row}
+      >
+        {content}
+      </View>
+    );
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={onPress ? `${label} 열기` : `${label} · 준비 중`}
+      accessibilityState={{ disabled: !onPress }}
+      disabled={!onPress}
+      onPress={onPress}
+      style={styles.row}
+    >
+      {content}
     </Pressable>
   );
 }

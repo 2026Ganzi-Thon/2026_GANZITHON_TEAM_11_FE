@@ -1,3 +1,4 @@
+import type { LegalDocumentActions } from '../legal/model';
 import type { WithdrawalActions } from '../withdrawal/types';
 import type { WorryDeletions } from '../worries/deletions';
 import type { ReminderActions } from '../reminder/types';
@@ -24,6 +25,7 @@ export interface SettingsData {
   reminder: { enabled: boolean; local_time: string | null };
 }
 export interface SettingsActions {
+  documents?: LegalDocumentActions;
   withdrawal?: WithdrawalActions;
   birthDate?: BirthDateActions;
   reminder?: ReminderActions;

@@ -1,3 +1,4 @@
+import { createMockLegalDocuments } from './legalDocuments';
 import { createMockWorryRecords, type MockWorryRecords } from './worryRecords';
 import { ApiError } from '../api/errors';
 import type { SettingsActions, WorryRecord } from '../features/settings/types';
@@ -162,6 +163,7 @@ export function createMockSettings(
     });
   }
   return {
+    documents: createMockLegalDocuments(),
     loadMe: (signal) =>
       delayed(signal, 'me', () => ({
         user: {

@@ -108,7 +108,7 @@ it('connects birth, time picker, native reminder, intro, first home and the same
   ).toBeDisabled();
   await press('설정 열기');
   await tick();
-  expect(screen.getByText('new@example.com')).toBeTruthy();
+  expect(screen.getByLabelText('로그인 정보: new@example.com')).toBeTruthy();
   expect(screen.getByText('2004.06.14 · 수정 1회')).toBeTruthy();
   expect(screen.getByText('켜짐 · 23:15')).toBeTruthy();
   expect(f.alarms.size).toBe(1);
@@ -276,14 +276,14 @@ it.each(['day', 'night'] as const)(
       await press('밤에 만나요');
     }
     await tick();
-    expect(screen.getByText('new@example.com')).toBeTruthy();
+    expect(screen.getByLabelText('로그인 정보: new@example.com')).toBeTruthy();
     expect(screen.getByText('2004.06.14 · 수정 1회')).toBeTruthy();
     await press('아침 홈으로 돌아가기');
     expect(exit).toHaveBeenCalledTimes(1);
     await screen.unmount();
     await render(ui());
     await tick();
-    expect(screen.getByText('new@example.com')).toBeTruthy();
+    expect(screen.getByLabelText('로그인 정보: new@example.com')).toBeTruthy();
     expect(screen.queryByRole('button', { name: '밤에 만나요' })).toBeNull();
   },
 );

@@ -16,6 +16,10 @@ export default function StartScreen() {
         {canUseMock() && (
           <>
             <Button
+              label="설정 이메일·문서 열람"
+              onPress={() => router.push('/dev/settings-documents')}
+            />
+            <Button
               label="탈퇴·가입 복귀 미리보기"
               onPress={() => router.push('/dev/withdrawal')}
             />

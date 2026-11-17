@@ -1,3 +1,4 @@
+import type { PasswordResetActions } from '../auth/passwordReset/model';
 import type { LoginRequest } from '../../api/contracts';
 import type { BirthDateResult } from '../birthDate/types';
 export const consentIds = [
@@ -24,6 +25,7 @@ export interface Registration {
 }
 /** UI ports only. Extra consent fields and registration recovery are not HTTP contracts. */
 export interface SignupActions {
+  passwordReset: PasswordResetActions;
   today: string;
   loadDocuments(signal: AbortSignal): Promise<ConsentDocuments>;
   register(

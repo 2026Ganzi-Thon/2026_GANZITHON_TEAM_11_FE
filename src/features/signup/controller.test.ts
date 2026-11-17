@@ -13,6 +13,7 @@ const documents: ConsentDocuments = {
 };
 function fixture() {
   const actions: SignupActions = {
+    passwordReset: { request: async () => ({ accepted: true }) },
     today: '2026-11-16',
     loadDocuments: jest
       .fn<SignupActions['loadDocuments']>()

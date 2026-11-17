@@ -39,6 +39,7 @@ import Route31 from '../../app/dev/night-return';
 import Route32 from '../../app/dev/decoration';
 import Route33 from '../../app/dev/withdrawal';
 import SettingsDocumentsPreview from '../../app/dev/settings-documents';
+import Route34 from '../../app/dev/received-yarn-home';
 import { getNativeReminderSession } from '../../notifications/nativeRuntime';
 jest.mock('expo-constants', () => ({
   __esModule: true,
@@ -129,6 +130,7 @@ const routes = [
   ['night-return', Route31],
   ['decoration', Route32],
   ['withdrawal', Route33],
+  ['received-yarn-home', Route34],
 ] as const;
 it.each(routes)(
   'opens %s in a preview release without a development server',
@@ -206,7 +208,7 @@ it('opens the shared home from its preview-release route and initializes its nat
   });
   expect(screen.getByText('아직 센 양이 없어요')).toBeTruthy();
 });
-it.each([Route27, Route33])(
+it.each([Route27, Route33, Route34])(
   'blocks direct production entry without initializing its native session',
   async (Route) => {
     Object.defineProperty(globalThis, '__DEV__', {

@@ -37,10 +37,48 @@ export function ReceivedYarnSection({
   const { summary } = flow;
   return (
     <>
+      {actions.loadLatest && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="받은 털실 알림 열기"
+          accessibilityState={{
+            disabled:
+              paused || flow.phase === 'loading' || flow.seen === 'pending',
+          }}
+          disabled={
+            paused || flow.phase === 'loading' || flow.seen === 'pending'
+          }
+          onPress={flow.open}
+          style={styles.bell}
+        >
+          <Image
+            source={require('../../../assets/images/first-night-home/notifications.svg')}
+            style={{ width: 24.75, height: 22 }}
+            accessible={false}
+          />
+          <Text style={styles.homeText}>받은 털실</Text>
+        </Pressable>
+      )}
+      {flow.manual && flow.phase === 'none' && (
+        <View style={styles.homePanel}>
+          <Text style={styles.homeText} accessibilityLiveRegion="polite">
+            아직 도착한 털실이 없어요
+          </Text>
+        </View>
+      )}
+      {flow.seen === 'pending' && !flow.visible && (
+        <View style={styles.homePanel}>
+          <Text style={styles.homeText} accessibilityLiveRegion="polite">
+            확인 상태를 저장하고 있어요
+          </Text>
+        </View>
+      )}
       {flow.phase === 'loading' && (
-        <Text style={styles.homeText} accessibilityLiveRegion="polite">
-          받은 털실을 확인하고 있어요
-        </Text>
+        <View style={styles.homePanel}>
+          <Text style={styles.homeText} accessibilityLiveRegion="polite">
+            받은 털실을 확인하고 있어요
+          </Text>
+        </View>
       )}
       {flow.phase === 'error' && (
         <View style={styles.homePanel}>
@@ -138,6 +176,14 @@ export function ReceivedYarnSection({
   );
 }
 const styles = StyleSheet.create({
+  bell: {
+    minHeight: 44,
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    padding: 8,
+  },
   shade: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)' },
   scroll: {
     flexGrow: 1,

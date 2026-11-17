@@ -26,6 +26,7 @@ export function useReceivedYarn(
   }, [controller]);
   return {
     ...data,
+    open: controller.open,
     shown: controller.shown,
     dismiss: controller.dismiss,
     retryLoad: controller.retryLoad,

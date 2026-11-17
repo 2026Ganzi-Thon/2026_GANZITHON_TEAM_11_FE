@@ -60,19 +60,25 @@ export function ReceivedYarnSection({
         </Pressable>
       )}
       {flow.manual && flow.phase === 'none' && (
-        <Text style={styles.homeText} accessibilityLiveRegion="polite">
-          아직 도착한 털실이 없어요
-        </Text>
+        <View style={styles.homePanel}>
+          <Text style={styles.homeText} accessibilityLiveRegion="polite">
+            아직 도착한 털실이 없어요
+          </Text>
+        </View>
       )}
       {flow.seen === 'pending' && !flow.visible && (
-        <Text style={styles.homeText} accessibilityLiveRegion="polite">
-          확인 상태를 저장하고 있어요
-        </Text>
+        <View style={styles.homePanel}>
+          <Text style={styles.homeText} accessibilityLiveRegion="polite">
+            확인 상태를 저장하고 있어요
+          </Text>
+        </View>
       )}
       {flow.phase === 'loading' && (
-        <Text style={styles.homeText} accessibilityLiveRegion="polite">
-          받은 털실을 확인하고 있어요
-        </Text>
+        <View style={styles.homePanel}>
+          <Text style={styles.homeText} accessibilityLiveRegion="polite">
+            받은 털실을 확인하고 있어요
+          </Text>
+        </View>
       )}
       {flow.phase === 'error' && (
         <View style={styles.homePanel}>

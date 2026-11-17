@@ -177,3 +177,63 @@ it('reconciles an unfinished night on the first daytime home read and keeps the 
     worry_record_count: 1,
   });
 });
+
+it('shares decoration across dated morning sources while keeping another account isolated', async () => {
+  const { source, setTime } = fixture();
+  const sheep = await complete(source.night, 3, '첫째 고민');
+  source.advanceMorning();
+  const old = source.home.resolveMorning!(
+    await settle(source.home.clock.load(signal())),
+  );
+  const api = old.decoration!;
+  const data = await settle(api.load(sheep.id, signal()));
+  await settle(
+    api.save(
+      sheep.id,
+      {
+        if_version: data.sheep.version,
+        placements: [
+          {
+            instance_id: 'my-star',
+            sticker_id: 'st-1',
+            x: 0.25,
+            y: 0.75,
+            rotation: 15,
+            scale: 1,
+          },
+        ],
+      },
+      signal(),
+    ),
+  );
+  setTime('2026-11-18T12:00:00+09:00');
+  const next = source.home.resolveMorning!(
+    await settle(source.home.clock.load(signal())),
+  );
+  expect(
+    (await settle(next.loadFlock(signal()))).find((s) => s.id === sheep.id)
+      ?.placements,
+  ).toEqual([
+    {
+      instance_id: 'my-star',
+      sticker_id: 'st-1',
+      x: 0.25,
+      y: 0.75,
+      rotation: 15,
+      scale: 1,
+    },
+  ]);
+  expect(
+    (await settle(source.home.loadDetail!(sheep.id, signal()))).sheep.version,
+  ).toBe(2);
+  const other = fixture();
+  const otherSheep = await complete(other.source.night, 3, '다른 계정');
+  other.source.advanceMorning();
+  expect(
+    (
+      await settle(
+        other.source.home.morning.decoration!.load(otherSheep.id, signal()),
+      )
+    ).sheep.placements,
+  ).toEqual([]);
+});

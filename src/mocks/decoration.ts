@@ -153,3 +153,31 @@ export function createMockDecoration(
       ),
   };
 }
+
+export function withMockDecoration<
+  T extends import('../features/morning/types').MorningActions & {
+    loadSheep: SheepDetailLoad;
+  },
+>(
+  source: T,
+  options: { now?: () => number; scenario?: DecorationScenario } = {},
+): T & { decoration: DecorationActions } {
+  const decoration = createMockDecoration(source.loadSheep, options);
+  return {
+    ...source,
+    decoration,
+    loadFlock: async (signal) =>
+      (await source.loadFlock(signal)).map(decoration.decorate),
+    loadMorning: async (signal, id) => {
+      const value = await source.loadMorning(signal, id);
+      return {
+        ...value,
+        adoption: value.adoption ? decoration.decorate(value.adoption) : null,
+      };
+    },
+    loadSheep: async (id, signal) => {
+      const value = await source.loadSheep(id, signal);
+      return { ...value, sheep: decoration.decorate(value.sheep) };
+    },
+  };
+}

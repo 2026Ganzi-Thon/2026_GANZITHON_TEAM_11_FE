@@ -1,3 +1,4 @@
+import type { DecorationActions, Placement } from '../decoration/types';
 import type { WorryDeletions } from '../worries/deletions';
 import type { SettingsActions } from '../settings/types';
 import type { SongActions } from '../songs/types';
@@ -20,6 +21,8 @@ export interface MorningCandidate {
   last_viewed_at: string;
 }
 export interface Sheep {
+  version?: number;
+  placements?: Placement[];
   id: string;
   night_id: string;
   night_date: string;
@@ -35,6 +38,7 @@ export interface Morning {
   adoption: Sheep | null;
 }
 export interface MorningActions {
+  decoration?: DecorationActions;
   worries?: WorryDeletions;
   settings?: SettingsActions;
   fortune?: FortuneActions;

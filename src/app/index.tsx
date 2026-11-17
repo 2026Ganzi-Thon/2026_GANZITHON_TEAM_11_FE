@@ -22,6 +22,10 @@ export default function StartScreen() {
               />
             )}
             <Button
+              label="양 꾸미기·저장 미리보기"
+              onPress={() => router.push('/dev/decoration')}
+            />
+            <Button
               label="또 왔네·다시 세기"
               onPress={() => router.push('/dev/night-return')}
             />

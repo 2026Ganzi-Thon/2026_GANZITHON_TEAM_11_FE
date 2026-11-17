@@ -1,5 +1,10 @@
 import { expect, it } from '@jest/globals';
-import { clampPlacement, readDecoration, samePlacements } from './model';
+import {
+  dropCoordinates,
+  clampPlacement,
+  readDecoration,
+  samePlacements,
+} from './model';
 const sheep = {
   id: 'a',
   night_id: 'n',
@@ -77,4 +82,19 @@ it('compares the entire ordered visual placement without confusing different ins
   expect(samePlacements([one], [{ ...one }])).toBe(true);
   expect(samePlacements([one], [{ ...one, x: 0.1 }])).toBe(false);
   expect(samePlacements([one], [{ ...one, instance_id: 'other' }])).toBe(false);
+});
+
+it('maps window drop coordinates into the sheep frame after scrolling and rejects outside drops', () => {
+  expect(
+    dropCoordinates(200, 203.5, { left: 40, top: 100, width: 320 }),
+  ).toEqual({ x: 0.5, y: 0.5 });
+  expect(
+    dropCoordinates(240, 403.5, { left: 80, top: 300, width: 320 }),
+  ).toEqual({ x: 0.5, y: 0.5 });
+  expect(
+    dropCoordinates(10, 10, { left: 40, top: 100, width: 320 }),
+  ).toBeNull();
+  expect(
+    dropCoordinates(240, 203.5, { left: 40, top: 100, width: 400 }),
+  ).toEqual({ x: 0.5, y: 0.5 });
 });

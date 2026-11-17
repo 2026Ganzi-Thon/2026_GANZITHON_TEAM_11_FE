@@ -80,3 +80,20 @@ export function samePlacements(a: Placement[], b: Placement[]): boolean {
     })
   );
 }
+
+export function dropCoordinates(
+  pageX: number,
+  pageY: number,
+  frame: { left: number; top: number; width: number },
+): { x: number; y: number } | null {
+  const x = (pageX - frame.left - (frame.width - 130) / 2) / 130,
+    y = (pageY - frame.top - 52) / 103;
+  return Number.isFinite(x) &&
+    Number.isFinite(y) &&
+    x >= 0 &&
+    x <= 1 &&
+    y >= 0 &&
+    y <= 1
+    ? { x, y }
+    : null;
+}

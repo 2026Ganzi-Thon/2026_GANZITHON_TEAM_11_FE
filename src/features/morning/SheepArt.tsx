@@ -7,6 +7,10 @@ const artwork: Record<string, number> = {
   relationships: require('../../../assets/images/morning/sheep-purple.svg'),
   romance: require('../../../assets/images/morning/sheep-pink.svg'),
 };
+export const sheepArtwork = (colorKey: string | null) =>
+  colorKey !== null && Object.hasOwn(artwork, colorKey)
+    ? artwork[colorKey]
+    : require('../../../assets/images/morning/sheep-neutral.svg');
 export function SheepArt({
   colorKey,
   large = false,
@@ -17,11 +21,7 @@ export function SheepArt({
   return (
     <Image
       accessible={false}
-      source={
-        colorKey !== null && Object.hasOwn(artwork, colorKey)
-          ? artwork[colorKey]
-          : require('../../../assets/images/morning/sheep-neutral.svg')
-      }
+      source={sheepArtwork(colorKey)}
       contentFit="contain"
       style={{ width: large ? 52.8 : 33, height: large ? 44 : 27.5 }}
     />

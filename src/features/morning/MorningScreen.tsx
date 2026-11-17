@@ -1,3 +1,6 @@
+import { DecorationPicker } from '../decoration/DecorationPicker';
+import { DecorationScreen } from '../decoration/DecorationScreen';
+import { DecoratedSheepArt } from '../decoration/DecoratedSheepArt';
 import { MyCardsWritingFlow } from '../myCards/MyCardsWritingFlow';
 import type { MyCardsWritingSource } from '../myCards/types';
 import { SettingsScreen } from '../settings/SettingsScreen';
@@ -112,6 +115,9 @@ function MorningSession({
   fortuneKey?: string;
   myCards?: MyCardsWritingSource;
 }) {
+  const [decorationPicking, setDecorationPicking] = useState(false);
+  const [decorationId, setDecorationId] = useState<string | null>(null);
+  const [decorationNotice, setDecorationNotice] = useState('');
   const [detailId, setDetailId] = useState<string | null>(null);
   const [songsOpen, setSongsOpen] = useState(false);
   const [reflectionOpen, setReflectionOpen] = useState(false);
@@ -149,6 +155,8 @@ function MorningSession({
               <ReceivedYarnSection
                 actions={actions.receivedYarn}
                 blocked={
+                  decorationPicking ||
+                  decorationId !== null ||
                   cardsOpen ||
                   settingsOpen ||
                   detailId !== null ||
@@ -200,6 +208,27 @@ function MorningSession({
                 </Text>
               </View>
             )}
+            {decorationNotice && (
+              <Text
+                accessibilityLiveRegion="polite"
+                style={[styles.text, styles.card]}
+              >
+                {decorationNotice}
+              </Text>
+            )}
+            {actions.decoration && flow.items.length > 0 && (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="양 꾸미기"
+                onPress={() => {
+                  setDecorationNotice('');
+                  setDecorationPicking(true);
+                }}
+                style={styles.decorateSign}
+              >
+                <Text style={styles.decorateLabel}>양 꾸미기</Text>
+              </Pressable>
+            )}
             <View style={styles.homeSpacer} />
             <View style={styles.pasture}>
               {actions.fortune && (
@@ -208,6 +237,8 @@ function MorningSession({
                   actions={actions.fortune}
                   onVisibilityChange={setFortuneOpen}
                   blocked={
+                    decorationPicking ||
+                    decorationId !== null ||
                     cardsOpen ||
                     settingsOpen ||
                     detailId !== null ||
@@ -224,13 +255,13 @@ function MorningSession({
                   accessibilityRole={loadDetail ? 'button' : undefined}
                   disabled={!loadDetail}
                   onPress={() => setDetailId(item.id)}
-                  accessibilityLabel={`${item.night_date}의 양${item.id === flow.newId ? ' · 새로 온 양' : ''}`}
+                  accessibilityLabel={`${item.night_date}의 양${item.id === flow.newId ? ' · 새로 온 양' : ''}${item.placements?.length ? ` · 스티커 ${item.placements.length}개` : ''}`}
                   style={[
                     styles.flockSheep,
                     item.id === flow.newId && styles.newSheep,
                   ]}
                 >
-                  <SheepArt colorKey={item.color_key} large />
+                  <DecoratedSheepArt sheep={item} large />
                   <Text style={[styles.text, styles.date]}>
                     {item.night_date.slice(5).replace('-', '.')}
                   </Text>
@@ -406,7 +437,9 @@ function MorningSession({
       </ScrollView>
       {flow.page === 'home' &&
         homeFooter?.(
-          detailId !== null ||
+          decorationPicking ||
+            decorationId !== null ||
+            detailId !== null ||
             songsOpen ||
             reflectionOpen ||
             deferredWritingOpen ||
@@ -414,6 +447,28 @@ function MorningSession({
             settingsOpen ||
             cardsOpen,
         )}
+      {decorationPicking && decorationId === null && (
+        <DecorationPicker
+          items={flow.items}
+          onSelect={setDecorationId}
+          onBack={() => setDecorationPicking(false)}
+        />
+      )}
+      {decorationId !== null && actions.decoration && (
+        <DecorationScreen
+          modal
+          sheepId={decorationId}
+          actions={actions.decoration}
+          onRead={flow.applyDecoration}
+          onBack={() => setDecorationId(null)}
+          onSaved={(sheep) => {
+            flow.applyDecoration(sheep);
+            setDecorationId(null);
+            setDecorationPicking(false);
+            setDecorationNotice('꾸미기를 저장했어요.');
+          }}
+        />
+      )}
       <Modal
         testID="saved-songs-modal"
         visible={songsOpen}
@@ -494,6 +549,23 @@ function MorningSession({
   );
 }
 const styles = StyleSheet.create({
+  decorateSign: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#F4EBDD',
+    borderWidth: 2,
+    borderColor: '#8C6E62',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    minHeight: 44,
+    boxShadow: '2px 2px 0 #5A443B',
+  },
+  decorateLabel: {
+    fontFamily: theme.font,
+    fontSize: 11,
+    lineHeight: 17,
+    fontWeight: '700',
+    color: '#5A443B',
+  },
   content: { flexGrow: 1, padding: 20, gap: 16 },
   text: {
     fontFamily: theme.font,

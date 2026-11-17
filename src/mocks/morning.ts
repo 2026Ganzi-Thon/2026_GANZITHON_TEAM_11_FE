@@ -1,3 +1,4 @@
+import { withMockDecoration } from './decoration';
 import { createMockWorryRecords, type MockWorryRecords } from './worryRecords';
 import {
   createMockWorryDeletion,
@@ -195,7 +196,10 @@ export function createMockMorning(
   const worries = deletionScenario
     ? createMockWorryDeletion(records.erase, deletionScenario, records)
     : undefined;
-  return {
+  const actions: MorningActions & {
+    loadSheep: SheepDetailLoad;
+    reflection: ReflectionActions;
+  } = {
     worries,
     reflection: {
       load: (nightId, signal) =>
@@ -296,4 +300,5 @@ export function createMockMorning(
         return adopted ? [adopted, ...earlier] : earlier;
       }),
   };
+  return withMockDecoration(actions);
 }

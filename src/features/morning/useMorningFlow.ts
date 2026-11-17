@@ -1,3 +1,4 @@
+import type { DecoratedSheep } from '../decoration/types';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BackHandler } from 'react-native';
 import { ApiError } from '../../api/errors';
@@ -183,8 +184,25 @@ export function useMorningFlow(
       (item, index) =>
         items.findIndex((other) => other.id === item.id) === index,
     )
-    .map((item) => (item.id === confirmed?.id ? confirmed : item));
+    .map((item) =>
+      item.id === confirmed?.id &&
+      (confirmed.version ?? 0) >= (item.version ?? 0)
+        ? confirmed
+        : item,
+    );
+  const applyDecoration = (saved: DecoratedSheep) => {
+    const replace = (item: Sheep) =>
+      item.id === saved.id && (item.version ?? 0) <= saved.version
+        ? saved
+        : item;
+    setFlock((items) => items.map(replace));
+    setConfirmed((item) => (item ? replace(item) : item));
+    setMorning((value) =>
+      value?.adoption ? { ...value, adoption: replace(value.adoption) } : value,
+    );
+  };
   return {
+    applyDecoration,
     morning,
     selected,
     page,

@@ -84,6 +84,7 @@ API 연동 시 `.env.example`을 `.env`로 복사하고 `EXPO_PUBLIC_API_BASE_UR
 | ------------------------- | -------------------------------------------------------- |
 | `/dev/home-night-morning` | 첫 홈·밤 세기·아침 채택·회고·고민 목록 공유              |
 | `/dev/night-morning`      | 밤 입력부터 양 세기·아침 채택·회고까지 연결 시연         |
+| `/dev/decoration`         | 양 선택·스티커 편집·mock 저장·양떼 반영                  |
 | `/dev/night-return`       | 또 왔네·양 수 재선택·새 세션·한 밤 합산·미확인 생성 복구 |
 | `/dev/stop-offer`         | 그만 세기·따뜻한 카드·마무리·만료·아침 후보              |
 | `/dev/entrust`            | 기존 고민 맡기기·넘기기·마무리·아침 회고 반영            |
@@ -144,3 +145,5 @@ npm run bundle:android # Android JavaScript 번들
 PR에서 GitHub Actions로 위 검사를 실행합니다. 변경한 화면은 Android에서도 확인하고 PR에 검증 결과와 남은 제한을 기록합니다. 자동 검사와 번들은 실제 기기·서버 연동 검증을 대신하지 않습니다.
 
 코드 포맷 적용은 `npm run format`을 사용합니다. 기존 의존성 보안 경고는 [#3](https://github.com/2026Ganzi-Thon/2026_GANZITHON_TEAM_11_FE/issues/3)에서 추적합니다.
+
+양 꾸미기는 기본 스티커 7종과 메모리 배치 저장을 지원합니다. 저장 응답이 불확실하면 상태 조회로 확인하며, 낮(04~21시)에만 저장합니다. 앱 재실행 시 배치는 초기화됩니다.

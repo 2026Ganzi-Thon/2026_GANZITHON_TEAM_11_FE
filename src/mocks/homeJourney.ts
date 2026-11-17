@@ -1,3 +1,4 @@
+import { withMockDecoration } from './decoration';
 import { createMockMyCards } from './myCards';
 import { ApiError } from '../api/errors';
 import { createNightMorningNavigation } from '../features/demo/navigation';
@@ -141,6 +142,12 @@ export function createMockHomeJourney(
       },
     },
   };
+  const decorated = withMockDecoration(
+    { ...home.morning, loadSheep: home.loadDetail! },
+    { now },
+  );
+  home.morning = decorated;
+  home.loadDetail = decorated.loadSheep;
   return {
     home,
     night,

@@ -1,3 +1,4 @@
+import { createMockDecoration } from './decoration';
 import { ApiError } from '../api/errors';
 import {
   fortuneDate,
@@ -52,8 +53,11 @@ export function createMockMultiNightJourney(
       return { ...value, user: { ...value.user, stats: history.getStats() } };
     },
   };
+  const decoration = createMockDecoration(history.loadSheep, { now });
   const common: MorningActions = {
-    loadFlock: history.loadFlock,
+    decoration,
+    loadFlock: async (signal) =>
+      (await history.loadFlock(signal)).map(decoration.decorate),
     worries: history.deletions,
     settings,
     fortune: original.fortune,
@@ -112,7 +116,10 @@ export function createMockMultiNightJourney(
     ...original,
     settings,
     cards: history.cards,
-    loadDetail: history.loadSheep,
+    loadDetail: async (id, signal) => {
+      const value = await history.loadSheep(id, signal);
+      return { ...value, sheep: decoration.decorate(value.sheep) };
+    },
     resolveMorning,
     morning: common,
     clock: {

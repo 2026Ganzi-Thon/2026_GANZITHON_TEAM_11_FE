@@ -27,6 +27,7 @@ interface Props {
   actions: DecorationActions;
   onSaved: (sheep: DecoratedSheep) => void;
   onBack: () => void;
+  onRead?: (sheep: DecoratedSheep) => void;
   modal?: boolean;
 }
 export function DecorationScreen(props: Props) {
@@ -43,8 +44,15 @@ export function DecorationScreen(props: Props) {
     });
   return <Session key={source.version} {...props} />;
 }
-function Session({ sheepId, actions, onSaved, onBack, modal = false }: Props) {
-  const flow = useDecoration(sheepId, actions, onSaved, onBack),
+function Session({
+  sheepId,
+  actions,
+  onSaved,
+  onBack,
+  onRead,
+  modal = false,
+}: Props) {
+  const flow = useDecoration(sheepId, actions, onSaved, onBack, onRead),
     canvas = useRef<CanvasHandle>(null);
   const [dragging, setDragging] = useState(false),
     [failed, setFailed] = useState(new Set<string>()),
@@ -63,6 +71,8 @@ function Session({ sheepId, actions, onSaved, onBack, modal = false }: Props) {
   const editable = flow.phase === 'edit',
     pending = flow.phase === 'saving' || flow.phase === 'checking';
   const selected = flow.draft.find((p) => p.instance_id === flow.selected);
+  const selectedFailed = !!selected && failed.has(selected.sticker_id);
+  const uncertain = flow.phase === 'verify';
   const errorAsset = (id: string) => setFailed((old) => new Set([...old, id]));
   const busyBack = useRef(flow.back);
   useLayoutEffect(() => {
@@ -224,24 +234,27 @@ function Session({ sheepId, actions, onSaved, onBack, modal = false }: Props) {
                     )?.label
                   }
                 </Text>
-                <View style={s.controls}>
-                  {[
-                    ['왼쪽으로 이동', { x: selected.x - 0.05 }],
-                    ['오른쪽으로 이동', { x: selected.x + 0.05 }],
-                    ['위로 이동', { y: selected.y - 0.05 }],
-                    ['아래로 이동', { y: selected.y + 0.05 }],
-                    ['왼쪽으로 회전', { rotation: selected.rotation - 15 }],
-                    ['오른쪽으로 회전', { rotation: selected.rotation + 15 }],
-                    ['작게', { scale: selected.scale - 0.25 }],
-                    ['크게', { scale: selected.scale + 0.25 }],
-                  ].map(([label, patch]) =>
-                    button(
-                      label as string,
-                      () => flow.change(selected.instance_id, patch as object),
-                      !editable,
-                    ),
-                  )}
-                </View>
+                {!selectedFailed && (
+                  <View style={s.controls}>
+                    {[
+                      ['왼쪽으로 이동', { x: selected.x - 0.05 }],
+                      ['오른쪽으로 이동', { x: selected.x + 0.05 }],
+                      ['위로 이동', { y: selected.y - 0.05 }],
+                      ['아래로 이동', { y: selected.y + 0.05 }],
+                      ['왼쪽으로 회전', { rotation: selected.rotation - 15 }],
+                      ['오른쪽으로 회전', { rotation: selected.rotation + 15 }],
+                      ['작게', { scale: selected.scale - 0.25 }],
+                      ['크게', { scale: selected.scale + 0.25 }],
+                    ].map(([label, patch]) =>
+                      button(
+                        label as string,
+                        () =>
+                          flow.change(selected.instance_id, patch as object),
+                        !editable,
+                      ),
+                    )}
+                  </View>
+                )}
                 {button('선택한 스티커 삭제', flow.remove, !editable)}
               </View>
             )}
@@ -341,11 +354,35 @@ function Session({ sheepId, actions, onSaved, onBack, modal = false }: Props) {
           <View accessibilityViewIsModal style={s.dialog}>
             <ScrollView contentContainerStyle={{ gap: 14 }}>
               <Text accessibilityRole="header" style={s.title}>
-                저장하지 않고 나갈까요?
+                {uncertain
+                  ? '저장 상태를 확인할까요?'
+                  : '저장하지 않고 나갈까요?'}
               </Text>
-              <Text style={s.text}>편집한 꾸미기는 사라져요.</Text>
-              {button('계속 꾸미기', () => flow.setDiscard(false), false, true)}
-              {button('저장하지 않고 나가기', flow.leave)}
+              <Text style={s.text}>
+                {uncertain
+                  ? '이미 저장됐을 수도 있어요. 나가기 전에 확인해 보세요.'
+                  : '편집한 꾸미기는 사라져요.'}
+              </Text>
+              {uncertain
+                ? button(
+                    '저장 상태 확인하기',
+                    () => {
+                      flow.setDiscard(false);
+                      void flow.verify();
+                    },
+                    false,
+                    true,
+                  )
+                : button(
+                    '계속 꾸미기',
+                    () => flow.setDiscard(false),
+                    false,
+                    true,
+                  )}
+              {button(
+                uncertain ? '확인하지 않고 나가기' : '저장하지 않고 나가기',
+                flow.leave,
+              )}
             </ScrollView>
           </View>
         </View>

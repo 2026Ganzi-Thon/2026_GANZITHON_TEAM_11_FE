@@ -1,3 +1,4 @@
+import { withMockDecoration } from './decoration';
 import { ApiError } from '../api/errors';
 import { fortuneDate, homePhase } from '../features/home/model';
 import type { HomeSource } from '../features/home/types';
@@ -99,14 +100,17 @@ export function createMockHome(
       return { ...value, date: fortuneDate(now()) };
     },
   };
-  const morning = {
-    ...(scenario === 'candidates' ? createMockMorning() : combined),
-    settings,
-    fortune,
-    receivedYarn: createMockReceivedYarn(
-      scenario === 'banner' ? 'success' : 'none',
-    ),
-  };
+  const morning = withMockDecoration(
+    {
+      ...(scenario === 'candidates' ? createMockMorning() : combined),
+      settings,
+      fortune,
+      receivedYarn: createMockReceivedYarn(
+        scenario === 'banner' ? 'success' : 'none',
+      ),
+    },
+    { now },
+  );
   if (scenario === 'empty-flock') {
     morning.loadMorning = async (signal) =>
       delayed(signal, () => ({
@@ -122,7 +126,7 @@ export function createMockHome(
     settings,
     fortune,
     morning,
-    loadDetail: combined.loadSheep,
+    loadDetail: morning.loadSheep,
     cards: createMockMyCards(previous ? 'success' : 'empty'),
     clock: {
       load: (signal) => {

@@ -29,9 +29,17 @@ export function DragItem({
       onStartShouldSetPanResponder: () => false,
       onMoveShouldSetPanResponder: (_, g) =>
         !latest.current.disabled && Math.abs(g.dx) + Math.abs(g.dy) > 5,
-      onPanResponderGrant: () => latest.current.onStart(),
-      onPanResponderMove: (_, g) => latest.current.onMove?.(g),
-      onPanResponderRelease: (_, g) => latest.current.onDrop(g),
+      onPanResponderGrant: () => {
+        if (!latest.current.disabled) latest.current.onStart();
+      },
+      onPanResponderMove: (_, g) => {
+        if (!latest.current.disabled) latest.current.onMove?.(g);
+        else latest.current.onCancel();
+      },
+      onPanResponderRelease: (_, g) => {
+        if (!latest.current.disabled) latest.current.onDrop(g);
+        else latest.current.onCancel();
+      },
       onPanResponderTerminate: () => latest.current.onCancel(),
       onPanResponderTerminationRequest: () => false,
     }),

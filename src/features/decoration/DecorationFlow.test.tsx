@@ -1,3 +1,4 @@
+import { createMockDecoration } from '../../mocks/decoration';
 import { afterEach, expect, it, jest } from '@jest/globals';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { MorningScreen } from '../morning/MorningScreen';
@@ -75,4 +76,29 @@ it('does not let a late older flock response replace the freshly saved adopted s
   await tick();
   await act(async () => reply([{ ...adopted, version: 1, placements: [] }]));
   expect(screen.getByLabelText('2026-11-10의 양 · 스티커 1개')).toBeTruthy();
+});
+
+it('propagates a confirmed external layout without reporting a new save by this editor', async () => {
+  jest.useFakeTimers();
+  const source = createMockMorning('existing');
+  const decoration = createMockDecoration(source.loadSheep, {
+    scenario: 'conflict',
+  });
+  await render(
+    <MorningScreen actions={{ ...source, decoration }} onExit={() => {}} />,
+  );
+  await tick();
+  await press('양 꾸미기');
+  await press('2026-11-10의 양 꾸미기');
+  await tick();
+  await press('별 스티커 붙이기');
+  await press('저장');
+  await tick();
+  await press('저장 상태 확인');
+  await tick();
+  await press('최신 배치로 다시 꾸미기');
+  await press('꾸미기 닫기');
+  await press('양 선택 닫기');
+  expect(screen.getByLabelText('2026-11-10의 양 · 스티커 1개')).toBeTruthy();
+  expect(screen.queryByText('꾸미기를 저장했어요.')).toBeNull();
 });

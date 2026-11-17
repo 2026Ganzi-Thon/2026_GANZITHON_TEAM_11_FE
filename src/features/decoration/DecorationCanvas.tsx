@@ -107,9 +107,9 @@ export const DecorationCanvas = forwardRef<
             accessibilityLabel={`붙인 ${st.label} ${index + 1} 선택`}
             accessibilityState={{
               selected: selected === p.instance_id,
-              disabled,
+              disabled: disabled || preview || failed.has(st.id),
             }}
-            disabled={disabled || preview}
+            disabled={disabled || preview || failed.has(st.id)}
             onPress={() => onSelect(p.instance_id)}
             style={[
               styles.hit,

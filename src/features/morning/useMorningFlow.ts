@@ -191,12 +191,14 @@ export function useMorningFlow(
         : item,
     );
   const applyDecoration = (saved: DecoratedSheep) => {
-    setFlock((items) =>
-      items.map((item) => (item.id === saved.id ? saved : item)),
-    );
-    setConfirmed((item) => (item?.id === saved.id ? saved : item));
+    const replace = (item: Sheep) =>
+      item.id === saved.id && (item.version ?? 0) <= saved.version
+        ? saved
+        : item;
+    setFlock((items) => items.map(replace));
+    setConfirmed((item) => (item ? replace(item) : item));
     setMorning((value) =>
-      value?.adoption?.id === saved.id ? { ...value, adoption: saved } : value,
+      value?.adoption ? { ...value, adoption: replace(value.adoption) } : value,
     );
   };
   return {

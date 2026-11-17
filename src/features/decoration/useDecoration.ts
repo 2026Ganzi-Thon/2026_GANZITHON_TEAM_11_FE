@@ -23,6 +23,7 @@ export function useDecoration(
   actions: DecorationActions,
   onSaved: (sheep: DecoratedSheep) => void,
   onBack: () => void,
+  onRead?: (sheep: DecoratedSheep) => void,
 ) {
   const [data, setData] = useState<DecorationData | null>(null),
     [draft, setDraft] = useState<Placement[]>([]),
@@ -57,7 +58,10 @@ export function useDecoration(
     if (!c) return;
     try {
       const value = readDecoration(await actions.load(id, c.signal), id);
-      if (current(c)) accept(value);
+      if (current(c)) {
+        accept(value);
+        onRead?.(value.sheep);
+      }
     } catch {
       if (current(c)) setPhase('load-error');
     } finally {
@@ -140,6 +144,7 @@ export function useDecoration(
         value.sheep.card_id !== data.sheep.card_id
       )
         throw new ApiError('invalid-response');
+      onRead?.(value.sheep);
       if (
         value.sheep.version > write.current.if_version &&
         samePlacements(value.sheep.placements, write.current.placements)

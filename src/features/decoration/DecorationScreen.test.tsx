@@ -217,3 +217,36 @@ it.each(['success', 'failure'])(
     expect(screen.getByRole('button', { name: '저장' })).toBeDisabled();
   },
 );
+
+it('does not promise to discard a possibly committed save and offers state verification before exit', async () => {
+  const { back, saved } = await open(source('save-lost'));
+  await press('별 스티커 붙이기');
+  await press('저장');
+  await tick();
+  await press('꾸미기 닫기');
+  expect(screen.queryByText('편집한 꾸미기는 사라져요.')).toBeNull();
+  expect(
+    screen.queryByRole('button', { name: '저장하지 않고 나가기' }),
+  ).toBeNull();
+  expect(screen.getByText(/이미 저장됐을 수도/)).toBeTruthy();
+  await press('저장 상태 확인하기');
+  await tick();
+  expect(back).not.toHaveBeenCalled();
+  expect(saved).toHaveBeenCalledTimes(1);
+});
+it('blocks selecting a failed placed sticker and blocks transforms while retaining explicit removal for a failed selection', async () => {
+  await open();
+  await press('별 스티커 붙이기');
+  await fireEvent(screen.getByTestId('catalog-image-st-1'), 'error', {
+    nativeEvent: { error: 'failed' },
+  });
+  expect(screen.getByRole('button', { name: '붙인 별 1 선택' })).toBeDisabled();
+  expect(screen.queryByRole('button', { name: '오른쪽으로 이동' })).toBeNull();
+  expect(
+    screen.getByRole('button', { name: '선택한 스티커 삭제' }),
+  ).not.toBeDisabled();
+  await press('동그라미 스티커 붙이기');
+  await press('붙인 별 1 선택');
+  expect(screen.getByText('선택한 스티커 · 동그라미')).toBeTruthy();
+  await press('선택한 스티커 삭제');
+});

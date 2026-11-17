@@ -459,6 +459,7 @@ function MorningSession({
           modal
           sheepId={decorationId}
           actions={actions.decoration}
+          onRead={flow.applyDecoration}
           onBack={() => setDecorationId(null)}
           onSaved={(sheep) => {
             flow.applyDecoration(sheep);

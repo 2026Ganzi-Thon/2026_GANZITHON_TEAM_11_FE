@@ -184,6 +184,7 @@ export function useDecoration(
       !data?.stickers.some((st) => st.id === stickerId)
     )
       return;
+    setNotice('');
     const instance_id = `placement-${Date.now()}-${++sequence.current}`;
     setDraft((old) =>
       old.length >= 20
@@ -207,6 +208,7 @@ export function useDecoration(
     patch: Partial<Pick<Placement, 'x' | 'y' | 'rotation' | 'scale'>>,
   ) => {
     if (active.current || closed.current || phase !== 'edit') return;
+    setNotice('');
     setDraft((old) =>
       old.map((p) =>
         p.instance_id === instanceId ? clampPlacement({ ...p, ...patch }) : p,
@@ -215,6 +217,7 @@ export function useDecoration(
   };
   const remove = () => {
     if (active.current || closed.current || phase !== 'edit') return;
+    setNotice('');
     setDraft((old) => old.filter((p) => p.instance_id !== selected));
     setSelected(null);
   };
@@ -238,7 +241,11 @@ export function useDecoration(
     data,
     draft,
     selected,
-    setSelected,
+    setSelected: (instanceId: string) => {
+      if (active.current || closed.current || phase !== 'edit') return;
+      setNotice('');
+      setSelected(instanceId);
+    },
     phase,
     dirty,
     notice,

@@ -1,3 +1,4 @@
+import { useSyncExternalStore } from 'react';
 import { SignupOnboardingFlow } from './SignupOnboardingFlow';
 import { HomeNightJourney } from '../home/HomeNightJourney';
 import type { createMockSignupJourney } from '../../mocks/signupJourney';
@@ -9,8 +10,14 @@ export function SignupJourneyFlow({
   source: SignupJourneySource;
   onExit: () => void;
 }) {
+  const version = useSyncExternalStore(
+    source.subscribe,
+    source.getVersion,
+    source.getVersion,
+  );
   return (
     <SignupOnboardingFlow
+      key={version}
       source={source}
       onExit={onExit}
       onNight={() => {}}

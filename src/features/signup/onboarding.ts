@@ -33,7 +33,7 @@ export function createSignupOnboarding(
     birth: BirthDateResult,
   ) => HomeSource,
 ) {
-  let state: State = {
+  const initial: State = {
     stage: 'signup',
     home: null,
     localTime: '23:00',
@@ -44,7 +44,9 @@ export function createSignupOnboarding(
     error: '',
     retry: null,
   };
+  let state = { ...initial };
   let active = true,
+    disposed = false,
     version = 0,
     pending: AbortController | null = null;
   const listeners = new Set<() => void>();
@@ -154,7 +156,7 @@ export function createSignupOnboarding(
     },
     reminder,
     start: () => {
-      active = true;
+      if (!disposed) active = true;
     },
     stop: () => {
       active = false;
@@ -167,6 +169,12 @@ export function createSignupOnboarding(
           progress: '',
           error: '확인이 중단됐어요. 같은 설정으로 다시 확인해 주세요.',
         });
+    },
+    dispose: () => {
+      c.stop();
+      disposed = true;
+      state = { ...initial };
+      listeners.clear();
     },
     begin: (registration: Registration, birth: BirthDateResult) => {
       if (!active || state.stage !== 'signup') return;

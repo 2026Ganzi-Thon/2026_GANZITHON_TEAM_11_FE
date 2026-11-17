@@ -25,6 +25,7 @@ export type SignupScenario =
 export function createMockSignup(
   scenario: SignupScenario = 'success',
   now: () => number = () => Date.parse('2026-11-16T12:00:00+09:00'),
+  accountId = 'signup-preview-account',
 ): SignupActions {
   const today = () => kstDate(new Date(now()));
   let revision = 'v1',
@@ -107,7 +108,7 @@ export function createMockSignup(
             code: 'EMAIL_ALREADY_USED',
           });
         if (scenario === 'register-retry') failOnce('register');
-        account = { id: 'signup-preview-account', email: credentials.email };
+        account = { id: accountId, email: credentials.email };
         operations.set(key, { ...account });
         if (scenario === 'register-lost') failOnce('lost');
         if (scenario === 'register-in-progress')

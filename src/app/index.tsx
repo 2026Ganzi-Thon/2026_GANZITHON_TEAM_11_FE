@@ -15,6 +15,10 @@ export default function StartScreen() {
         <Text style={styles.description}>잠이 안 오는 밤, 양을 같이 세요.</Text>
         {canUseMock() && (
           <>
+            <Button
+              label="탈퇴·가입 복귀 미리보기"
+              onPress={() => router.push('/dev/withdrawal')}
+            />
             {isPreviewBuild() && (
               <Notice
                 title="테스트 체험판"

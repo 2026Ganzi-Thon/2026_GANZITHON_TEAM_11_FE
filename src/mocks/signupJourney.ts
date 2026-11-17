@@ -1,3 +1,7 @@
+import { ApiError } from '../api/errors';
+import { createMockAccountScope } from './accountScope';
+import { createMockSignup } from './signup';
+import type { WithdrawalActions } from '../features/withdrawal/types';
 import { createMockMultiNightJourney } from './multiNightJourney';
 import { homePhase } from '../features/home/model';
 import { kstDate } from '../features/birthDate/date';
@@ -7,6 +11,7 @@ import type { SignupHomeContext } from './signupOnboarding';
 export function createMockSignupJourney(
   reminder: SignupHomeContext['reminder'],
   phase: 'day' | 'night' | 'slow' = 'day',
+  options: { withdrawalScenario?: 'success' | 'retry' | 'slow' } = {},
 ) {
   let base = Date.parse(
       phase === 'night'
@@ -30,17 +35,113 @@ export function createMockSignupJourney(
         ).toISOString(),
       ),
   };
-  let journey: ReturnType<typeof createMockMultiNightJourney> | null = null;
-  const source = createMockSignupOnboarding(reminder, phase, {
-    now,
-    createHome: (context) => {
-      journey = createMockMultiNightJourney({ ...context, clock });
-      return journey.home;
-    },
-  });
+  let version = 0;
+  const listeners = new Set<() => void>();
+  function createAccount() {
+    const generation = version;
+    let journey: ReturnType<typeof createMockMultiNightJourney> | null = null;
+    let failed = false,
+      busy = false;
+    const withdrawal: WithdrawalActions = {
+      withdraw: async (signal) => {
+        if (generation !== version)
+          throw new ApiError('http', {
+            status: 410,
+            code: 'ACCOUNT_WITHDRAWN',
+          });
+        if (busy)
+          throw new ApiError('http', {
+            status: 409,
+            code: 'REQUEST_IN_PROGRESS',
+          });
+        busy = true;
+        try {
+          await new Promise<void>((resolve, reject) => {
+            if (signal.aborted) {
+              reject(new ApiError('aborted'));
+              return;
+            }
+            const abort = () => {
+              clearTimeout(timer);
+              signal.removeEventListener('abort', abort);
+              reject(new ApiError('aborted'));
+            };
+            const timer = setTimeout(
+              () => {
+                signal.removeEventListener('abort', abort);
+                resolve();
+              },
+              options.withdrawalScenario === 'slow' ? 5000 : 400,
+            );
+            signal.addEventListener('abort', abort, { once: true });
+          });
+          if (options.withdrawalScenario === 'retry' && !failed) {
+            failed = true;
+            throw new ApiError('network');
+          }
+          await reminder.save({ enabled: false, local_time: null }, signal);
+          if (signal.aborted || generation !== version)
+            throw new ApiError('aborted');
+          const device = reminder.device.getSnapshot();
+          if (device.phase !== 'ready' || device.state?.state !== 'off')
+            throw new Error('Reminder cleanup not confirmed');
+          account.onboarding.dispose();
+          scope.revoke();
+          journey = null;
+          ++version;
+          current = createAccount();
+          listeners.forEach((listener) => listener());
+        } finally {
+          busy = false;
+        }
+      },
+    };
+    const scope = createMockAccountScope(withdrawal);
+    const account = createMockSignupOnboarding(reminder, phase, {
+      now,
+      signup: scope.protect(
+        createMockSignup(
+          'success',
+          now,
+          `signup-preview-account-${generation}`,
+        ),
+      ),
+      createHome: (context) => {
+        const raw = createMockMultiNightJourney({ ...context, clock });
+        raw.home.settings!.withdrawal = withdrawal;
+        journey = scope.protect(raw);
+        return journey.home;
+      },
+    });
+    const guarded = scope.protect(account.onboarding);
+    return {
+      signup: account.signup,
+      onboarding: {
+        ...guarded,
+        start: account.onboarding.start,
+        stop: account.onboarding.stop,
+        subscribe: account.onboarding.subscribe,
+        getSnapshot: account.onboarding.getSnapshot,
+      },
+      getJourney: () => journey,
+    };
+  }
+  let current = createAccount();
   return {
-    ...source,
-    getJourney: () => journey,
+    get signup() {
+      return current.signup;
+    },
+    get onboarding() {
+      return current.onboarding;
+    },
+    subscribe: (listener: () => void) => {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+    getVersion: () => version,
+    getJourney: () => current.getJourney(),
     advanceNight: () => {
       if (homePhase(now()) === 'day')
         advanceTo(`${kstDate(new Date(now()))}T21:00:00+09:00`);

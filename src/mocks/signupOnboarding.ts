@@ -4,7 +4,7 @@ import {
   type OnboardingReminder,
 } from '../features/signup/onboarding';
 import type { HomeSource } from '../features/home/types';
-import type { Registration } from '../features/signup/types';
+import type { SignupActions, Registration } from '../features/signup/types';
 import type { MockReminder } from './reminder';
 import { createMockBirthDate, type MockBirthDate } from './birthDate';
 import { createMockHome } from './firstNightHome';
@@ -16,6 +16,7 @@ export interface SignupHomeContext {
   now: () => number;
 }
 export interface SignupOnboardingOptions {
+  signup?: SignupActions;
   now?: () => number;
   createHome?: (context: SignupHomeContext) => HomeSource;
 }
@@ -63,7 +64,7 @@ export function createMockSignupOnboarding(
           },
         };
   return {
-    signup: createMockSignup('success', now),
+    signup: options.signup ?? createMockSignup('success', now),
     onboarding: createSignupOnboarding(connected, (identity, birth) =>
       createHome({
         identity: { ...identity },

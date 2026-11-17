@@ -37,6 +37,7 @@ import Route29 from '../../app/dev/night-expiry';
 import Route30 from '../../app/dev/stop-offer';
 import Route31 from '../../app/dev/night-return';
 import Route32 from '../../app/dev/decoration';
+import Route33 from '../../app/dev/withdrawal';
 import { getNativeReminderSession } from '../../notifications/nativeRuntime';
 jest.mock('expo-constants', () => ({
   __esModule: true,
@@ -125,6 +126,7 @@ const routes = [
   ['stop-offer', Route30],
   ['night-return', Route31],
   ['decoration', Route32],
+  ['withdrawal', Route33],
 ] as const;
 it.each(routes)(
   'opens %s in a preview release without a development server',
@@ -164,6 +166,10 @@ it('shows the mock limits and representative entry points in the preview release
   );
   expect(mockPush).toHaveBeenCalledWith('/dev/signup-home');
   await fireEvent.press(
+    screen.getByRole('button', { name: '탈퇴·가입 복귀 미리보기' }),
+  );
+  expect(mockPush).toHaveBeenCalledWith('/dev/withdrawal');
+  await fireEvent.press(
     screen.getByRole('button', { name: '첫 홈 → 밤 → 아침 통합' }),
   );
   expect(mockPush).toHaveBeenCalledWith('/dev/home-night-morning');
@@ -198,13 +204,16 @@ it('opens the shared home from its preview-release route and initializes its nat
   });
   expect(screen.getByText('아직 센 양이 없어요')).toBeTruthy();
 });
-it('blocks direct production entry without initializing its native session', async () => {
-  Object.defineProperty(globalThis, '__DEV__', {
-    value: false,
-    configurable: true,
-  });
-  Constants.expoConfig!.extra = { appVariant: 'production' };
-  await render(<Route27 />);
-  expect(screen.getByText('blocked')).toBeTruthy();
-  expect(getNativeReminderSession).not.toHaveBeenCalled();
-});
+it.each([Route27, Route33])(
+  'blocks direct production entry without initializing its native session',
+  async (Route) => {
+    Object.defineProperty(globalThis, '__DEV__', {
+      value: false,
+      configurable: true,
+    });
+    Constants.expoConfig!.extra = { appVariant: 'production' };
+    await render(<Route />);
+    expect(screen.getByText('blocked')).toBeTruthy();
+    expect(getNativeReminderSession).not.toHaveBeenCalled();
+  },
+);

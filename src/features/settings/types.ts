@@ -1,3 +1,4 @@
+import type { WithdrawalActions } from '../withdrawal/types';
 import type { WorryDeletions } from '../worries/deletions';
 import type { ReminderActions } from '../reminder/types';
 import type { BirthDateActions } from '../birthDate/types';
@@ -23,6 +24,7 @@ export interface SettingsData {
   reminder: { enabled: boolean; local_time: string | null };
 }
 export interface SettingsActions {
+  withdrawal?: WithdrawalActions;
   birthDate?: BirthDateActions;
   reminder?: ReminderActions;
   deletions?: WorryDeletions;

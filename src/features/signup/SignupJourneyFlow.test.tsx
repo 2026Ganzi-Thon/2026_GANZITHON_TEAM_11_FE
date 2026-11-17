@@ -97,7 +97,9 @@ it.each(['day', 'night'] as const)(
     expect(screen.getByText('아직 센 양이 없어요')).toBeTruthy();
     await press('설정 열기');
     await tick();
-    expect(screen.getByText('joined@example.com')).toBeTruthy();
+    expect(
+      screen.getByLabelText('로그인 정보: joined@example.com'),
+    ).toBeTruthy();
     expect(screen.getByText('2004.06.14 · 수정 1회')).toBeTruthy();
     await press('아침 홈으로 돌아가기');
     await tick();
@@ -145,7 +147,9 @@ it.each(['day', 'night'] as const)(
     await press('양떼 보러 가기');
     await press('설정 열기');
     await tick();
-    expect(screen.getByText('joined@example.com')).toBeTruthy();
+    expect(
+      screen.getByLabelText('로그인 정보: joined@example.com'),
+    ).toBeTruthy();
     expect(screen.getByText('2004.06.14 · 수정 1회')).toBeTruthy();
     expect(screen.getByText('1밤째 양을 세는 중')).toBeTruthy();
     expect(
@@ -256,7 +260,7 @@ it('continues a second night on the same registered account and deletes one date
   expect(flock.map((s) => s.night_date)).toEqual(['2026-11-17', '2026-11-16']);
   await press('설정 열기');
   await tick();
-  expect(screen.getByText('joined@example.com')).toBeTruthy();
+  expect(screen.getByLabelText('로그인 정보: joined@example.com')).toBeTruthy();
   expect(screen.getByText('2밤째 양을 세는 중')).toBeTruthy();
   await press('고민 기록 열기');
   await tick();

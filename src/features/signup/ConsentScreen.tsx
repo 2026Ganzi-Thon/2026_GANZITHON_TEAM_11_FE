@@ -1,15 +1,13 @@
+import { DocumentDialog } from '../legal/DocumentDialog';
 import { useState } from 'react';
 import {
   ActivityIndicator,
-  Modal,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../ui/Button';
 import { theme } from '../../ui/theme';
 import { consentIds, type ConsentDocument, type ConsentId } from './types';
@@ -145,27 +143,7 @@ export function ConsentScreen({
         </View>
       </SignupShell>
       {document && (
-        <Modal
-          transparent
-          visible
-          animationType="none"
-          onRequestClose={() => setDocument(null)}
-        >
-          <SafeAreaView style={s.shade}>
-            <View style={s.document}>
-              <ScrollView contentContainerStyle={common.group}>
-                <Text accessibilityRole="header" style={common.title}>
-                  {document.title}
-                </Text>
-                <Text style={common.caption}>
-                  예시 문서 · {document.version}
-                </Text>
-                <Text style={common.body}>{document.body}</Text>
-              </ScrollView>
-              <Button label="문서 닫기" onPress={() => setDocument(null)} />
-            </View>
-          </SafeAreaView>
-        </Modal>
+        <DocumentDialog document={document} onClose={() => setDocument(null)} />
       )}
     </>
   );
@@ -219,19 +197,5 @@ const s = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderRadius: 4,
-  },
-  shade: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: 20,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-  },
-  document: {
-    maxHeight: '90%',
-    backgroundColor: '#242565',
-    padding: 20,
-    gap: 20,
-    borderWidth: 1,
-    borderColor: '#D6A8FF',
   },
 });

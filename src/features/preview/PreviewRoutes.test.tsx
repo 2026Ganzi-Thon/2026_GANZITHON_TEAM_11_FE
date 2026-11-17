@@ -38,6 +38,7 @@ import Route30 from '../../app/dev/stop-offer';
 import Route31 from '../../app/dev/night-return';
 import Route32 from '../../app/dev/decoration';
 import Route33 from '../../app/dev/withdrawal';
+import SettingsDocumentsPreview from '../../app/dev/settings-documents';
 import Route34 from '../../app/dev/received-yarn-home';
 import { getNativeReminderSession } from '../../notifications/nativeRuntime';
 jest.mock('expo-constants', () => ({
@@ -94,6 +95,7 @@ afterEach(() => {
   Constants.expoConfig!.extra = { appVariant: 'preview' };
 });
 const routes = [
+  ['settings-documents', SettingsDocumentsPreview],
   ['android-reminder', Route0],
   ['birth-date-flow', Route1],
   ['birth-date', Route2],

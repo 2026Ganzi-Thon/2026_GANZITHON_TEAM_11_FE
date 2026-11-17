@@ -1,3 +1,4 @@
+import { validDocuments } from '../legal/model';
 import { ApiError } from '../../api/errors';
 import type { LoginRequest } from '../../api/contracts';
 import {
@@ -41,25 +42,6 @@ export interface SignupState {
   result: BirthDateResult | null;
   uncertain: boolean;
   birthUncertain: boolean;
-}
-function validDocuments(d: ConsentDocuments) {
-  return (
-    !!d &&
-    typeof d.revision === 'string' &&
-    !!d.revision.trim() &&
-    Array.isArray(d.documents) &&
-    d.documents.length === 4 &&
-    consentIds.every(
-      (id) =>
-        d.documents.filter(
-          (doc) =>
-            doc.id === id &&
-            [doc.title, doc.body, doc.version].every(
-              (v) => typeof v === 'string' && !!v.trim(),
-            ),
-        ).length === 1,
-    )
-  );
 }
 /** Only known input/business conflicts permit replacing an unresolved operation. */
 function isDefiniteRejection(

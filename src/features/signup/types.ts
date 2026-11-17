@@ -1,24 +1,14 @@
 import type { PasswordResetActions } from '../auth/passwordReset/model';
 import type { LoginRequest } from '../../api/contracts';
 import type { BirthDateResult } from '../birthDate/types';
-export const consentIds = [
-  'terms',
-  'privacy',
-  'processing',
-  'notifications',
-] as const;
-export type ConsentId = (typeof consentIds)[number];
+import type { ConsentId, ConsentDocuments } from '../legal/model';
+export {
+  consentIds,
+  type ConsentId,
+  type ConsentDocument,
+  type ConsentDocuments,
+} from '../legal/model';
 export type Choices = Record<ConsentId, boolean>;
-export interface ConsentDocument {
-  id: ConsentId;
-  title: string;
-  version: string;
-  body: string;
-}
-export interface ConsentDocuments {
-  revision: string;
-  documents: ConsentDocument[];
-}
 export interface Registration {
   id: string;
   email: string;

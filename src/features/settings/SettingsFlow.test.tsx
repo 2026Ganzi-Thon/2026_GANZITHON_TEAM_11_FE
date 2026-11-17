@@ -68,7 +68,7 @@ it('opens settings and paginated worry records from home without exposing deleti
   await screen.findByText('나의 양떼');
   await press('설정 열기');
   expect(await screen.findByText('66밤째 양을 세는 중')).toBeTruthy();
-  expect(screen.getByText('user@example.com')).toBeTruthy();
+  expect(screen.getByLabelText('로그인 정보: user@example.com')).toBeTruthy();
   await press('고민 기록 열기');
   expect(await screen.findByText('면접이 걱정돼요.')).toBeTruthy();
   expect(screen.getByText('고민 기록 3개')).toBeTruthy();

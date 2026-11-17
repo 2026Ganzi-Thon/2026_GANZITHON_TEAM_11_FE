@@ -29,13 +29,7 @@ it('retries failed settings reads and keeps unfinished account actions disabled'
   expect(screen.queryByText('private server detail')).toBeNull();
   await press('설정 다시 불러오기');
   expect(screen.getByText('66밤째 양을 세는 중')).toBeTruthy();
-  for (const label of [
-    '밤에 와 알림',
-    '생년월일',
-    '로그인 정보',
-    '약관 · 개인정보',
-    '탈퇴',
-  ])
+  for (const label of ['밤에 와 알림', '생년월일', '약관 · 개인정보', '탈퇴'])
     expect(
       screen.getByRole('button', { name: label + ' · 준비 중' }),
     ).toBeDisabled();
@@ -72,7 +66,7 @@ it.each(['success', 'failure'] as const)(
       if (mode === 'success') finish(data);
       else fail(new Error('late'));
     });
-    expect(screen.getByText('next@example.com')).toBeTruthy();
+    expect(screen.getByLabelText('로그인 정보: next@example.com')).toBeTruthy();
     expect(screen.queryByText('person@example.com')).toBeNull();
     expect(screen.queryByText('설정을 불러오지 못했어요.')).toBeNull();
   },

@@ -101,15 +101,12 @@ export function createMockSignupJourney(
       },
     };
     const scope = createMockAccountScope(withdrawal);
+    const signup = scope.protect(
+      createMockSignup('success', now, `signup-preview-account-${generation}`),
+    );
     const account = createMockSignupOnboarding(reminder, phase, {
       now,
-      signup: scope.protect(
-        createMockSignup(
-          'success',
-          now,
-          `signup-preview-account-${generation}`,
-        ),
-      ),
+      signup,
       createHome: (context) => {
         const raw = createMockMultiNightJourney({
           ...context,
@@ -117,6 +114,7 @@ export function createMockSignupJourney(
           receivedYarnScenario: options.receivedYarnScenario,
         });
         raw.home.settings!.withdrawal = withdrawal;
+        raw.home.settings!.documents = { load: signup.loadDocuments };
         journey = scope.protect(raw);
         return journey.home;
       },

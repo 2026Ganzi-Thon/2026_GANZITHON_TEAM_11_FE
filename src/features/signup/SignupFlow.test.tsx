@@ -213,3 +213,16 @@ it.each(['register-in-progress', 'birth-in-progress'] as const)(
     );
   },
 );
+it('keeps all consent selections while reading and closing the shared document dialog', async () => {
+  await render(<SignupFlow actions={createMockSignup()} onExit={() => {}} />);
+  await email();
+  const label = '[필수] 서비스 이용약관';
+  await fireEvent.press(screen.getByRole('checkbox', { name: label }));
+  await press('서비스 이용약관 보기');
+  await fireEvent(screen.getByTestId('legal-document-modal'), 'requestClose');
+  expect(screen.getByRole('checkbox', { name: label })).toBeChecked();
+  expect(
+    screen.getByRole('checkbox', { name: '[필수] 개인정보 수집 · 이용' }),
+  ).not.toBeChecked();
+  expect(screen.getByRole('button', { name: '동의하고 계속' })).toBeDisabled();
+});

@@ -16,6 +16,10 @@ export default function StartScreen() {
         {canUseMock() && (
           <>
             <Button
+              label="설정 이메일·문서 열람"
+              onPress={() => router.push('/dev/settings-documents')}
+            />
+            <Button
               label="받은 털실·아침 홈 연결"
               onPress={() => router.push('/dev/received-yarn-home')}
             />

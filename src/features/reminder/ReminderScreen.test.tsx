@@ -1,8 +1,10 @@
-import { expect, it, jest } from '@jest/globals';
+import { afterEach, expect, it, jest } from '@jest/globals';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { AccessibilityInfo } from 'react-native';
 import { ApiError } from '../../api/errors';
 import { ReminderScreen } from './ReminderScreen';
 import type { ReminderActions } from './types';
+afterEach(() => jest.restoreAllMocks());
 const press = async (name: string) =>
   fireEvent.press(screen.getByRole('button', { name }));
 function source(): ReminderActions {
@@ -67,6 +69,9 @@ it('preserves the chosen time across off/on edits and sends null when saving off
   );
 });
 it('retains the draft on definite rejection and allows a corrected save', async () => {
+  jest
+    .spyOn(AccessibilityInfo, 'isReduceMotionEnabled')
+    .mockResolvedValue(true);
   const actions = source();
   (actions.save as jest.Mock<ReminderActions['save']>).mockRejectedValueOnce(
     new ApiError('http', { status: 422 }),

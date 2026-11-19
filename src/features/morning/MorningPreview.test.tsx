@@ -43,7 +43,7 @@ it('replays a lost adoption response through the gallery and resets on reentry',
   await press('이 양 데려오기');
   await advance();
   expect(screen.getByRole('radio', { name: '4번째 양' })).toBeChecked();
-  expect(screen.queryByText('나의 양떼')).toBeNull();
+  expect(screen.queryByRole('header', { name: /^나의 양떼/ })).toBeNull();
   await press('이 양 데려오기');
   await advance();
   expect(screen.getAllByLabelText('2026-11-10의 양 · 새로 온 양')).toHaveLength(
@@ -52,6 +52,6 @@ it('replays a lost adoption response through the gallery and resets on reentry',
   await press('미리보기 나가기');
   await press('데려오기 응답 유실');
   await advance();
-  expect(screen.queryByText('나의 양떼')).toBeNull();
+  expect(screen.queryByRole('header', { name: /^나의 양떼/ })).toBeNull();
   expect(screen.getByRole('radio', { name: '4번째 양' })).toBeChecked();
 });

@@ -8,7 +8,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../ui/Button';
 import { theme } from '../../ui/theme';
@@ -19,9 +19,13 @@ const seenError = '확인 상태가 저장됐는지 알 수 없어요.';
 export function ReceivedYarnSection({
   actions,
   blocked = false,
+  compact = false,
+  renderContent,
 }: {
   actions: ReceivedYarnActions;
   blocked?: boolean;
+  compact?: boolean;
+  renderContent?: (trigger: ReactNode, feedback: ReactNode) => ReactNode;
 }) {
   const [foreground, setForeground] = useState(
     () => AppState.currentState === 'active',
@@ -35,30 +39,30 @@ export function ReceivedYarnSection({
   const paused = blocked || !foreground;
   const flow = useReceivedYarn(actions, paused);
   const { summary } = flow;
-  return (
+  const trigger = actions.loadLatest && (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="받은 털실 알림 열기"
+      accessibilityState={{
+        disabled: paused || flow.phase === 'loading' || flow.seen === 'pending',
+      }}
+      disabled={paused || flow.phase === 'loading' || flow.seen === 'pending'}
+      onPress={flow.open}
+      style={[
+        styles.bell,
+        compact && { width: 44, justifyContent: 'center', padding: 0 },
+      ]}
+    >
+      <Image
+        source={require('../../../assets/images/first-night-home/notifications.svg')}
+        style={{ width: 24.75, height: 22 }}
+        accessible={false}
+      />
+      {!compact && <Text style={styles.homeText}>받은 털실</Text>}
+    </Pressable>
+  );
+  const feedback = (
     <>
-      {actions.loadLatest && (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="받은 털실 알림 열기"
-          accessibilityState={{
-            disabled:
-              paused || flow.phase === 'loading' || flow.seen === 'pending',
-          }}
-          disabled={
-            paused || flow.phase === 'loading' || flow.seen === 'pending'
-          }
-          onPress={flow.open}
-          style={styles.bell}
-        >
-          <Image
-            source={require('../../../assets/images/first-night-home/notifications.svg')}
-            style={{ width: 24.75, height: 22 }}
-            accessible={false}
-          />
-          <Text style={styles.homeText}>받은 털실</Text>
-        </Pressable>
-      )}
       {flow.manual && flow.phase === 'none' && (
         <View style={styles.homePanel}>
           <Text style={styles.homeText} accessibilityLiveRegion="polite">
@@ -95,6 +99,18 @@ export function ReceivedYarnSection({
           </Text>
           <Button label="확인 상태 다시 저장" onPress={flow.retrySeen} />
         </View>
+      )}
+    </>
+  );
+  return (
+    <>
+      {renderContent ? (
+        renderContent(trigger, feedback)
+      ) : (
+        <>
+          {trigger}
+          {feedback}
+        </>
       )}
       {flow.visible && !paused && summary && (
         <Modal

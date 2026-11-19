@@ -50,7 +50,7 @@ it('opens the adopted sheep and preserves home state on header and Android modal
     expect.any(AbortSignal),
   );
   await fireEvent(screen.getByTestId('sheep-detail-modal'), 'requestClose');
-  expect(screen.getByText('나의 양떼')).toBeTruthy();
+  expect(screen.getByRole('header', { name: /^나의 양떼/ })).toBeTruthy();
   expect(exit).not.toHaveBeenCalled();
   expect(morning).toHaveBeenCalledTimes(1);
   expect(flock).toHaveBeenCalledTimes(1);
@@ -68,7 +68,7 @@ it('cancels a pending detail read when Android closes the modal', async () => {
   await fireEvent(screen.getByTestId('sheep-detail-modal'), 'requestClose');
   expect(load.mock.calls[0][1].aborted).toBe(true);
   await advance();
-  expect(screen.getByText('나의 양떼')).toBeTruthy();
+  expect(screen.getByRole('header', { name: /^나의 양떼/ })).toBeTruthy();
   expect(screen.queryByText('잠깐의 쉼 (예시)')).toBeNull();
 });
 it('blocks the detail gallery in release builds', async () => {
@@ -98,5 +98,5 @@ it('opens the selected missing-record gallery scenario and returns to its flock'
   await advance();
   expect(screen.getByText('이 양의 기록을 볼 수 없어요')).toBeTruthy();
   await press('양떼로 돌아가기');
-  expect(screen.getByText('나의 양떼')).toBeTruthy();
+  expect(screen.getByRole('header', { name: /^나의 양떼/ })).toBeTruthy();
 });

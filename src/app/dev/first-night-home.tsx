@@ -25,6 +25,8 @@ const scenarios: readonly [HomeScenario, string][] = [
   ['empty-flock', '센 밤이 있는 빈 양떼'],
   ['candidates', '미채택 후보 → 일반 홈'],
   ['banner', '일반 홈 · 받은 털실'],
+  ['songs', '일반 홈 · 담은 노래'],
+  ['long-song', '일반 홈 · 긴 노래 제목'],
 ];
 export default function HomePreview() {
   const [scenario, setScenario] = useState<HomeScenario | null>(null),

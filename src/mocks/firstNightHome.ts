@@ -7,6 +7,7 @@ import type { SettingsMorningOptions } from './settingsMorning';
 import { createSettingsMorning } from './settingsMorning';
 import { createMockMorning } from './morning';
 import { createMockMyCards } from './myCards';
+import { createMockSavedSongs } from './savedSongs';
 import { createMockReceivedYarn } from './receivedYarn';
 export type HomeScenario =
   | 'day'
@@ -20,7 +21,9 @@ export type HomeScenario =
   | 'adopted'
   | 'empty-flock'
   | 'candidates'
-  | 'banner';
+  | 'banner'
+  | 'songs'
+  | 'long-song';
 function delayed<T>(signal: AbortSignal, read: () => T, ms = 300): Promise<T> {
   return new Promise((resolve, reject) => {
     if (signal.aborted) {
@@ -54,9 +57,14 @@ export function createMockHome(
     now?: () => number;
   } = {},
 ): HomeSource {
-  const previous = ['adopted', 'empty-flock', 'candidates', 'banner'].includes(
-    scenario,
-  );
+  const previous = [
+    'adopted',
+    'empty-flock',
+    'candidates',
+    'banner',
+    'songs',
+    'long-song',
+  ].includes(scenario);
   const count = previous ? 7 : 0;
   const base = Date.parse(
     scenario === 'before-night'
@@ -105,6 +113,13 @@ export function createMockHome(
       ...(scenario === 'candidates' ? createMockMorning() : combined),
       settings,
       fortune,
+      ...(['songs', 'long-song'].includes(scenario)
+        ? {
+            songs: createMockSavedSongs(
+              scenario === 'long-song' ? 'long' : 'success',
+            ),
+          }
+        : {}),
       receivedYarn: createMockReceivedYarn(
         scenario === 'banner' ? 'success' : 'none',
       ),

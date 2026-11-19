@@ -196,7 +196,7 @@ it('aborts the previous account home and ignores its late response on source rep
   expect(
     screen.getByRole('button', { name: '이메일로 회원가입' }),
   ).toBeTruthy();
-  expect(screen.queryByText('나의 양떼')).toBeNull();
+  expect(screen.queryByRole('header', { name: /^나의 양떼/ })).toBeNull();
   expect(next.source.getJourney()).toBeNull();
 });
 it('continues a second night on the same registered account and deletes one dated worry without losing either sheep', async () => {

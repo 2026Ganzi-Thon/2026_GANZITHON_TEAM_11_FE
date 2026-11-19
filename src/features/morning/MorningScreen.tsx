@@ -1,6 +1,5 @@
 import { DecorationPicker } from '../decoration/DecorationPicker';
 import { DecorationScreen } from '../decoration/DecorationScreen';
-import { DecoratedSheepArt } from '../decoration/DecoratedSheepArt';
 import { MyCardsWritingFlow } from '../myCards/MyCardsWritingFlow';
 import type { MyCardsWritingSource } from '../myCards/types';
 import { SettingsScreen } from '../settings/SettingsScreen';
@@ -16,6 +15,7 @@ import {
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { theme } from '../../ui/theme';
 import { DayScreen } from './DayScreen';
@@ -27,6 +27,9 @@ import type { SheepDetailLoad } from '../flock/types';
 import { DeferredWritingSection } from './DeferredWritingSection';
 import { ReceivedYarnSection } from '../yarnSummary/ReceivedYarnSection';
 import { FortuneSection } from '../fortune/FortuneSection';
+import { MorningHomeHeader } from './MorningHomeHeader';
+import { HomeSavedSong } from './HomeSavedSong';
+import { MorningPasture } from './MorningPasture';
 
 function Action({
   label,
@@ -128,6 +131,8 @@ function MorningSession({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [cardsOpen, setCardsOpen] = useState(false);
   const [fortuneVersion, setFortuneVersion] = useState(0);
+  const { width } = useWindowDimensions();
+  const scale = Math.min(width, 480) / 360;
   const flow = useMorningFlow(actions, onExit, homeWhenNoCandidates);
   const { morning, busy, failure } = flow;
   const multipleSessions =
@@ -135,111 +140,40 @@ function MorningSession({
     false;
   const hasCandidates =
     !!morning?.night && morning.candidate_cards.some(canAdopt);
+  const homeHeading = (yarn?: ReactNode) => (
+    <MorningHomeHeader
+      key={fortuneVersion}
+      date={fortuneKey}
+      settings={actions.settings}
+      onSettings={() => setSettingsOpen(true)}
+      onCards={myCards ? () => setCardsOpen(true) : undefined}
+      yarn={yarn}
+    />
+  );
   return (
     <DayScreen home={flow.page === 'home'}>
-      <ScrollView key={flow.page} contentContainerStyle={styles.content}>
+      <ScrollView
+        key={flow.page}
+        contentContainerStyle={
+          flow.page === 'home' ? styles.homeContent : styles.content
+        }
+      >
         {flow.page === 'home' ? (
           <>
-            <Text
-              accessibilityRole="header"
-              style={[styles.text, styles.title]}
-            >
-              나의 양떼
-            </Text>
-            <Text style={styles.text}>밤을 함께 보낸 양들이 쉬고 있어요.</Text>
-            {myCards && (
-              <Action label="내 카드 열기" onPress={() => setCardsOpen(true)} />
-            )}
-            {actions.settings && (
-              <Action label="설정 열기" onPress={() => setSettingsOpen(true)} />
-            )}
-            {actions.receivedYarn && (
-              <ReceivedYarnSection
-                actions={actions.receivedYarn}
-                blocked={
-                  homeBlocked ||
-                  decorationPicking ||
-                  decorationId !== null ||
-                  cardsOpen ||
-                  settingsOpen ||
-                  detailId !== null ||
-                  songsOpen ||
-                  reflectionOpen ||
-                  deferredWritingOpen ||
-                  fortuneOpen
-                }
-              />
-            )}
-            {morning?.night &&
-              morning.writing_offer?.state === 'deferred' &&
-              actions.writing && (
-                <DeferredWritingSection
-                  key={morning.night.id}
-                  nightId={morning.night.id}
-                  writing={actions.writing}
-                  loadMorning={actions.loadMorning}
-                  onVisibilityChange={setDeferredWritingOpen}
-                />
-              )}
-            {flow.newId && (
-              <Text
-                accessibilityLiveRegion="polite"
-                style={[styles.text, styles.card]}
-              >
-                한 마리가 양떼에 도착했어요.
-              </Text>
-            )}
-            {busy && (
-              <ActivityIndicator
-                accessibilityLabel="양떼 불러오는 중"
-                color="#2F3A9E"
-              />
-            )}
-            {failure === 'flock' && (
-              <View style={styles.card}>
-                <Text style={styles.text}>
-                  양떼를 모두 불러오지 못했어요. 데려온 양은 그대로 있어요.
-                </Text>
-                <Action label="양떼 다시 불러오기" onPress={flow.openFlock} />
-              </View>
-            )}
-            {!busy && !failure && flow.items.length === 0 && (
-              <View style={styles.card}>
-                <Text style={styles.text}>아직 양떼가 비어 있어요</Text>
-                <Text style={[styles.text, styles.small]}>
-                  밤에 만난 양을 아침에 데려와 보세요.
-                </Text>
-              </View>
-            )}
-            {decorationNotice && (
-              <Text
-                accessibilityLiveRegion="polite"
-                style={[styles.text, styles.card]}
-              >
-                {decorationNotice}
-              </Text>
-            )}
-            {actions.decoration && flow.items.length > 0 && (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="양 꾸미기"
-                onPress={() => {
-                  setDecorationNotice('');
-                  setDecorationPicking(true);
-                }}
-                style={styles.decorateSign}
-              >
-                <Text style={styles.decorateLabel}>양 꾸미기</Text>
-              </Pressable>
-            )}
-            <View style={styles.homeSpacer} />
-            <View style={styles.pasture}>
-              {actions.fortune && (
-                <FortuneSection
-                  key={`${fortuneKey ?? ''}:${fortuneVersion}`}
-                  actions={actions.fortune}
-                  onVisibilityChange={setFortuneOpen}
+            <View style={[styles.overview, { minHeight: 336 * scale }]}>
+              {!actions.receivedYarn && homeHeading()}
+              {actions.receivedYarn && (
+                <ReceivedYarnSection
+                  actions={actions.receivedYarn}
+                  compact
+                  renderContent={(trigger, feedback) => (
+                    <>
+                      {homeHeading(trigger)}
+                      {feedback}
+                    </>
+                  )}
                   blocked={
+                    homeBlocked ||
                     decorationPicking ||
                     decorationId !== null ||
                     cardsOpen ||
@@ -247,33 +181,113 @@ function MorningSession({
                     detailId !== null ||
                     songsOpen ||
                     reflectionOpen ||
-                    deferredWritingOpen
+                    deferredWritingOpen ||
+                    fortuneOpen
                   }
                 />
               )}
-              {flow.items.map((item) => (
-                <Pressable
-                  key={item.id}
-                  accessible
-                  accessibilityRole={loadDetail ? 'button' : undefined}
-                  disabled={!loadDetail}
-                  onPress={() => setDetailId(item.id)}
-                  accessibilityLabel={`${item.night_date}의 양${item.id === flow.newId ? ' · 새로 온 양' : ''}${item.placements?.length ? ` · 스티커 ${item.placements.length}개` : ''}`}
-                  style={[
-                    styles.flockSheep,
-                    item.id === flow.newId && styles.newSheep,
-                  ]}
+              {morning?.night &&
+                morning.writing_offer?.state === 'deferred' &&
+                actions.writing && (
+                  <DeferredWritingSection
+                    key={morning.night.id}
+                    nightId={morning.night.id}
+                    writing={actions.writing}
+                    loadMorning={actions.loadMorning}
+                    onVisibilityChange={setDeferredWritingOpen}
+                  />
+                )}
+              {flow.newId && (
+                <Text
+                  accessibilityLiveRegion="polite"
+                  style={[styles.text, styles.card]}
                 >
-                  <DecoratedSheepArt sheep={item} large />
-                  <Text style={[styles.text, styles.date]}>
-                    {item.night_date.slice(5).replace('-', '.')}
+                  한 마리가 양떼에 도착했어요.
+                </Text>
+              )}
+              {busy && (
+                <ActivityIndicator
+                  accessibilityLabel="양떼 불러오는 중"
+                  color="#2F3A9E"
+                />
+              )}
+              {failure === 'flock' && (
+                <View style={styles.card}>
+                  <Text style={styles.text}>
+                    양떼를 모두 불러오지 못했어요. 데려온 양은 그대로 있어요.
                   </Text>
-                  {item.id === flow.newId && (
-                    <Text style={[styles.text, styles.badge]}>새로 온 양</Text>
-                  )}
-                </Pressable>
-              ))}
+                  <Action label="양떼 다시 불러오기" onPress={flow.openFlock} />
+                </View>
+              )}
+              {!busy && !failure && flow.items.length === 0 && (
+                <View style={styles.card}>
+                  <Text style={styles.text}>아직 양떼가 비어 있어요</Text>
+                  <Text style={[styles.text, styles.small]}>
+                    밤에 만난 양을 아침에 데려와 보세요.
+                  </Text>
+                </View>
+              )}
+              {decorationNotice && (
+                <Text
+                  accessibilityLiveRegion="polite"
+                  style={[styles.text, styles.card]}
+                >
+                  {decorationNotice}
+                </Text>
+              )}
+              {actions.songs && (
+                <HomeSavedSong
+                  actions={actions.songs}
+                  paused={songsOpen}
+                  onOpen={() => setSongsOpen(true)}
+                />
+              )}
             </View>
+            <MorningPasture
+              items={flow.items}
+              lastNightId={
+                !fortuneKey ||
+                (morning?.night?.night_date &&
+                  new Date(
+                    Date.parse(`${morning.night.night_date}T00:00:00Z`) +
+                      86400000,
+                  )
+                    .toISOString()
+                    .slice(0, 10) === fortuneKey)
+                  ? morning?.night?.id
+                  : undefined
+              }
+              newId={flow.newId}
+              onSelect={loadDetail ? setDetailId : undefined}
+              onDecorate={
+                actions.decoration && flow.items.length > 0
+                  ? () => {
+                      setDecorationNotice('');
+                      setDecorationPicking(true);
+                    }
+                  : undefined
+              }
+              fortune={
+                actions.fortune && (
+                  <FortuneSection
+                    key={`${fortuneKey ?? ''}:${fortuneVersion}`}
+                    actions={actions.fortune}
+                    compact
+                    onVisibilityChange={setFortuneOpen}
+                    blocked={
+                      decorationPicking ||
+                      decorationId !== null ||
+                      cardsOpen ||
+                      settingsOpen ||
+                      detailId !== null ||
+                      songsOpen ||
+                      reflectionOpen ||
+                      deferredWritingOpen
+                    }
+                  />
+                )
+              }
+            />
           </>
         ) : failure === 'morning' || failure === 'refresh' ? (
           <View style={styles.card}>
@@ -427,29 +441,34 @@ function MorningSession({
             )}
           </>
         )}
-        {actions.reflection && morning?.night && (
-          <Action
-            label="어젯밤 돌아보기"
-            onPress={() => setReflectionOpen(true)}
-          />
-        )}
-        {actions.songs && morning?.night && (
-          <Action label="담은 노래 보기" onPress={() => setSongsOpen(true)} />
-        )}
-        <Action label="미리보기 나가기" onPress={flow.exit} />
+        <View style={flow.page === 'home' ? styles.homeActions : undefined}>
+          {actions.reflection && morning?.night && (
+            <Action
+              label="어젯밤 돌아보기"
+              onPress={() => setReflectionOpen(true)}
+            />
+          )}
+          {actions.songs && morning?.night && (
+            <Action label="담은 노래 보기" onPress={() => setSongsOpen(true)} />
+          )}
+          <Action label="미리보기 나가기" onPress={flow.exit} />
+        </View>
       </ScrollView>
-      {flow.page === 'home' &&
-        homeFooter?.(
-          decorationPicking ||
-            decorationId !== null ||
-            detailId !== null ||
-            songsOpen ||
-            reflectionOpen ||
-            deferredWritingOpen ||
-            fortuneOpen ||
-            settingsOpen ||
-            cardsOpen,
-        )}
+      {flow.page === 'home' && homeFooter && (
+        <View style={styles.homeFooter}>
+          {homeFooter(
+            decorationPicking ||
+              decorationId !== null ||
+              detailId !== null ||
+              songsOpen ||
+              reflectionOpen ||
+              deferredWritingOpen ||
+              fortuneOpen ||
+              settingsOpen ||
+              cardsOpen,
+          )}
+        </View>
+      )}
       {decorationPicking && decorationId === null && (
         <DecorationPicker
           items={flow.items}
@@ -552,23 +571,15 @@ function MorningSession({
   );
 }
 const styles = StyleSheet.create({
-  decorateSign: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#F4EBDD',
-    borderWidth: 2,
-    borderColor: '#8C6E62',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    minHeight: 44,
-    boxShadow: '2px 2px 0 #5A443B',
+  homeFooter: { backgroundColor: '#73AE8A' },
+  homeContent: { flexGrow: 1 },
+  overview: {
+    paddingHorizontal: 20,
+    paddingTop: 0,
+    paddingBottom: 20,
+    gap: 12,
   },
-  decorateLabel: {
-    fontFamily: theme.font,
-    fontSize: 11,
-    lineHeight: 17,
-    fontWeight: '700',
-    color: '#5A443B',
-  },
+  homeActions: { padding: 20, gap: 8, backgroundColor: '#E8F2DA' },
   content: { flexGrow: 1, padding: 20, gap: 16 },
   text: {
     fontFamily: theme.font,
@@ -635,27 +646,4 @@ const styles = StyleSheet.create({
   spacer: { flex: 1, minHeight: 40 },
   loading: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16 },
   error: { backgroundColor: '#FFF1E6', padding: 12 },
-  homeSpacer: { flexGrow: 1, minHeight: 180 },
-  pasture: {
-    flexGrow: 0,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignContent: 'flex-start',
-    gap: 16,
-    paddingVertical: 20,
-  },
-  flockSheep: {
-    minWidth: 76,
-    minHeight: 92,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 6,
-  },
-  newSheep: {
-    borderWidth: 2,
-    borderColor: '#FFE7A3',
-    backgroundColor: 'rgba(255,231,163,0.65)',
-  },
-  date: { fontSize: 10, lineHeight: 16 },
-  badge: { fontSize: 10, lineHeight: 16, backgroundColor: '#FFE7A3' },
 });

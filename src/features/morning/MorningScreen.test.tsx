@@ -137,9 +137,9 @@ describe('morning adoption', () => {
     await press('이 양 데려오기');
     expect(adopt).toHaveBeenCalledTimes(1);
     expect(screen.getByRole('radio', { name: '1번째 양' })).toBeDisabled();
-    expect(screen.queryByText('나의 양떼')).toBeNull();
+    expect(screen.queryByRole('header', { name: /^나의 양떼/ })).toBeNull();
     await act(async () => resolve(sheep));
-    expect(screen.getByText('나의 양떼')).toBeTruthy();
+    expect(screen.getByRole('header', { name: /^나의 양떼/ })).toBeTruthy();
     expect(
       screen.getAllByLabelText('2026-11-10의 양 · 새로 온 양'),
     ).toHaveLength(1);
@@ -178,7 +178,7 @@ describe('morning adoption', () => {
     );
     await render(<MorningScreen actions={api} onExit={() => {}} />);
     await press('이 양 데려오기');
-    expect(screen.getByText('나의 양떼')).toBeTruthy();
+    expect(screen.getByRole('header', { name: /^나의 양떼/ })).toBeTruthy();
     expect(api.adopt).toHaveBeenCalledTimes(1);
   });
   it('blocks saving when reconciliation fails and retries the read only', async () => {
@@ -198,7 +198,7 @@ describe('morning adoption', () => {
     await press('이 양 데려오기');
     expect(screen.queryByRole('button', { name: '이 양 데려오기' })).toBeNull();
     await press('다시 불러오기');
-    expect(screen.getByText('나의 양떼')).toBeTruthy();
+    expect(screen.getByRole('header', { name: /^나의 양떼/ })).toBeTruthy();
     expect(api.adopt).toHaveBeenCalledTimes(1);
   });
   it('invalidates a candidate deleted between selection and saving', async () => {
@@ -335,7 +335,7 @@ describe('morning adoption', () => {
     await press('미리보기 나가기');
     expect(adopt.mock.calls[0][2].aborted).toBe(true);
     await act(async () => resolve(sheep));
-    expect(screen.queryByText('나의 양떼')).toBeNull();
+    expect(screen.queryByRole('header', { name: /^나의 양떼/ })).toBeNull();
     expect(api.loadFlock).not.toHaveBeenCalled();
     expect(exit).toHaveBeenCalledTimes(1);
   });

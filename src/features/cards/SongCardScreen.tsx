@@ -437,8 +437,7 @@ function SongCardSession({
             </>
           )}
           <Text style={[styles.hint, styles.panel]}>
-            미리보기 · 실제 곡 검색·전송 안 함. 추천 문장은 앞뒤 공백 제외 50자
-            임시 기준이에요. 초안과 접수 결과는 같은 시연 안에서만 유지돼요.
+            추천 문장은 50자까지 적을 수 있어요.
           </Text>
         </ScrollView>
       </KeyboardAvoidingView>

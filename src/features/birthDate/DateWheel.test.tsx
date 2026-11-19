@@ -24,6 +24,25 @@ function touch(y: number, previousY = y, stamp = 1) {
     },
   };
 }
+it('advances only one month for a long swipe rather than jumping several rows', async () => {
+  const onChange = jest.fn();
+  await render(
+    <DateWheel
+      value={{ year: 2004, month: 5, day: 14 }}
+      todayYear={2026}
+      disabled={false}
+      onChange={onChange}
+    />,
+  );
+  let row = screen.getByText('5월');
+  while (!row.props.onMoveShouldSetResponderCapture && row.parent)
+    row = row.parent;
+  await fireEvent(row, 'responderGrant', touch(85));
+  await fireEvent(row, 'responderMove', touch(-85, 85, 2));
+  await fireEvent(row, 'responderRelease', touch(-85, 85, 2));
+  expect(onChange).toHaveBeenCalledTimes(1);
+  expect(onChange).toHaveBeenCalledWith('month', 6);
+});
 it.each([
   [1, 34],
   [2, 56],

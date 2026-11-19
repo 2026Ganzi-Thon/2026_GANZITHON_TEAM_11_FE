@@ -19,7 +19,8 @@
     "bundle:android": "expo export --platform android",
     "test": "jest",
     "test:ci": "jest --ci --runInBand",
-    "build:preview:android": "bash scripts/build-preview-android.sh"
+    "build:preview:android": "bash scripts/build-preview-android.sh",
+    "update:preview": "APP_VARIANT=preview npx --yes eas-cli@27.11.0 update --channel preview --environment preview --platform android --input-dir dist/updates-preview"
   },
   "dependencies": {
     "@expo-google-fonts/noto-sans-kr": "0.4.4",
@@ -34,6 +35,7 @@
     "expo-router": "~58.0.31",
     "expo-status-bar": "~58.0.5",
     "expo-system-ui": "~58.0.7",
+    "expo-updates": "~58.0.22",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-native": "0.88.1",

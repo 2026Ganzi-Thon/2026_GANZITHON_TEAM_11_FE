@@ -31,3 +31,7 @@ jobs:
       - name: Run tests
         run: npm run test:ci
       - run: npm run bundle:android
+      - name: Bundle Android preview
+        run: npm run bundle:android -- --output-dir dist/preview-bundle
+        env:
+          APP_VARIANT: preview

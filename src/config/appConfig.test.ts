@@ -20,8 +20,8 @@ it('separates preview identity and carries a visible build version', () => {
   expect(config.scheme).toBe('yangsebam-preview');
   expect(config.name).toContain('체험판');
   expect(config.extra.appVariant).toBe('preview');
-  expect(config.android.versionCode).toBe(3);
-  expect(config.version).toBe('0.1.0-preview.3');
+  expect(config.android.versionCode).toBe(4);
+  expect(config.version).toBe('0.1.0-preview.4');
 });
 it('rejects a misspelled variant instead of silently distributing the wrong app', () => {
   process.env.APP_VARIANT = 'preveiw';

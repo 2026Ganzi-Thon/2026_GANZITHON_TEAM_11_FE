@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { Redirect, router } from 'expo-router';
 import { ScrollView, StyleSheet } from 'react-native';
 import { MyCardsWritingFlow } from '../../features/myCards/MyCardsWritingFlow';
+import { createSettingsMorning } from '../../mocks/settingsMorning';
 import { createMockMyCards, type MyCardsScenario } from '../../mocks/myCards';
 import { NightScreen } from '../../ui/NightScreen';
 import { Notice } from '../../ui/Notice';
@@ -41,10 +42,18 @@ export default function MyCardsPreview() {
     () => (scenario ? createMockMyCards(scenario) : null),
     [scenario],
   );
+  const settings = useMemo(
+    () => (scenario ? createSettingsMorning().settings : undefined),
+    [scenario],
+  );
   if (!canUseMock()) return <Redirect href="/" />;
   if (actions)
     return (
-      <MyCardsWritingFlow source={actions} onBack={() => setScenario(null)} />
+      <MyCardsWritingFlow
+        source={actions}
+        settings={settings}
+        onBack={() => setScenario(null)}
+      />
     );
   return (
     <NightScreen>

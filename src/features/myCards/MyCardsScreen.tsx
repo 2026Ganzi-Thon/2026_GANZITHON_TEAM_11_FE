@@ -15,6 +15,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import { MyCardsNavigation } from './MyCardsNavigation';
 import { NightScreen } from '../../ui/NightScreen';
 import { Notice } from '../../ui/Notice';
 import { Button } from '../../ui/Button';
@@ -52,6 +53,7 @@ export function MyCardsScreen({
   resubmissions,
   onBack,
   onWrite,
+  onSettings,
   submissionConfirmed = false,
 }: {
   actions: MyCardsActions;
@@ -59,6 +61,7 @@ export function MyCardsScreen({
   resubmissions?: MyCardResubmitActions;
   onBack: () => void;
   onWrite?: () => void;
+  onSettings?: () => void;
   submissionConfirmed?: boolean;
 }) {
   const [confirmNotice, setConfirmNotice] = useState(submissionConfirmed);
@@ -243,36 +246,7 @@ export function MyCardsScreen({
         )}
         <Text style={styles.caption}>털실은 개수만 보여요</Text>
       </ScrollView>
-      <View style={styles.navigation}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="홈으로 돌아가기"
-          onPress={back}
-          style={styles.navItem}
-        >
-          <View style={styles.navIcon} />
-          <Text style={styles.caption}>홈</Text>
-        </Pressable>
-        <View
-          accessibilityRole="tab"
-          accessibilityLabel="내 카드"
-          accessibilityState={{ selected: true }}
-          style={styles.navItem}
-        >
-          <View style={styles.navIcon} />
-          <Text style={styles.caption}>내 카드</Text>
-        </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="설정 · 준비 중"
-          accessibilityState={{ disabled: true }}
-          disabled
-          style={[styles.navItem, styles.disabled]}
-        >
-          <View style={styles.navIcon} />
-          <Text style={styles.caption}>설정 · 준비 중</Text>
-        </Pressable>
-      </View>
+      <MyCardsNavigation onHome={back} onSettings={onSettings} />
       {editing &&
         editing.source === actions &&
         editing.actions === resubmissions && (
@@ -450,28 +424,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontWeight: '700',
     color: '#F9CFDD',
-  },
-  navigation: {
-    flexDirection: 'row',
-    paddingVertical: 8,
-    minHeight: 64,
-    backgroundColor: '#1B1C55',
-    borderTopWidth: 1,
-    borderTopColor: '#4A5BC2',
-  },
-  navItem: {
-    flex: 1,
-    paddingHorizontal: 6,
-    minHeight: 48,
-    gap: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  navIcon: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
-    backgroundColor: '#4A55B8',
   },
   disabled: { opacity: 0.6 },
   delete: {

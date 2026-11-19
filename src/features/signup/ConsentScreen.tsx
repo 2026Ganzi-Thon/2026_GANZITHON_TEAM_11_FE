@@ -10,7 +10,13 @@ import {
 import { Image } from 'expo-image';
 import { Button } from '../../ui/Button';
 import { theme } from '../../ui/theme';
-import { consentIds, type ConsentDocument, type ConsentId } from './types';
+import { consentIds, type ConsentDocument } from './types';
+import {
+  legalDocumentIds,
+  hasRequiredConsents,
+  type LegalDocumentId,
+} from '../legal/model';
+import { previewDocumentTitles } from '../legal/previewPolicy';
 import type { SignupController, SignupState } from './controller';
 import { SignupShell, signupStyles as common } from './SignupShell';
 function Check({ checked }: { checked: boolean }) {
@@ -44,45 +50,18 @@ export function ConsentScreen({
 }) {
   const [document, setDocument] = useState<ConsentDocument | null>(null);
   const blocked = state.busy || state.documentLoading || !state.documents;
-  const titles = {
-    terms: '[필수] 서비스 이용약관',
-    privacy: '[필수] 개인정보 수집 · 이용',
-    processing: '[필수] 고민 글 외부 AI 전송',
-    notifications: '[선택] 알림 수신',
-  };
-  const row = (id: ConsentId | 'all') => (
-    <View key={id} style={[s.row, id === 'all' && s.all]}>
-      <Pressable
-        accessibilityRole="checkbox"
-        accessibilityLabel={id === 'all' ? '전체 동의' : titles[id]}
-        accessibilityState={{
-          checked:
-            id === 'all'
-              ? consentIds.every((key) => state.choices[key])
-              : state.choices[id],
-          disabled: blocked,
-        }}
-        disabled={blocked}
-        onPress={() => c.toggle(id)}
-        style={s.choice}
-      >
-        <Check
-          checked={
-            id === 'all'
-              ? consentIds.every((key) => state.choices[key])
-              : state.choices[id]
-          }
-        />
-        <Text
-          style={[s.label, id === 'all' && { fontWeight: '700', fontSize: 16 }]}
-        >
-          {id === 'all' ? '전체 동의' : titles[id]}
-        </Text>
-      </Pressable>
-      {id !== 'all' && (
+  const title = (id: LegalDocumentId) =>
+    state.documents?.documents.find((d) => d.id === id)?.title ??
+    previewDocumentTitles[id];
+  const row = (id: LegalDocumentId | 'all') =>
+    id === 'processing' ? (
+      <View key={id} style={s.row}>
+        <View style={[s.choice, { paddingLeft: 34 }]}>
+          <Text style={s.label}>[안내] {title(id)}</Text>
+        </View>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`${titles[id].replace(/^\[.*?\] /, '')} 보기`}
+          accessibilityLabel={`${title(id)} 보기`}
           disabled={blocked}
           onPress={() =>
             setDocument(state.documents!.documents.find((d) => d.id === id)!)
@@ -91,9 +70,60 @@ export function ConsentScreen({
         >
           <Text style={s.viewText}>보기</Text>
         </Pressable>
-      )}
-    </View>
-  );
+      </View>
+    ) : (
+      <View key={id} style={[s.row, id === 'all' && s.all]}>
+        <Pressable
+          accessibilityRole="checkbox"
+          accessibilityLabel={
+            id === 'all'
+              ? '전체 동의'
+              : `[${id === 'notifications' ? '선택' : '필수'}] ${title(id)}`
+          }
+          accessibilityState={{
+            checked:
+              id === 'all'
+                ? consentIds.every((key) => state.choices[key])
+                : state.choices[id],
+            disabled: blocked,
+          }}
+          disabled={blocked}
+          onPress={() => c.toggle(id)}
+          style={s.choice}
+        >
+          <Check
+            checked={
+              id === 'all'
+                ? consentIds.every((key) => state.choices[key])
+                : state.choices[id]
+            }
+          />
+          <Text
+            style={[
+              s.label,
+              id === 'all' && { fontWeight: '700', fontSize: 16 },
+            ]}
+          >
+            {id === 'all'
+              ? '전체 동의'
+              : `[${id === 'notifications' ? '선택' : '필수'}] ${title(id)}`}
+          </Text>
+        </Pressable>
+        {id !== 'all' && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${title(id)} 보기`}
+            disabled={blocked}
+            onPress={() =>
+              setDocument(state.documents!.documents.find((d) => d.id === id)!)
+            }
+            style={s.view}
+          >
+            <Text style={s.viewText}>보기</Text>
+          </Pressable>
+        )}
+      </View>
+    );
   return (
     <>
       <SignupShell
@@ -103,18 +133,16 @@ export function ConsentScreen({
         label={state.busy ? '저장 중' : '동의하고 계속'}
         onSubmit={() => void c.submit()}
         busy={state.busy}
-        disabled={
-          blocked ||
-          !state.choices.terms ||
-          !state.choices.privacy ||
-          !state.choices.processing
-        }
+        disabled={blocked || !hasRequiredConsents(state.choices)}
         error={state.error}
       >
         <Text style={common.title}>시작하기 전 확인해 주세요</Text>
         <View style={{ marginTop: 10 }}>
-          {consentIds.map(row)}
+          {legalDocumentIds.map(row)}
           {row('all')}
+          <Text style={common.caption}>
+            전체 동의에는 선택 항목인 알림 수신이 포함돼요.
+          </Text>
         </View>
         {state.documentLoading && (
           <View style={common.group}>
@@ -137,8 +165,8 @@ export function ConsentScreen({
         )}
         <View style={s.notice}>
           <Text style={[common.caption, { fontSize: 12, lineHeight: 18 }]}>
-            고민 글은 카드 추천과 위기 감지를 위해 AI에 전달돼요.{'\n'}이름이나
-            연락처는 보내지 않아요.
+            현재 체험판은 고민 글을 외부 AI로 전송하지 않아요. 분류·추천·운세는
+            준비된 예시예요. 실제 개인정보는 입력하지 말아 주세요.
           </Text>
         </View>
       </SignupShell>

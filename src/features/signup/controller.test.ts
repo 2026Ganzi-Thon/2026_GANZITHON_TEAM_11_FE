@@ -70,11 +70,10 @@ it('preserves one registration across back navigation and does not require optio
   const { actions, c } = fixture();
   await registered(c);
   c.toggle('terms');
-  c.toggle('privacy');
   await c.submit();
   expect(c.getSnapshot().stage).toBe('consents');
   expect(actions.consent).not.toHaveBeenCalled();
-  c.toggle('processing');
+  c.toggle('privacy');
   await c.submit();
   expect(c.getSnapshot().stage).toBe('birth');
   c.back();
@@ -96,7 +95,6 @@ it('preserves one registration across back navigation and does not require optio
       choices: {
         terms: true,
         privacy: true,
-        processing: true,
         notifications: false,
       },
     },

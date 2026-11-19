@@ -1,5 +1,11 @@
 import { afterEach, expect, it, jest } from '@jest/globals';
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from '@testing-library/react-native';
 import { SettingsScreen } from './SettingsScreen';
 import type { SettingsActions } from './types';
 import { createMockSignup } from '../../mocks/signup';
@@ -63,7 +69,11 @@ it('shows login email as readable information and opens the same versioned docum
   await press('약관 · 개인정보 열기');
   await press('개인정보 수집 · 이용 보기');
   expect(screen.getByText('개인정보 본문')).toBeTruthy();
-  expect(screen.getByText('예시 문서 · v1')).toBeTruthy();
+  expect(
+    within(screen.getByTestId('legal-document-modal')).getByText(
+      '문서 버전 · v1',
+    ),
+  ).toBeTruthy();
   await fireEvent(screen.getByTestId('legal-document-modal'), 'requestClose');
   expect(screen.queryByText('개인정보 본문')).toBeNull();
   expect(
@@ -162,5 +172,5 @@ it('shares signup and settings example documents and keeps their returned snapsh
     second = await q;
   expect(second).toEqual(first);
   first.documents[0].body = 'changed snapshot';
-  expect(second.documents[0].body).toContain('실제 약관 원문이 아닙니다');
+  expect(second.documents[0].body).toContain('체험판 검토안');
 });

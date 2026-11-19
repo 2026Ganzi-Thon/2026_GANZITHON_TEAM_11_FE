@@ -43,7 +43,6 @@ it('binds the actual registration, birthday, reminder and next-day clock to one 
         choices: {
           terms: true,
           privacy: true,
-          processing: true,
           notifications: false,
         },
       },

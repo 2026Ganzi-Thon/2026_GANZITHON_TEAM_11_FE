@@ -1,3 +1,5 @@
+import { PREVIEW_LEGAL_REVISION } from '../features/legal/previewPolicy';
+import { hasRequiredConsents } from '../features/legal/model';
 import { exampleLegalDocuments } from './legalDocuments';
 import { createMockPasswordReset } from './passwordReset';
 import { ApiError } from '../api/errors';
@@ -28,7 +30,7 @@ export function createMockSignup(
   accountId = 'signup-preview-account',
 ): SignupActions {
   const today = () => kstDate(new Date(now()));
-  let revision = 'v1',
+  let revision = PREVIEW_LEGAL_REVISION,
     account: Registration | null = null,
     birth: BirthDateResult | null = null,
     agreed = false;
@@ -112,7 +114,7 @@ export function createMockSignup(
         if (id !== account?.id) throw new ApiError('http', { status: 404 });
         if (scenario === 'version-changed' && !failed.has('version')) {
           failed.add('version');
-          revision = 'v2';
+          revision = `${PREVIEW_LEGAL_REVISION}-updated`;
           throw new ApiError('http', {
             status: 409,
             code: 'CONSENT_VERSION_CHANGED',
@@ -123,11 +125,7 @@ export function createMockSignup(
             status: 409,
             code: 'CONSENT_VERSION_CHANGED',
           });
-        if (
-          !input.choices.terms ||
-          !input.choices.privacy ||
-          !input.choices.processing
-        )
+        if (!hasRequiredConsents(input.choices))
           throw new ApiError('http', { status: 422 });
         if (scenario === 'consent-retry') failOnce('consent');
         agreed = true;

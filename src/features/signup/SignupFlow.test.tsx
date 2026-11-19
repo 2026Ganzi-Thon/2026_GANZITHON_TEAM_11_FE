@@ -25,8 +25,7 @@ async function email() {
 async function agree() {
   for (const label of [
     '[필수] 서비스 이용약관',
-    '[필수] 개인정보 수집 · 이용',
-    '[필수] 고민 글 외부 AI 전송',
+    '[필수] 개인정보·입력정보 처리 안내',
   ])
     await fireEvent.press(screen.getByRole('checkbox', { name: label }));
   await press('동의하고 계속');
@@ -45,7 +44,7 @@ it('connects signup, document view, required consent and initial birth save with
   await email();
   expect(screen.getByRole('button', { name: '동의하고 계속' })).toBeDisabled();
   await press('서비스 이용약관 보기');
-  expect(screen.getByText(/실제 약관 원문이 아닙니다/)).toBeTruthy();
+  expect(screen.getByText(/시행일은 확정 전입니다/)).toBeTruthy();
   await press('문서 닫기');
   await agree();
   expect(screen.getByText('생일을 알려 주세요')).toBeTruthy();
@@ -222,7 +221,9 @@ it('keeps all consent selections while reading and closing the shared document d
   await fireEvent(screen.getByTestId('legal-document-modal'), 'requestClose');
   expect(screen.getByRole('checkbox', { name: label })).toBeChecked();
   expect(
-    screen.getByRole('checkbox', { name: '[필수] 개인정보 수집 · 이용' }),
+    screen.getByRole('checkbox', {
+      name: '[필수] 개인정보·입력정보 처리 안내',
+    }),
   ).not.toBeChecked();
   expect(screen.getByRole('button', { name: '동의하고 계속' })).toBeDisabled();
 });

@@ -59,7 +59,7 @@ export default function SettingsDocumentsPreview() {
       <ScrollView contentContainerStyle={{ padding: 20, gap: 16, flexGrow: 1 }}>
         <Notice
           title="설정 이메일·문서 열람"
-          description="계정과 문서는 메모리 mock이며 실제 약관 원문이 아니에요. 문서를 읽어도 동의 내용은 바뀌지 않아요. 가입한 계정과의 연결은 가입 → 첫 홈 → 설정에서도 확인할 수 있어요."
+          description="계정은 메모리 mock이며 문서는 체험판 검토안이에요. 문서를 읽어도 동의 선택은 바뀌지 않아요. 가입한 계정과의 연결은 가입 → 첫 홈 → 설정에서도 확인할 수 있어요."
         />
         {scenarios.map(([value, label]) => (
           <Button

@@ -28,7 +28,7 @@ export function DocumentDialog({
             <Text accessibilityRole="header" style={s.title}>
               {document.title}
             </Text>
-            <Text style={s.caption}>예시 문서 · {document.version}</Text>
+            <Text style={s.caption}>문서 버전 · {document.version}</Text>
             <Text style={s.body}>{document.body}</Text>
           </ScrollView>
           <Button label="문서 닫기" onPress={onClose} />

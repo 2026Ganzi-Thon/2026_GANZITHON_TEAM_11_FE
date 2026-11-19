@@ -22,7 +22,10 @@ import { DayScreen } from './DayScreen';
 import { SheepArt } from './SheepArt';
 import { canAdopt, useMorningFlow } from './useMorningFlow';
 import type { MorningActions, MorningCandidate } from './types';
-import { SheepDetailScreen } from '../flock/SheepDetailScreen';
+import {
+  SheepDetailWritingFlow,
+  createSheepWritingSessions,
+} from '../flock/SheepDetailWritingFlow';
 import type { SheepDetailLoad } from '../flock/types';
 import { DeferredWritingSection } from './DeferredWritingSection';
 import { ReceivedYarnSection } from '../yarnSummary/ReceivedYarnSection';
@@ -96,9 +99,17 @@ function CandidateDetail({
   );
 }
 export function MorningScreen(props: Parameters<typeof MorningSession>[0]) {
-  const [source, setSource] = useState({ actions: props.actions, version: 0 });
-  if (source.actions !== props.actions)
-    setSource({ actions: props.actions, version: source.version + 1 });
+  const [source, setSource] = useState({
+    actions: props.actions,
+    cards: props.myCards,
+    version: 0,
+  });
+  if (source.actions !== props.actions || source.cards !== props.myCards)
+    setSource({
+      actions: props.actions,
+      cards: props.myCards,
+      version: source.version + 1,
+    });
   return <MorningSession key={source.version} {...props} />;
 }
 function MorningSession({
@@ -120,6 +131,9 @@ function MorningSession({
   fortuneKey?: string;
   myCards?: MyCardsWritingSource;
 }) {
+  const [sheepWriting] = useState(() =>
+    myCards ? createSheepWritingSessions(myCards) : undefined,
+  );
   const [decorationPicking, setDecorationPicking] = useState(false);
   const [decorationId, setDecorationId] = useState<string | null>(null);
   const [decorationNotice, setDecorationNotice] = useState('');
@@ -145,7 +159,7 @@ function MorningSession({
       key={fortuneVersion}
       date={fortuneKey}
       settings={actions.settings}
-      profileVisible={!settingsOpen && !cardsOpen}
+      profileVisible={!settingsOpen && !cardsOpen && detailId === null}
       onSettings={() => setSettingsOpen(true)}
       onCards={myCards ? () => setCardsOpen(true) : undefined}
       yarn={yarn}
@@ -535,7 +549,8 @@ function MorningSession({
         navigationBarTranslucent
       >
         {detailId !== null && loadDetail && (
-          <SheepDetailScreen
+          <SheepDetailWritingFlow
+            writing={sheepWriting}
             key={detailId}
             sheepId={detailId}
             load={loadDetail}

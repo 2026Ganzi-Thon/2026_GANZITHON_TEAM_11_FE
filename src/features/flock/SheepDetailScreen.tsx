@@ -114,6 +114,7 @@ type DetailProps = {
   sheepId: string;
   load: SheepDetailLoad;
   onBack: () => void;
+  onWrite?: () => void;
   worries?: WorryDeletions;
 };
 export function SheepDetailScreen(props: DetailProps) {
@@ -137,7 +138,13 @@ export function SheepDetailScreen(props: DetailProps) {
   }
   return <DetailSession key={source.version} {...props} />;
 }
-function DetailSession({ sheepId, load, onBack, worries }: DetailProps) {
+function DetailSession({
+  sheepId,
+  load,
+  onBack,
+  onWrite,
+  worries,
+}: DetailProps) {
   const [target, setTarget] = useState<{ id: string; date: string } | null>(
     null,
   );
@@ -209,12 +216,15 @@ function DetailSession({ sheepId, load, onBack, worries }: DetailProps) {
             <View style={styles.spacer} />
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="카드 쓰기 · 준비 중"
-              accessibilityState={{ disabled: true }}
-              disabled
-              style={styles.writeButton}
+              accessibilityLabel={onWrite ? '카드 쓰기' : '카드 쓰기 · 준비 중'}
+              accessibilityState={{ disabled: !onWrite }}
+              disabled={!onWrite}
+              onPress={onWrite}
+              style={[styles.writeButton, !onWrite && { opacity: 0.65 }]}
             >
-              <Text style={styles.writeLabel}>카드 쓰기 · 준비 중</Text>
+              <Text style={styles.writeLabel}>
+                {onWrite ? '카드 쓰기' : '카드 쓰기 · 준비 중'}
+              </Text>
             </Pressable>
           </>
         ) : (
@@ -363,7 +373,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     boxShadow: '5px 5px 0 #D9B65E',
-    opacity: 0.65,
   },
   writeLabel: {
     fontFamily: theme.font,

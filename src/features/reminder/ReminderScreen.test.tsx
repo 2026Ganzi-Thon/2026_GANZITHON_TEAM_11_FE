@@ -4,7 +4,9 @@ import { AccessibilityInfo } from 'react-native';
 import { ApiError } from '../../api/errors';
 import { ReminderScreen } from './ReminderScreen';
 import type { ReminderActions } from './types';
-afterEach(() => jest.restoreAllMocks());
+afterEach(() => {
+  jest.restoreAllMocks();
+});
 const press = async (name: string) =>
   fireEvent.press(screen.getByRole('button', { name }));
 function source(): ReminderActions {

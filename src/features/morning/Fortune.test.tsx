@@ -79,7 +79,7 @@ it('loads fortune only in home, opens it on the fortune sheep and retains the da
   ).toBeTruthy();
   await press('오늘의 운세 닫기');
   expect(screen.queryByTestId('fortune-modal')).toBeNull();
-  expect(screen.getByText('나의 양떼')).toBeTruthy();
+  expect(screen.getByRole('header', { name: /^나의 양떼/ })).toBeTruthy();
   await press('오늘의 운세 보기');
   expect(screen.getByText('3위')).toBeTruthy();
   expect(fortune.load).toHaveBeenCalledTimes(1);
@@ -122,8 +122,8 @@ it.each([
 
 it('retries only fortune and leaves home and reflection usable after a load failure', async () => {
   const { load, flock } = await home('retry');
-  expect(screen.getByText('오늘의 운세를 불러오지 못했어요')).toBeTruthy();
-  expect(screen.getByText('나의 양떼')).toBeTruthy();
+  expect(screen.getByText('운세 확인 필요')).toBeTruthy();
+  expect(screen.getByRole('header', { name: /^나의 양떼/ })).toBeTruthy();
   await press('어젯밤 돌아보기');
   await tick();
   expect(screen.getByTestId('reflection-modal')).toBeTruthy();
@@ -133,11 +133,12 @@ it('retries only fortune and leaves home and reflection usable after a load fail
   await press('오늘의 운세 보기');
   expect(screen.queryByTestId('fortune-modal')).toBeNull();
   await fireEvent(screen.getByTestId('reflection-modal'), 'requestClose');
+  await press('오늘의 운세 보기');
+  expect(screen.getByText('오늘의 운세를 불러오지 못했어요')).toBeTruthy();
   await press('운세 다시 불러오기');
   await tick();
   expect(load).toHaveBeenCalledTimes(2);
   expect(flock).toHaveBeenCalledTimes(1);
-  await press('오늘의 운세 보기');
   expect(screen.getByText('3위')).toBeTruthy();
 });
 
@@ -151,7 +152,7 @@ it('keeps an unavailable daily fortune unavailable on retries, with no invented 
   expect(screen.getByText('오늘의 운세가 아직 준비되지 않았어요')).toBeTruthy();
   expect(screen.queryByText('3위')).toBeNull();
   await fireEvent(screen.getByTestId('fortune-modal'), 'requestClose');
-  expect(screen.getByText('나의 양떼')).toBeTruthy();
+  expect(screen.getByRole('header', { name: /^나의 양떼/ })).toBeTruthy();
 });
 
 it('keeps fortune available while the flock read fails and retries only the flock', async () => {

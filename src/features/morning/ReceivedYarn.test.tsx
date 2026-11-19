@@ -97,14 +97,14 @@ it('waits for adoption and actual popup presentation before marking the returned
   expect(screen.getByText('털실 3개가 도착했어요')).toBeTruthy();
   await press('받은 털실 닫기');
   expect(screen.queryByTestId('received-yarn-modal')).toBeNull();
-  expect(screen.getByText('나의 양떼')).toBeTruthy();
+  expect(screen.getByRole('header', { name: /^나의 양떼/ })).toBeTruthy();
 });
 
 it.each(['none', 'zero', 'seen'] as const)(
   'omits popup and confirmation for %s summaries without blocking home',
   async (scenario) => {
     const { load, seen } = await open(scenario);
-    expect(screen.getByText('나의 양떼')).toBeTruthy();
+    expect(screen.getByRole('header', { name: /^나의 양떼/ })).toBeTruthy();
     expect(screen.queryByTestId('received-yarn-modal')).toBeNull();
     expect(load).toHaveBeenCalledTimes(1);
     expect(seen).not.toHaveBeenCalled();
@@ -115,7 +115,7 @@ it.each(['none', 'zero', 'seen'] as const)(
 
 it('retries only the failed summary read and leaves the adopted sheep available', async () => {
   const { load, seen } = await open('load-retry');
-  expect(screen.getByText('나의 양떼')).toBeTruthy();
+  expect(screen.getByRole('header', { name: /^나의 양떼/ })).toBeTruthy();
   expect(screen.getByText('받은 털실을 불러오지 못했어요')).toBeTruthy();
   expect(screen.queryByTestId('received-yarn-modal')).toBeNull();
   expect(seen).not.toHaveBeenCalled();
@@ -153,7 +153,7 @@ it('does not repeat a confirmation on duplicate presentation events, retries the
   await view.unmount();
   await render(<MorningScreen actions={actions} onExit={() => {}} />);
   await tick();
-  expect(screen.getByText('나의 양떼')).toBeTruthy();
+  expect(screen.getByRole('header', { name: /^나의 양떼/ })).toBeTruthy();
   expect(screen.queryByTestId('received-yarn-modal')).toBeNull();
 });
 
@@ -170,7 +170,7 @@ it('keeps a pending seen request alive after closing and offers retry in home if
   const signal = seen.mock.calls[0][1];
   await fireEvent(screen.getByTestId('received-yarn-modal'), 'requestClose');
   expect(signal.aborted).toBe(false);
-  expect(screen.getByText('나의 양떼')).toBeTruthy();
+  expect(screen.getByRole('header', { name: /^나의 양떼/ })).toBeTruthy();
   await act(async () => reject(new ApiError('network')));
   expect(screen.getByText('확인 상태가 저장됐는지 알 수 없어요.')).toBeTruthy();
   await press('어젯밤 돌아보기');
@@ -405,7 +405,7 @@ it.each([
     await tick();
     expect(oldSignal.aborted).toBe(true);
     await act(async () => finish());
-    expect(screen.getByText('나의 양떼')).toBeTruthy();
+    expect(screen.getByRole('header', { name: /^나의 양떼/ })).toBeTruthy();
     expect(screen.queryByTestId('received-yarn-modal')).toBeNull();
     expect(
       screen.queryByText('확인 상태가 저장됐는지 알 수 없어요.'),
@@ -465,7 +465,7 @@ it('waits until foreground before presenting or acknowledging a summary loaded i
     };
     await render(<MorningScreen actions={actions} onExit={() => {}} />);
     await tick();
-    expect(screen.getByText('나의 양떼')).toBeTruthy();
+    expect(screen.getByRole('header', { name: /^나의 양떼/ })).toBeTruthy();
     expect(screen.queryByTestId('received-yarn-modal')).toBeNull();
     expect(seen).not.toHaveBeenCalled();
     Object.defineProperty(AppState, 'currentState', {

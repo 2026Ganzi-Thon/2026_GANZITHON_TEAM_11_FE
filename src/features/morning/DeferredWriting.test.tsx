@@ -182,7 +182,7 @@ describe('deferred morning writing', () => {
       expect(screen.queryByRole('button', { name: '이제 잘게요' })).toBeNull();
       await press('아침 홈으로');
       await tick();
-      expect(screen.getByText('나의 양떼')).toBeTruthy();
+      expect(screen.getByRole('header', { name: /^나의 양떼/ })).toBeTruthy();
       expect(
         screen.queryByRole('button', { name: '미뤄 둔 카드 쓰기' }),
       ).toBeNull();

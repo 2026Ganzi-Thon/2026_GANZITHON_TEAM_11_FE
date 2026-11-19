@@ -157,7 +157,7 @@ describe('night to morning demo', () => {
     await press('아침 다시 보기');
     await tick();
     await tick();
-    expect(screen.getByText('나의 양떼')).toBeTruthy();
+    expect(screen.getByRole('header', { name: /^나의 양떼/ })).toBeTruthy();
     expect(screen.queryByTestId('received-yarn-modal')).toBeNull();
     expect(seen).toHaveBeenCalledTimes(1);
   });
@@ -186,12 +186,12 @@ describe('night to morning demo', () => {
     await tick();
     await press('아침 홈으로');
     await tick();
-    expect(screen.getByText('나의 양떼')).toBeTruthy();
+    expect(screen.getByRole('header', { name: /^나의 양떼/ })).toBeTruthy();
     expect(screen.queryByText('밤 마무리를 확인했어요')).toBeNull();
     await press('미리보기 나가기');
     await press('아침 다시 보기');
     await tick();
-    expect(screen.getByText('나의 양떼')).toBeTruthy();
+    expect(screen.getByRole('header', { name: /^나의 양떼/ })).toBeTruthy();
     expect(
       screen.queryByRole('button', { name: '미뤄 둔 카드 쓰기' }),
     ).toBeNull();

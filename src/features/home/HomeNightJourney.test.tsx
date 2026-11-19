@@ -73,7 +73,7 @@ it('connects one first home through a night, morning adoption and reflection to 
   expect(screen.getByRole('button', { name: '이 양 데려오기' })).toBeTruthy();
   await press('이 양 데려오기');
   await tick();
-  expect(screen.getByText('나의 양떼')).toBeTruthy();
+  expect(screen.getByRole('header', { name: /^나의 양떼/ })).toBeTruthy();
   expect(
     screen.getByRole('button', { name: '밤 9시에 열려요' }),
   ).toBeDisabled();

@@ -196,26 +196,26 @@ it('restarts a pending profile read after editing and never restores the previou
   let finish!: (data: SettingsData) => void;
   const load = jest
     .fn<SettingsActions['loadMe']>()
-    .mockImplementationOnce(original)
-    .mockImplementationOnce(
-      () =>
-        new Promise((resolve) => {
-          finish = resolve;
-        }),
-    )
     .mockImplementation(original);
   source.settings.loadMe = load;
   await open(source);
   await press('고민 기록 열기');
   await tick();
+  load.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
   await press('설정으로 돌아가기');
+  const staleRequest = load.mock.calls.at(-1)![0];
   expect(screen.getByText('생일 확인 중')).toBeTruthy();
   expect(screen.queryByText('2004.05.14 · 수정 1회')).toBeNull();
   await choose();
   await save();
   await press('돌아가기');
   await tick();
-  expect(load.mock.calls[1][0].aborted).toBe(true);
+  expect(staleRequest.aborted).toBe(true);
   await act(async () => finish(old));
   expect(screen.getByText('2004.06.14 · 수정 0회')).toBeTruthy();
   expect(screen.queryByText('2004.05.14 · 수정 1회')).toBeNull();

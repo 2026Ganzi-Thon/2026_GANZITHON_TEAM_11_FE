@@ -1,7 +1,7 @@
 import type { PropsWithChildren } from 'react';
 import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 const dayLayers: readonly [number, number, number, number, number][] = [
   [require('../../../assets/images/morning/sky-1.svg'), 0, 0, 360, 140],
@@ -136,6 +136,8 @@ export function DayScreen({
   children,
   home = false,
 }: PropsWithChildren<{ home?: boolean }>) {
+  const { width } = useWindowDimensions(),
+    scale = Math.min(width, 480) / 360;
   return (
     <View style={styles.screen}>
       <StatusBar style="dark" />
@@ -143,38 +145,44 @@ export function DayScreen({
         pointerEvents="none"
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
-        style={StyleSheet.absoluteFill}
+        style={
+          home
+            ? {
+                position: 'absolute',
+                top: 0,
+                bottom: 0,
+                width: Math.min(width, 480),
+                alignSelf: 'center',
+              }
+            : StyleSheet.absoluteFill
+        }
       >
-        {[...dayLayers, ...(home ? homeLayers : [])].map(
+        {(home ? dayLayers.slice(0, 10) : dayLayers).map(
           ([source, x, y, w, h], index) => (
             <Image
               key={index}
               source={source}
               contentFit="fill"
-              style={{
-                position: 'absolute',
-                left: `${(x / 360) * 100}%`,
-                top: `${(y / 780) * 100}%`,
-                width: `${(w / 360) * 100}%`,
-                height: `${(h / 780) * 100}%`,
-              }}
+              style={
+                home
+                  ? {
+                      position: 'absolute',
+                      left: x * scale,
+                      top: y * scale,
+                      width: w * scale,
+                      height: h * scale,
+                    }
+                  : {
+                      position: 'absolute',
+                      left: `${(x / 360) * 100}%`,
+                      top: `${(y / 780) * 100}%`,
+                      width: `${(w / 360) * 100}%`,
+                      height: `${(h / 780) * 100}%`,
+                    }
+              }
             />
           ),
         )}
-        {home &&
-          homeDetails.map(([color, x, y, w, h], index) => (
-            <View
-              key={index}
-              style={{
-                position: 'absolute',
-                backgroundColor: color,
-                left: `${(x / 360) * 100}%`,
-                top: `${(y / 780) * 100}%`,
-                width: `${(w / 360) * 100}%`,
-                height: `${(h / 780) * 100}%`,
-              }}
-            />
-          ))}
       </View>
       <SafeAreaView style={styles.safe}>{children}</SafeAreaView>
     </View>

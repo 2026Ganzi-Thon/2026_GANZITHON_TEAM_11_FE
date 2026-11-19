@@ -65,7 +65,7 @@ it('opens settings and paginated worry records from home without exposing deleti
       onExit={() => {}}
     />,
   );
-  await screen.findByText('나의 양떼');
+  await screen.findByRole('header', { name: /^나의 양떼/ });
   await press('설정 열기');
   expect(await screen.findByText('66밤째 양을 세는 중')).toBeTruthy();
   expect(screen.getByLabelText('로그인 정보: user@example.com')).toBeTruthy();

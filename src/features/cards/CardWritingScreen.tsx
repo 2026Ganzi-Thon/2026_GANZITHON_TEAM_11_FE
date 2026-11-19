@@ -32,7 +32,7 @@ type CardWritingProps = {
   onDone: () => void;
   modal?: boolean;
 } & (
-  | { entryContext: 'my_cards'; sourceNightId?: never }
+  | { entryContext: 'my_cards' | 'sheep_detail'; sourceNightId?: never }
   | { entryContext?: 'night_offer' | 'morning_banner'; sourceNightId: string }
 );
 export function CardWritingScreen(
@@ -67,9 +67,11 @@ function CardWritingSession({
   const completionLabel =
     context === 'my_cards'
       ? '내 카드로'
-      : context === 'morning_banner'
-        ? '아침 홈으로'
-        : '이제 잘게요';
+      : context === 'sheep_detail'
+        ? '양의 기록으로'
+        : context === 'morning_banner'
+          ? '아침 홈으로'
+          : '이제 잘게요';
   const [choice, setChoice] = useState(() => actions.readChoice());
   const [category, setCategory] = useState<TextCardCategory | null>(
     choice?.category_id ?? null,
@@ -92,7 +94,9 @@ function CardWritingSession({
     modal,
     completionLabel,
     conflictTitle:
-      context === 'my_cards' ? '작성 상태를 확인해 주세요' : undefined,
+      context === 'my_cards' || context === 'sheep_detail'
+        ? '작성 상태를 확인해 주세요'
+        : undefined,
     onBack: () => setPage('choose'),
   };
   if (page === 'text')

@@ -12,23 +12,35 @@ export function CardSwipeArea({
   canMove: (direction: -1 | 1) => boolean;
   disabled: boolean;
 }) {
-  const captured = useRef<-1 | 0 | 1>(0);
+  const captured = useRef<{ dx: number; dy: number; granted: boolean } | null>(
+    null,
+  );
   const capture = useCallback(
     (_event: unknown, g: { dx: number; dy: number }) => {
+      if (captured.current?.granted) return false;
       const direction = swipeDirection(g.dx, g.dy);
       if (disabled || !direction || !canMove(direction)) return false;
-      captured.current = direction;
+      captured.current = { dx: g.dx, dy: g.dy, granted: false };
       return true;
     },
     [disabled, canMove],
   );
-  const release = useCallback(() => {
-    const direction = captured.current;
-    captured.current = 0;
-    if (!disabled && direction && canMove(direction)) onMove(direction);
-  }, [disabled, canMove, onMove]);
+  const grant = useCallback(() => {
+    if (captured.current) captured.current.granted = true;
+  }, []);
+  const release = useCallback(
+    (_event: unknown, g: { dx: number; dy: number }) => {
+      const start = captured.current;
+      captured.current = null;
+      if (!start?.granted) return;
+      // Grant resets PanResponder deltas, so retain the displacement before capture.
+      const direction = swipeDirection(start.dx + g.dx, start.dy + g.dy);
+      if (!disabled && direction && canMove(direction)) onMove(direction);
+    },
+    [disabled, canMove, onMove],
+  );
   const terminate = useCallback(() => {
-    captured.current = 0;
+    captured.current = null;
   }, []);
   const responder = useMemo(
     () =>
@@ -37,11 +49,13 @@ export function CardSwipeArea({
       PanResponder.create({
         onStartShouldSetPanResponder: () => false,
         onMoveShouldSetPanResponderCapture: capture,
+        onPanResponderGrant: grant,
+        onPanResponderReject: terminate,
         onPanResponderRelease: release,
         onPanResponderTerminate: terminate,
         onPanResponderTerminationRequest: () => true,
       }),
-    [capture, release, terminate],
+    [capture, grant, release, terminate],
   );
   return (
     <View testID="feed-card-swipe" {...responder.panHandlers}>

@@ -145,6 +145,7 @@ function MorningSession({
       key={fortuneVersion}
       date={fortuneKey}
       settings={actions.settings}
+      profileVisible={!settingsOpen}
       onSettings={() => setSettingsOpen(true)}
       onCards={myCards ? () => setCardsOpen(true) : undefined}
       yarn={yarn}

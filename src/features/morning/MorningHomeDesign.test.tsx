@@ -1,5 +1,11 @@
 import { afterEach, expect, it, jest } from '@jest/globals';
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from '@testing-library/react-native';
 import { MorningScreen } from './MorningScreen';
 import { createMockMorning } from '../../mocks/morning';
 import { createMockSettings } from '../../mocks/settings';
@@ -78,7 +84,16 @@ it('keeps every real sheep reachable and marks the adopted night without relying
   expect(screen.getAllByRole('button', { name: /의 양/ })).toHaveLength(
     many.length + real.length,
   );
-  expect(screen.getByText('어젯밤')).toBeTruthy();
+  expect(
+    within(screen.getByRole('button', { name: '2026-11-10의 양' })).getByText(
+      '어젯밤',
+    ),
+  ).toBeTruthy();
+  expect(
+    within(screen.getByRole('button', { name: '2026-10-01의 양' })).queryByText(
+      '어젯밤',
+    ),
+  ).toBeNull();
   await press('2026-11-10의 양');
   await tick();
   expect(loadDetail).toHaveBeenCalledWith(

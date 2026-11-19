@@ -45,12 +45,14 @@ export function MorningHomeHeader({
   onSettings,
   onCards,
   yarn,
+  profileVisible = true,
 }: {
   date?: string;
   settings?: SettingsActions;
   onSettings: () => void;
   onCards?: () => void;
   yarn?: ReactNode;
+  profileVisible?: boolean;
 }) {
   return (
     <View>
@@ -81,7 +83,9 @@ export function MorningHomeHeader({
         </View>
       </View>
       {settings ? (
-        <Profile actions={settings} />
+        profileVisible ? (
+          <Profile actions={settings} />
+        ) : null
       ) : (
         <Text
           accessibilityRole="header"

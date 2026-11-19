@@ -9,6 +9,7 @@ interface Props {
   resetActions: PasswordResetActions;
   onExit: () => void;
   initialRecovery?: boolean;
+  initialEmail?: string;
   onSuccess?: () => void;
 }
 export function LoginRecoveryFlow(props: Props) {
@@ -30,10 +31,11 @@ function Session({
   resetActions,
   onExit,
   initialRecovery = false,
+  initialEmail = '',
   onSuccess,
 }: Props) {
   const [recover, setRecover] = useState(initialRecovery),
-    [email, setEmail] = useState('');
+    [email, setEmail] = useState(initialEmail);
   useEffect(() => {
     if (recover) return;
     const listener = BackHandler.addEventListener('hardwareBackPress', () => {

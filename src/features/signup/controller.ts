@@ -59,9 +59,12 @@ function isDefiniteRejection(
     (error.status === 409 && conflictCodes.includes(error.code ?? ''))
   );
 }
-export function createSignupController(actions: SignupActions) {
+export function createSignupController(
+  actions: SignupActions,
+  initialStage: 'welcome' | 'login' = 'welcome',
+) {
   let state: SignupState = {
-    stage: 'welcome',
+    stage: initialStage,
     email: '',
     password: '',
     confirmation: '',

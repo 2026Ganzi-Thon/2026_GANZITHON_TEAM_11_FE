@@ -2,10 +2,11 @@ import { ApiError } from '../api/errors';
 /** Revocable boundary for one preview account's action tree, not an auth layer. */
 export function createMockAccountScope(lifecycle?: object) {
   let closed = false;
+  let inactiveCode = 'ACCOUNT_WITHDRAWN';
   const pending = new Set<AbortController>();
   const objects = new WeakMap<object, object>();
   const inactive = () =>
-    new ApiError('http', { status: 410, code: 'ACCOUNT_WITHDRAWN' });
+    new ApiError('http', { status: 410, code: inactiveCode });
   function protect<T extends object>(source: T): T {
     if (source === lifecycle) return source;
     const cached = objects.get(source);
@@ -94,7 +95,8 @@ export function createMockAccountScope(lifecycle?: object) {
   }
   return {
     protect,
-    revoke: () => {
+    revoke: (code = 'ACCOUNT_WITHDRAWN') => {
+      inactiveCode = code;
       closed = true;
       for (const request of pending) request.abort();
       pending.clear();

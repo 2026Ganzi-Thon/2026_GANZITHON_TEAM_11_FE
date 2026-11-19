@@ -14,6 +14,7 @@ export function SignupFlow(props: {
   onExit: () => void;
   onComplete?: (registration: Registration, birth: BirthDateResult) => void;
   onLoginComplete?: () => void;
+  initialLoginEmail?: string;
 }) {
   const [source, setSource] = useState({ actions: props.actions, version: 0 });
   if (source.actions !== props.actions)
@@ -25,13 +26,20 @@ function SignupSession({
   onExit,
   onComplete,
   onLoginComplete,
+  initialLoginEmail,
 }: {
   actions: SignupActions;
   onExit: () => void;
   onComplete?: (registration: Registration, birth: BirthDateResult) => void;
   onLoginComplete?: () => void;
+  initialLoginEmail?: string;
 }) {
-  const [c] = useState(() => createSignupController(actions));
+  const [c] = useState(() =>
+    createSignupController(
+      actions,
+      initialLoginEmail !== undefined ? 'login' : 'welcome',
+    ),
+  );
   const state = useSyncExternalStore(c.subscribe, c.getSnapshot, c.getSnapshot);
   useEffect(() => {
     c.start();
@@ -64,6 +72,7 @@ function SignupSession({
     return (
       <LoginRecoveryFlow
         submit={actions.login}
+        initialEmail={initialLoginEmail}
         resetActions={actions.passwordReset}
         onExit={c.back}
         onSuccess={onLoginComplete}

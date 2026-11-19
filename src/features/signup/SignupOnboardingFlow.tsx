@@ -9,6 +9,7 @@ import type { SignupActions } from './types';
 import { HomeFlow } from '../home/HomeFlow';
 import type { HomeSnapshot } from '../home/model';
 export interface SignupOnboardingSource {
+  initialLoginEmail?: string;
   onLoginComplete?: () => void;
   signup: SignupActions;
   onboarding: SignupOnboarding;
@@ -53,6 +54,7 @@ function Session({
   if (state.stage === 'signup')
     return (
       <SignupFlow
+        initialLoginEmail={source.initialLoginEmail}
         actions={source.signup}
         onExit={onExit}
         onComplete={c.begin}

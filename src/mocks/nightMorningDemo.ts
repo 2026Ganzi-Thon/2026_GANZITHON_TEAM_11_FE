@@ -205,9 +205,10 @@ export function createNightMorningDemo(
     onSubmitted,
     namespace: options.writingNamespace,
   };
-  const textCards = createMockTextCards(writingScenario, writingOptions);
-  const songCards = createMockSongCards(writingScenario, writingOptions);
-  const cardWriting = createMockCardWriting(textCards, songCards);
+  let writingGeneration = 0;
+  let textCards = createMockTextCards(writingScenario, writingOptions);
+  let songCards = createMockSongCards(writingScenario, writingOptions);
+  let cardWriting = createMockCardWriting(textCards, songCards);
   let fingerprint: string | null = null;
   let closingViewed = false;
   let closingConfirmed = false;
@@ -457,7 +458,9 @@ export function createNightMorningDemo(
             options.manageWorries ? records : undefined,
           )
         : undefined,
-    writing: cardWriting,
+    get writing() {
+      return cardWriting;
+    },
     fortune: scenario === 'fortune' ? createMockFortune() : undefined,
     receivedYarn:
       scenario === 'received-yarn' ? createMockReceivedYarn() : undefined,
@@ -817,6 +820,15 @@ export function createNightMorningDemo(
   };
   return {
     nightId,
+    clearWritingDrafts() {
+      const next = {
+        ...writingOptions,
+        namespace: `${options.writingNamespace ?? 'preview'}-login-${++writingGeneration}`,
+      };
+      textCards = createMockTextCards(writingScenario, next);
+      songCards = createMockSongCards(writingScenario, next);
+      cardWriting = createMockCardWriting(textCards, songCards);
+    },
     returning,
     getTotalCount: totalCount,
     getClosingRequest: () =>
@@ -872,9 +884,15 @@ export function createNightMorningDemo(
     }),
     fluff,
     yarn,
-    textCards,
-    songCards,
-    cardWriting,
+    get textCards() {
+      return textCards;
+    },
+    get songCards() {
+      return songCards;
+    },
+    get cardWriting() {
+      return cardWriting;
+    },
     songs,
     entry,
     loadFeed,

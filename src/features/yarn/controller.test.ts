@@ -31,6 +31,20 @@ afterEach(() => {
   jest.useRealTimers();
 });
 describe('feed-owned yarn state', () => {
+  it('dismisses confirmation within a second while retaining the sent state', async () => {
+    jest.useFakeTimers();
+    const c = createYarnController({
+      set: async (id, sent) => ({ card_id: id, sent }),
+    });
+    const first = card();
+    c.toggle(first);
+    await flush();
+    expect(c.stateFor(first).notice).toBe('sent');
+    await jest.advanceTimersByTimeAsync(901);
+    expect(c.stateFor(first)).toMatchObject({ sent: true, notice: null });
+    c.stop();
+    expect(jest.getTimerCount()).toBe(0);
+  });
   it('keeps confirmation separate from a pending intent and coalesces send/cancel/send', async () => {
     const job = deferred();
     const set = jest.fn<YarnActions['set']>().mockReturnValue(job.promise);

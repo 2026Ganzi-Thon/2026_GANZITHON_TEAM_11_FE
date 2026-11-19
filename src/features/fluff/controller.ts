@@ -71,7 +71,7 @@ export function createFluffController(actions?: FluffActions): FluffController {
           entry.timer = undefined;
           entry.notice = null;
           publish();
-        }, 5000);
+        }, 900);
         entry.timer = timer;
         publish();
         return;

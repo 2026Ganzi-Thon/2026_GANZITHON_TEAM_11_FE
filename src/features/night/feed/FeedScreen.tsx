@@ -5,6 +5,7 @@ import type { FluffActions } from '../../fluff/types';
 import type { YarnActions } from '../../yarn/types';
 import { useYarnReactions } from '../../yarn/useYarnReactions';
 import { SongSaveButton } from '../../songs/SongSaveButton';
+import { CardSwipeArea } from './CardSwipeArea';
 import type { SongActions } from '../../songs/types';
 import {
   useCallback,
@@ -69,6 +70,19 @@ export function FeedScreen({
   blocked?: boolean;
 }) {
   const { fontScale } = useWindowDimensions();
+  const [viewportHeight, setViewportHeight] = useState(0),
+    [contentHeight, setContentHeight] = useState(0);
+  const [cardScroll, setCardScroll] = useState<{
+    id: string;
+    scrollable: boolean;
+  } | null>(null);
+  const scrollMetrics = useRef({ height: 0, content: 0, y: 0 });
+  const canSwipeCard = useCallback((delta: -1 | 1) => {
+    const m = scrollMetrics.current;
+    if (m.height <= 0) return false;
+    const max = Math.max(0, m.content - m.height);
+    return max <= 1 || (delta === 1 ? m.y >= max - 2 : m.y <= 2);
+  }, []);
   const [start] = useState(
     () => initialPosition ?? { position: 1, furthestPosition: 1 },
   );
@@ -223,6 +237,17 @@ export function FeedScreen({
     if (isEntrust) body.current?.scrollTo({ y: 0, animated: false });
   }, [isEntrust, pauseFlow.phase, pauseFlow.action]);
   const card = cards[position.position - 1];
+  const onCardScrollableChange = useCallback(
+    (scrollable: boolean) => {
+      if (!card) return;
+      setCardScroll((previous) =>
+        previous?.id === card.id && previous.scrollable === scrollable
+          ? previous
+          : { id: card.id, scrollable },
+      );
+    },
+    [card],
+  );
   const yarnState = card ? yarnFlow.stateFor(card) : null;
   const fluffState = card ? fluffFlow.stateFor(card) : null;
   const isCardAvailable = (target: Card) =>
@@ -269,6 +294,11 @@ export function FeedScreen({
         onExit={back}
       />
     );
+  const compactSong =
+    card?.kind === 'song' &&
+    fontScale <= 1.3 &&
+    viewportHeight > 0 &&
+    viewportHeight < 524;
   const canFinish =
     !!(closingActions || onFinish) && status === 'ready' && !!card;
   return (
@@ -378,7 +408,24 @@ export function FeedScreen({
         <>
           <View style={styles.feedViewport}>
             <ScrollView
+              testID="feed-scroll"
               ref={body}
+              onLayout={(event) => {
+                const h = event.nativeEvent.layout.height;
+                setViewportHeight(h);
+                scrollMetrics.current.height = h;
+              }}
+              onContentSizeChange={(_w, h) => {
+                setContentHeight(h);
+                scrollMetrics.current.content = h;
+              }}
+              onScroll={(event) => {
+                scrollMetrics.current.y = event.nativeEvent.contentOffset.y;
+              }}
+              scrollEventThrottle={16}
+              scrollEnabled={
+                fontScale > 1.3 || contentHeight > viewportHeight + 1
+              }
               style={styles.feedScroll}
               contentContainerStyle={styles.content}
             >
@@ -403,40 +450,67 @@ export function FeedScreen({
               ) : (
                 <>
                   <SheepStage
+                    scale={compactSong ? 0.5 : 1}
                     progress={progress}
                     direction={direction}
                     onMove={move}
                   />
-                  <Text style={styles.hint}>양 위에서 위·아래로 넘겨요</Text>
-                  <FeedCard
-                    key={card.id}
-                    card={visibleCard}
-                    yarn={
-                      yarn && yarnState
-                        ? {
-                            state: yarnState,
-                            onToggle: () => {
-                              if (!isCardAvailable(card)) return;
-                              setFeedback({ cardId: card.id, kind: 'yarn' });
-                              yarnFlow.toggle(card);
-                            },
-                          }
-                        : undefined
+                  <Text style={styles.hint}>
+                    {fontScale > 1.3 || cardScroll?.scrollable
+                      ? '본문은 스크롤하고 양 위에서 넘겨요'
+                      : '카드나 양을 위·아래로 넘겨요'}
+                  </Text>
+                  <CardSwipeArea
+                    onMove={move}
+                    canMove={canSwipeCard}
+                    disabled={
+                      fontScale > 1.3 ||
+                      cardScroll?.id !== card.id ||
+                      cardScroll.scrollable
                     }
-                    fluff={
-                      fluff && fluffState
-                        ? {
-                            state: fluffState,
-                            onToggle: () => {
-                              if (!isCardAvailable(card)) return;
-                              setFeedback({ cardId: card.id, kind: 'fluff' });
-                              fluffFlow.toggle(card);
-                            },
-                          }
-                        : undefined
-                    }
-                    isLast={position.position === cards.length}
-                  />
+                  >
+                    <FeedCard
+                      onScrollableChange={onCardScrollableChange}
+                      songHeight={
+                        viewportHeight > 0
+                          ? Math.max(
+                              200,
+                              Math.min(
+                                340,
+                                viewportHeight - (compactSong ? 189 : 244),
+                              ),
+                            )
+                          : 340
+                      }
+                      key={card.id}
+                      card={visibleCard}
+                      yarn={
+                        yarn && yarnState
+                          ? {
+                              state: yarnState,
+                              onToggle: () => {
+                                if (!isCardAvailable(card)) return;
+                                setFeedback({ cardId: card.id, kind: 'yarn' });
+                                yarnFlow.toggle(card);
+                              },
+                            }
+                          : undefined
+                      }
+                      fluff={
+                        fluff && fluffState
+                          ? {
+                              state: fluffState,
+                              onToggle: () => {
+                                if (!isCardAvailable(card)) return;
+                                setFeedback({ cardId: card.id, kind: 'fluff' });
+                                fluffFlow.toggle(card);
+                              },
+                            }
+                          : undefined
+                      }
+                      isLast={position.position === cards.length}
+                    />
+                  </CardSwipeArea>
                 </>
               )}
               {reactionsVisible && fluffState?.error === 'failed' && (

@@ -212,13 +212,7 @@ export function TextCardScreen({
                     {textError}
                   </Text>
                 )}
-                <Text style={styles.hint}>
-                  내 말로 적어 주세요. 다른 사람의 문장을 인용한다면 출처도 함께
-                  남겨 주세요.
-                </Text>
-                <Text style={styles.hint}>
-                  앞뒤 공백을 제외한 200자는 미리보기 임시 기준이에요.
-                </Text>
+                <Text style={styles.hint}>내 말로 적어 주세요.</Text>
               </View>
               {!!categoryError && (
                 <Text
@@ -258,8 +252,7 @@ export function TextCardScreen({
                 />
               )}
               <Text style={[styles.hint, styles.panel]}>
-                검수 전에는 다른 사람에게 보여 주지 않아요. 초안은 시연을
-                끝내거나 앱을 다시 실행하면 사라져요.
+                검수 전에는 다른 사람에게 보여 주지 않아요.
               </Text>
             </>
           )}

@@ -47,7 +47,20 @@ npm run android
 
 체험판 APK는 Metro 없이 실행되며 기존 개발 앱과 함께 설치할 수 있습니다. 앱 이름은 **양 세는 밤 · 체험판**, 패키지는 `com.ganzithon.yangsebam.preview`입니다. 시작 화면의 체험 시작에서 가입·mock 로그인과 홈을 이어 확인합니다. 기능별 미리보기는 별도 메뉴에서 선택합니다. 계정·기록은 mock이며 앱 재실행 시 초기화됩니다. 기기 알림과 외부 앱 열기는 실제로 동작합니다.
 
-공유용 최신 APK는 [0.1.0-preview.4 릴리스](https://github.com/2026Ganzi-Thon/2026_GANZITHON_TEAM_11_FE/releases/tag/v0.1.0-preview.4)에서 받습니다. 체험판 versionCode는 4이며 기존 체험판과 같은 서명을 사용해 업데이트 설치합니다. APK와 SHA-256 파일을 함께 제공합니다.
+공개 배포본은 [0.1.0-preview.4 릴리스](https://github.com/2026Ganzi-Thon/2026_GANZITHON_TEAM_11_FE/releases/tag/v0.1.0-preview.4)에서 받습니다. 이 배포본에는 OTA가 없습니다. OTA 연결을 사용하려면 새 `0.1.0-preview.5`(versionCode 5) APK를 같은 서명으로 한 번 업데이트 설치해야 합니다. APK와 SHA-256 파일을 함께 제공합니다.
+
+### 체험판 OTA
+
+[Expo 프로젝트](https://expo.dev/accounts/som323/projects/yangsebam)의 `preview` 채널을 앱 실행 시 확인하고 업데이트를 백그라운드로 받습니다. 다운로드된 내용은 다음 앱 시작에 반영하며 사용 중 강제 새로고침은 하지 않습니다. 네트워크가 없어도 설치에 포함된 버전이나 내려받은 버전으로 시작합니다. 앱 재실행에 따른 mock 기록 초기화는 동일합니다. 변경 확인 시 앱을 완전히 종료한 뒤 온라인으로 실행해 다운로드를 기다리고, 다시 완전히 종료·실행합니다.
+
+EAS 프로젝트에 접근 가능한 계정으로 로그인하고 `preview` 환경의 `APP_VARIANT`를 `preview`로 설정합니다. 승인된 변경을 배포할 때 실행합니다. PR·CI에서는 자동 배포하지 않습니다.
+
+```sh
+npx --yes eas-cli@27.11.0 login
+npm run update:preview -- --message "체험판 화면 수정"
+```
+
+이 명령은 Android·`preview` 채널·`preview` 환경을 대상으로 하며 번들은 `dist/updates-preview/`에 생성합니다. EAS 프로젝트 ID는 `app.json`의 공개 식별자이며 토큰·키를 넣지 않습니다. 네이티브 모듈·SDK·앱의 네이티브 설정 변경은 새 APK가 필요합니다. `fingerprint` 런타임 정책으로 호환되는 APK에만 업데이트를 제공하고, 정식 패키지의 OTA는 비활성화합니다.
 
 로컬 빌드는 Android SDK·Build Tools 37·JDK 21과 저장소 밖의 전용 PKCS12 서명 키가 필요합니다. 키 저장소와 개인 키는 같은 비밀번호를 사용합니다. 다음 환경 변수를 설정한 뒤 실행합니다. 키와 비밀번호는 커밋·공유 파일에 넣지 않습니다.
 

@@ -36,6 +36,12 @@
           }
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "252a59ea-6704-4560-b5a8-bbbe0f3a0359"
+      }
+    },
+    "owner": "som323"
   }
 }

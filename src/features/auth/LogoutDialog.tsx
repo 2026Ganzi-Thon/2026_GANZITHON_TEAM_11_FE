@@ -79,11 +79,7 @@ function Session({ actions, onCancel }: Props) {
             )}
             <Button
               label={
-                pending
-                  ? '로그아웃 중'
-                  : error
-                    ? '다시 로그아웃'
-                    : '로그아웃'
+                pending ? '로그아웃 중' : error ? '다시 로그아웃' : '로그아웃'
               }
               busy={pending}
               onPress={() => void submit()}

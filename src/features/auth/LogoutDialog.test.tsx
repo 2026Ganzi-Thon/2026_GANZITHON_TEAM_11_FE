@@ -30,9 +30,7 @@ it('shows progress at the action, prevents duplicate submits and exits, then ret
   const cancel = jest.fn();
   await render(<LogoutDialog actions={{ logout }} onCancel={cancel} />);
   await press('로그아웃');
-  expect(
-    screen.getByRole('button', { name: '로그아웃 중' }),
-  ).toBeDisabled();
+  expect(screen.getByRole('button', { name: '로그아웃 중' })).toBeDisabled();
   await press('로그아웃 중');
   await press('계속 있을게요');
   await fireEvent(screen.getByTestId('logout-modal'), 'requestClose');

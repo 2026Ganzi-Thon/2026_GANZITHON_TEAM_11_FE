@@ -1,3 +1,4 @@
+import { createMockSongResubmission } from './songResubmissions';
 import { createMockSupport } from './support';
 import { ApiError } from '../api/errors';
 import { categories } from '../features/night/categories';
@@ -10,13 +11,27 @@ import {
   type TextCardDraft,
   type TextCardSubmission,
 } from '../features/cards/types';
-import type { SongCardSubmission } from '../features/cards/songTypes';
+import type {
+  SongCardActions,
+  SongCardSubmission,
+} from '../features/cards/songTypes';
 import type {
   MyCardsWritingSource,
   Submission,
 } from '../features/myCards/types';
 
 export type MyCardsScenario =
+  | 'song-resubmit'
+  | 'song-lost-resubmit'
+  | 'song-slow-resubmit'
+  | 'song-resubmit-field'
+  | 'song-resubmit-category-field'
+  | 'song-resubmit-approved'
+  | 'song-resubmit-deleted'
+  | 'song-resubmit-support'
+  | 'song-resubmit-safety'
+  | 'song-empty-search'
+  | 'song-long'
   | 'success'
   | 'empty'
   | 'load-retry'
@@ -131,6 +146,23 @@ export function createMockMyCards(
             created_at: '2026-11-03T01:00:00Z',
           },
         ];
+  if (scenario.startsWith('song-')) {
+    records[1] = {
+      ...records[1],
+      moderation_status: 'rejected',
+      rejection_reason:
+        '가사를 옮기지 말고, 본인의 경험으로 추천 문장을 적어 주세요.',
+    };
+    if (scenario === 'song-long') {
+      records[1].rejection_reason =
+        '가사를 옮기지 말고 어떤 순간에 이 노래를 들었는지 본인의 경험으로 적어 주세요. '.repeat(
+          5,
+        );
+      if (records[1].kind === 'song')
+        records[1].content.track.title =
+          '잠들지 못한 아주 긴 밤에 마음을 내려놓고 천천히 쉬어 가도 괜찮다는 노래';
+    }
+  }
   if (scenario === 'single') records.splice(1);
   if (scenario === 'long') {
     records[0] = {
@@ -159,6 +191,7 @@ export function createMockMyCards(
         6,
       );
   }
+  const songSessions = new Map<string, SongCardActions>();
   const drafts = new Map<string, TextCardDraft>();
   const accepted = new Map<
     string,
@@ -217,7 +250,7 @@ export function createMockMyCards(
           }
         },
         (scenario === 'slow-delete' && key === 'delete') ||
-          (scenario === 'slow-resubmit' && key === 'resubmit')
+          (scenario.endsWith('slow-resubmit') && key === 'resubmit')
           ? 5000
           : scenario === 'slow'
             ? 2500
@@ -228,6 +261,39 @@ export function createMockMyCards(
   }
   return {
     acceptSubmission,
+    createSongResubmitSession(item) {
+      const sessionKey = JSON.stringify([item.id, item.revision]);
+      const previous = songSessions.get(sessionKey);
+      if (previous) return previous;
+      const session = createMockSongResubmission(item, {
+        scenario: scenario.replace(/^song-/, ''),
+        request: (signal, job) => request(signal, 'resubmit', job),
+        current: () => {
+          const index = records.findIndex((record) => record.id === item.id);
+          if (scenario === 'song-resubmit-deleted') deleted.add(item.id);
+          if (index < 0 || deleted.has(item.id)) return null;
+          if (scenario === 'song-resubmit-approved')
+            records[index] = {
+              ...records[index],
+              moderation_status: 'approved',
+              rejection_reason: null,
+            };
+          return records[index];
+        },
+        accept: (receipt) => {
+          const index = records.findIndex((record) => record.id === item.id);
+          if (index < 0) return;
+          records[index] = {
+            ...records[index],
+            ...receipt,
+            revision: records[index].revision + 1,
+            rejection_reason: null,
+          };
+        },
+      });
+      songSessions.set(sessionKey, session);
+      return session;
+    },
     seedPublishedText(id, text) {
       if (records.some((item) => item.id === id) || deleted.has(id)) return;
       records.unshift({

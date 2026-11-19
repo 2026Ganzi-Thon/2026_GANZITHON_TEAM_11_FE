@@ -145,7 +145,7 @@ function MorningSession({
       key={fortuneVersion}
       date={fortuneKey}
       settings={actions.settings}
-      profileVisible={!settingsOpen}
+      profileVisible={!settingsOpen && !cardsOpen}
       onSettings={() => setSettingsOpen(true)}
       onCards={myCards ? () => setCardsOpen(true) : undefined}
       yarn={yarn}
@@ -554,7 +554,11 @@ function MorningSession({
         >
           <MyCardsWritingFlow
             source={myCards}
-            onBack={() => setCardsOpen(false)}
+            settings={actions.settings}
+            onBack={() => {
+              setCardsOpen(false);
+              setFortuneVersion((value) => value + 1);
+            }}
           />
         </Modal>
       )}

@@ -239,7 +239,11 @@ export function FirstNightHome({
           statusBarTranslucent
           navigationBarTranslucent
         >
-          <MyCardsWritingFlow source={source.cards} onBack={closePanel} />
+          <MyCardsWritingFlow
+            source={source.cards}
+            settings={source.settings}
+            onBack={closePanel}
+          />
         </Modal>
       )}
     </View>

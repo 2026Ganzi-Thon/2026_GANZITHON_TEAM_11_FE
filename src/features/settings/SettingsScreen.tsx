@@ -33,10 +33,12 @@ function SettingsSession({
   actions,
   onBack,
   modal = false,
+  backLabel = '아침 홈으로 돌아가기',
 }: {
   actions: SettingsActions;
   onBack: () => void;
   modal?: boolean;
+  backLabel?: string;
 }) {
   const flow = useSettings(actions);
   const { refresh } = flow;
@@ -89,7 +91,7 @@ function SettingsSession({
       <NightScreen
         background={require('../../../assets/images/settings/background.svg')}
       >
-        <Header title="설정" backLabel="아침 홈으로 돌아가기" onBack={back} />
+        <Header title="설정" backLabel={backLabel} onBack={back} />
         <ScrollView contentContainerStyle={styles.content}>
           {!data ? (
             <View style={[styles.panel, styles.state]}>

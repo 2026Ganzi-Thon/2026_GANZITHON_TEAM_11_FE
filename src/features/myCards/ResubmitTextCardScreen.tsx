@@ -280,9 +280,7 @@ export function ResubmitTextCardScreen({
               </>
             )}
             <Text style={[styles.caption, styles.panel]}>
-              미리보기 · 서버 전송 안 함. 앞뒤 공백을 제외한 200자는 임시
-              기준이에요. 수정 초안은 같은 시연 안에서만 유지되고 시연 종료·앱
-              재실행 시 사라져요.
+              검수 전에는 다른 사람에게 보여 주지 않아요.
             </Text>
           </ScrollView>
         </KeyboardAvoidingView>

@@ -64,7 +64,7 @@ export function createYarnController(actions?: YarnActions): YarnController {
           entry.timer = undefined;
           entry.notice = null;
           publish();
-        }, 5000);
+        }, 900);
         entry.timer = timer;
         publish();
         return;

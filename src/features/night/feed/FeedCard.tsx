@@ -1,6 +1,8 @@
 import { YarnControl, type YarnControlProps } from '../../yarn/YarnControl';
 import { FluffControl, type FluffControlProps } from '../../fluff/FluffControl';
 import { Image } from 'expo-image';
+import { useEffect, useState } from 'react';
+import { sentenceLines } from '../../../ui/sentences';
 import {
   Pressable,
   ScrollView,
@@ -19,7 +21,9 @@ function Reactions({
   expanded,
   yarn,
   fluff,
+  inline = false,
 }: {
+  inline?: boolean;
   warm: boolean;
   expanded: boolean;
   yarn?: YarnControlProps;
@@ -28,9 +32,11 @@ function Reactions({
   return (
     <View
       style={
-        expanded
-          ? [styles.expandedReactions, warm && styles.warmReactions]
-          : styles.reactions
+        inline
+          ? styles.inlineReactions
+          : expanded
+            ? [styles.expandedReactions, warm && styles.warmReactions]
+            : styles.reactions
       }
     >
       {fluff ? (
@@ -87,7 +93,11 @@ export function FeedCard({
   isLast,
   yarn,
   fluff,
+  songHeight = 340,
+  onScrollableChange,
 }: {
+  songHeight?: number;
+  onScrollableChange?: (scrollable: boolean) => void;
   card: Card;
   isLast: boolean;
   yarn?: YarnControlProps;
@@ -95,6 +105,15 @@ export function FeedCard({
 }) {
   const { fontScale } = useWindowDimensions();
   const expanded = !!(yarn || fluff) && fontScale > 1.3;
+  const [bodyHeight, setBodyHeight] = useState<number | null>(null),
+    [contentHeight, setContentHeight] = useState<number | null>(null);
+  const scrollable =
+    bodyHeight === null ||
+    contentHeight === null ||
+    contentHeight > bodyHeight + 1;
+  useEffect(() => {
+    onScrollableChange?.(card.available && !!card.content ? scrollable : false);
+  }, [onScrollableChange, card.available, card.content, scrollable]);
   if (!card.available || !card.content)
     return (
       <View style={[styles.card, styles.unavailable]}>
@@ -110,144 +129,181 @@ export function FeedCard({
   const postcard =
     card.kind === 'text' && card.author_type === 'mongchi' && !warm;
   const automatic = card.author_type === 'ai';
+  if (card.kind === 'song') {
+    const height = fontScale > 1.3 ? 470 : songHeight;
+    const artScale = height < 280 ? 0.3 : 0.65;
+    return (
+      <View style={[styles.card, { height }]}>
+        <PaperArtwork kind="jacket" height={height} />
+        <View style={styles.songLayout}>
+          <Text style={[styles.songTag, styles.flowTag]}>
+            {automatic ? 'AI 선곡' : '사용자 추천'}
+          </Text>
+          <SongArtwork
+            key={`${card.id}:${card.content.track.cover_url}`}
+            track={card.content.track}
+            scale={artScale}
+          />
+          <ScrollView
+            testID="feed-card-content"
+            nestedScrollEnabled
+            scrollEnabled={scrollable}
+            style={styles.songCopy}
+            onLayout={(e) => setBodyHeight(e.nativeEvent.layout.height)}
+            onContentSizeChange={(_w, h) => setContentHeight(h)}
+          >
+            <Text style={styles.compactSongTitle}>
+              {card.content.track.title}
+            </Text>
+            <Text style={styles.compactArtist}>
+              {card.content.track.artist}
+            </Text>
+            {!automatic && (
+              <Text style={styles.compactRecommendation}>
+                {sentenceLines(card.content.recommendation ?? '')}
+              </Text>
+            )}
+            {!automatic && card.author_label && (
+              <Text style={styles.compactArtist}>— {card.author_label}</Text>
+            )}
+          </ScrollView>
+          <Reactions
+            warm={false}
+            expanded={expanded}
+            inline
+            yarn={yarn}
+            fluff={fluff}
+          />
+        </View>
+      </View>
+    );
+  }
   return (
     <View style={[styles.card, expanded && styles.growingCard]}>
       {expanded && <View style={styles.paperSpace} />}
       {warm ? (
         <SleepingSheep />
       ) : (
-        <PaperArtwork
-          kind={
-            card.kind === 'song' ? 'jacket' : postcard ? 'postcard' : 'paper'
-          }
-        />
+        <PaperArtwork kind={postcard ? 'postcard' : 'paper'} />
       )}
-      {card.kind === 'song' ? (
-        <>
-          <Text style={styles.songTag}>
-            {automatic ? 'AI 선곡' : '사용자 추천'}
+      <>
+        {warm ? (
+          <Text style={styles.warmTag}>
+            {isLast ? '따뜻한 말 · 오늘의 마지막 양' : '따뜻한 말'}
           </Text>
-          <SongArtwork
-            key={`${card.id}:${card.content.track.cover_url}`}
-            track={card.content.track}
-          />
-          <ScrollView
-            nestedScrollEnabled
-            style={styles.songInfo}
-            contentContainerStyle={styles.songInfoContent}
-          >
-            <Text style={styles.songTitle}>{card.content.track.title}</Text>
-            <Text style={styles.artist}>{card.content.track.artist}</Text>
-          </ScrollView>
-          {!automatic && (
-            <>
+        ) : (
+          <Text style={[styles.tag, postcard && styles.postcardTag]}>
+            {postcard ? '뭉치' : card.tone === 'light' ? '가벼운' : '공감'}
+          </Text>
+        )}
+        {postcard && (
+          <>
+            <View
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+              accessible={false}
+            >
               <Art
-                source={require('../../../../assets/images/feed/dotted-line.svg')}
-                x={22}
-                y={310}
-                width={268}
-                height={2}
+                source={require('../../../../assets/images/feed/stamp.svg')}
+                x={219}
+                y={17}
+                width={82}
+                height={94}
               />
-              <ScrollView nestedScrollEnabled style={styles.recommendation}>
-                <Text style={styles.recommendationText}>
-                  {card.content.recommendation}
-                </Text>
-              </ScrollView>
-              {card.author_label && (
-                <Text style={styles.songAuthor}>— {card.author_label}</Text>
-              )}
-            </>
-          )}
-        </>
-      ) : (
-        <>
-          {warm ? (
-            <Text style={styles.warmTag}>
-              {isLast ? '따뜻한 말 · 오늘의 마지막 양' : '따뜻한 말'}
-            </Text>
-          ) : (
-            <Text style={[styles.tag, postcard && styles.postcardTag]}>
-              {postcard ? '뭉치' : card.tone === 'light' ? '가벼운' : '공감'}
-            </Text>
-          )}
-          {postcard && (
-            <>
-              <View
-                style={StyleSheet.absoluteFill}
-                pointerEvents="none"
-                accessible={false}
-              >
-                <Art
-                  source={require('../../../../assets/images/feed/stamp.svg')}
-                  x={219}
-                  y={17}
-                  width={82}
-                  height={94}
-                />
-                <View style={styles.stampSky} />
-                <View style={styles.stampHill} />
-                <View style={styles.stampMoon} />
-                <Art
-                  source={require('../../../../assets/images/feed/jump-sheep.svg')}
-                  x={232}
-                  y={58}
-                  width={44}
-                  height={37}
-                />
-                <Art
-                  source={require('../../../../assets/images/feed/postmark.svg')}
-                  x={180}
-                  y={56}
-                  width={59}
-                  height={59}
-                />
-                <Text style={styles.postmark}>예시</Text>
-              </View>
-              <Text style={styles.to}>to. 잠 못 드는 너</Text>
-            </>
-          )}
-          <ScrollView
-            nestedScrollEnabled
+              <View style={styles.stampSky} />
+              <View style={styles.stampHill} />
+              <View style={styles.stampMoon} />
+              <Art
+                source={require('../../../../assets/images/feed/jump-sheep.svg')}
+                x={232}
+                y={58}
+                width={44}
+                height={37}
+              />
+              <Art
+                source={require('../../../../assets/images/feed/postmark.svg')}
+                x={180}
+                y={56}
+                width={59}
+                height={59}
+              />
+              <Text style={styles.postmark}>예시</Text>
+            </View>
+            <Text style={styles.to}>to. 잠 못 드는 너</Text>
+          </>
+        )}
+        <ScrollView
+          testID="feed-card-content"
+          nestedScrollEnabled
+          scrollEnabled={scrollable}
+          onLayout={(e) => setBodyHeight(e.nativeEvent.layout.height)}
+          onContentSizeChange={(_w, h) => setContentHeight(h)}
+          style={[
+            styles.body,
+            warm && styles.warmBody,
+            postcard && styles.postcardBody,
+          ]}
+          contentContainerStyle={
+            !warm && !postcard ? styles.bodyContent : undefined
+          }
+        >
+          <Text
             style={[
-              styles.body,
-              warm && styles.warmBody,
-              postcard && styles.postcardBody,
+              styles.bodyText,
+              warm && styles.warmText,
+              postcard && styles.postcardText,
             ]}
-            contentContainerStyle={
-              !warm && !postcard ? styles.bodyContent : undefined
-            }
           >
-            <Text
-              style={[
-                styles.bodyText,
-                warm && styles.warmText,
-                postcard && styles.postcardText,
-              ]}
-            >
-              {card.content.text}
-            </Text>
-          </ScrollView>
-          {!warm && !postcard && <View style={styles.signature} />}
-          {card.author_label && (
-            <Text
-              style={[
-                styles.author,
-                warm && styles.warmAuthor,
-                postcard && styles.postcardAuthor,
-              ]}
-            >
-              {postcard
-                ? `from. ${card.author_label}`
-                : `— ${card.author_label}`}
-            </Text>
-          )}
-        </>
-      )}
+            {sentenceLines(card.content.text)}
+          </Text>
+        </ScrollView>
+        {!warm && !postcard && <View style={styles.signature} />}
+        {card.author_label && (
+          <Text
+            style={[
+              styles.author,
+              warm && styles.warmAuthor,
+              postcard && styles.postcardAuthor,
+            ]}
+          >
+            {postcard ? `from. ${card.author_label}` : `— ${card.author_label}`}
+          </Text>
+        )}
+      </>
       <Reactions warm={warm} expanded={expanded} yarn={yarn} fluff={fluff} />
     </View>
   );
 }
 const styles = StyleSheet.create({
+  inlineReactions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'flex-end',
+  },
+  songLayout: { flex: 1, paddingHorizontal: 18, paddingVertical: 10, gap: 5 },
+  flowTag: { position: 'relative', top: 0, left: 0, alignSelf: 'flex-start' },
+  songCopy: { flex: 1 },
+  compactSongTitle: {
+    fontFamily: theme.font,
+    color: theme.color.background,
+    fontSize: 18,
+    lineHeight: 25,
+    fontWeight: '700',
+  },
+  compactArtist: {
+    fontFamily: theme.font,
+    color: '#4A5290',
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 2,
+  },
+  compactRecommendation: {
+    fontFamily: theme.font,
+    color: theme.color.background,
+    fontSize: 13,
+    lineHeight: 20,
+    marginTop: 6,
+  },
   card: { width: 318, height: 470, alignSelf: 'center' },
   growingCard: { height: undefined },
   paperSpace: { height: 470 },
@@ -362,52 +418,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 16,
     includeFontPadding: false,
-  },
-  songInfo: {
-    position: 'absolute',
-    top: 198,
-    left: 22,
-    width: 274,
-    height: 100,
-  },
-  songInfoContent: { paddingBottom: 8 },
-  songTitle: {
-    fontFamily: theme.font,
-    fontSize: 22,
-    lineHeight: 32,
-    color: theme.color.background,
-    fontWeight: '700',
-    includeFontPadding: false,
-  },
-  artist: {
-    fontFamily: theme.font,
-    fontSize: 13,
-    lineHeight: 20,
-    color: '#4A5290',
-    marginTop: 4,
-  },
-  recommendation: {
-    position: 'absolute',
-    left: 22,
-    top: 322,
-    width: 274,
-    height: 46,
-  },
-  recommendationText: {
-    fontFamily: theme.font,
-    color: theme.color.background,
-    fontSize: 15,
-    lineHeight: 23,
-  },
-  songAuthor: {
-    position: 'absolute',
-    left: 22,
-    top: 372,
-    width: 274,
-    fontFamily: theme.font,
-    color: '#8C6E62',
-    fontSize: 12,
-    lineHeight: 18,
   },
   warmTag: {
     position: 'absolute',

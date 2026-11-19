@@ -30,6 +30,20 @@ const flush = async () => {
 afterEach(() => {
   jest.useRealTimers();
 });
+it('dismisses confirmation within a second without removing the saved bookmark', async () => {
+  jest.useFakeTimers();
+  const c = createFluffController({
+    set: async (id, saved) => ({ card_id: id, saved }),
+  });
+  const first = card();
+  c.toggle(first);
+  await flush();
+  expect(c.stateFor(first).notice).toBe('saved');
+  await jest.advanceTimersByTimeAsync(901);
+  expect(c.stateFor(first)).toMatchObject({ saved: true, notice: null });
+  c.stop();
+  expect(jest.getTimerCount()).toBe(0);
+});
 it('keeps confirmed selection while serializing the final attach/remove target', async () => {
   const a = deferred(),
     b = deferred();

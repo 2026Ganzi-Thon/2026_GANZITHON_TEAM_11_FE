@@ -1,111 +1,6 @@
-import { useCallback, useMemo } from 'react';
-import {
-  PanResponder,
-  StyleSheet,
-  Text,
-  useWindowDimensions,
-  View,
-} from 'react-native';
-import { theme } from '../../ui/theme';
+import { WheelColumn } from '../../ui/WheelColumn';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import type { TimeParts } from './time';
-function Column({
-  label,
-  values,
-  value,
-  format,
-  rowHeight,
-  disabled,
-  onChange,
-}: {
-  label: string;
-  values: readonly number[];
-  value: number;
-  format: (v: number) => string;
-  rowHeight: number;
-  disabled: boolean;
-  onChange: (v: number) => void;
-}) {
-  const index = values.indexOf(value);
-  const at = (offset: number) =>
-    values[
-      (((index + offset) % values.length) + values.length) % values.length
-    ];
-  const move = useCallback(
-    (offset: number) => {
-      if (!disabled)
-        onChange(
-          values[
-            (((index + offset) % values.length) + values.length) % values.length
-          ],
-        );
-    },
-    [disabled, index, onChange, values],
-  );
-  const pan = useMemo(
-    () =>
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => !disabled,
-        onPanResponderTerminationRequest: () => false,
-        onPanResponderRelease: (event, gesture) => {
-          if (
-            Math.abs(gesture.dy) > 8 &&
-            Math.abs(gesture.dy) > Math.abs(gesture.dx)
-          )
-            move(-Math.round(gesture.dy / rowHeight));
-          else if (Math.abs(gesture.dy) <= 8 && Math.abs(gesture.dx) <= 8)
-            move(
-              Math.max(
-                -2,
-                Math.min(
-                  2,
-                  Math.floor(event.nativeEvent.locationY / rowHeight) - 2,
-                ),
-              ),
-            );
-        },
-      }),
-    [disabled, move, rowHeight],
-  );
-  return (
-    <View
-      accessible
-      accessibilityRole="adjustable"
-      accessibilityLabel={label}
-      accessibilityState={{ disabled }}
-      accessibilityValue={{ now: value, text: format(value) }}
-      accessibilityActions={[
-        { name: 'increment', label: '다음 값' },
-        { name: 'decrement', label: '이전 값' },
-      ]}
-      onAccessibilityAction={(e) => {
-        if (e.nativeEvent.actionName === 'increment') move(1);
-        if (e.nativeEvent.actionName === 'decrement') move(-1);
-      }}
-      style={styles.column}
-    >
-      <View {...pan.panHandlers}>
-        {[-2, -1, 0, 1, 2].map((offset) => (
-          <View
-            key={offset}
-            accessible={false}
-            pointerEvents="none"
-            style={[styles.row, { height: rowHeight }]}
-          >
-            <Text
-              style={[
-                styles.value,
-                { fontSize: offset === 0 ? 18 : 15 },
-                offset === 0 && styles.selected,
-              ]}
-            >
-              {values.length === 2 && offset !== 0 ? ' ' : format(at(offset))}
-            </Text>
-          </View>
-        ))}
-      </View>
-    </View>
-  );
-}
 const periods = [0, 1],
   hours = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
   minutes = [0, 15, 30, 45];
@@ -132,7 +27,8 @@ export function TimeWheel({
         pointerEvents="none"
         style={[styles.band, { top: rowHeight * 2 + 2, height: rowHeight + 6 }]}
       />
-      <Column
+      <WheelColumn
+        wrap
         label="알림 오전·오후"
         values={periods}
         value={value.period}
@@ -141,7 +37,8 @@ export function TimeWheel({
         disabled={disabled}
         onChange={(v) => onChange('period', v)}
       />
-      <Column
+      <WheelColumn
+        wrap
         label="알림 시"
         values={hours}
         value={value.hour}
@@ -150,7 +47,8 @@ export function TimeWheel({
         disabled={disabled}
         onChange={(v) => onChange('hour', v)}
       />
-      <Column
+      <WheelColumn
+        wrap
         label="알림 분"
         values={minutes}
         value={value.minute}
@@ -170,15 +68,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#2B3591',
     boxShadow: '0 2px 4px rgba(0,0,0,0.25)',
   },
-  column: { flex: 1, minWidth: 0 },
-  row: { justifyContent: 'center', alignItems: 'center' },
-  value: {
-    fontFamily: theme.font,
-    color: theme.color.muted,
-    textAlign: 'center',
-    lineHeight: 26,
-  },
-  selected: { color: theme.color.text, fontWeight: '700' },
   band: {
     position: 'absolute',
     left: 12,

@@ -25,7 +25,9 @@ export function Art({
 }
 export function PaperArtwork({
   kind,
+  height = 470,
 }: {
+  height?: number;
   kind: 'paper' | 'jacket' | 'postcard';
 }) {
   return (
@@ -39,7 +41,7 @@ export function PaperArtwork({
         x={6}
         y={6}
         width={318}
-        height={470}
+        height={height}
       />
       <Art
         source={
@@ -52,7 +54,7 @@ export function PaperArtwork({
         x={0}
         y={0}
         width={318}
-        height={470}
+        height={height}
       />
       <Art
         source={
@@ -65,7 +67,7 @@ export function PaperArtwork({
         x={2}
         y={2}
         width={314}
-        height={466}
+        height={height - 4}
       />
       {kind === 'paper' && (
         <>

@@ -86,8 +86,7 @@ function SaveControl({
     <View style={styles.panel}>
       {busy && (
         <Text style={styles.text} accessibilityLiveRegion="polite">
-          양 이동은 변경을 마치면 가능해요. 피드를 나가거나 그만 세면 진행 중인
-          요청을 취소해요.
+          {value ? '담기를 취소하는 중이에요.' : '노래를 담는 중이에요.'}
         </Text>
       )}
       {notice ? (
@@ -122,12 +121,13 @@ const styles = StyleSheet.create({
   panel: {
     alignSelf: 'stretch',
     backgroundColor: '#FFFFFF',
-    padding: 12,
-    gap: 8,
+    padding: 8,
+    gap: 4,
   },
   button: {
-    padding: 12,
-    minHeight: 48,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    minHeight: 44,
     backgroundColor: '#FFE7A3',
     alignItems: 'center',
     justifyContent: 'center',
@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
   text: {
     fontFamily: theme.font,
     fontSize: 13,
-    lineHeight: 22,
+    lineHeight: 20,
     color: '#2F3A9E',
   },
 });

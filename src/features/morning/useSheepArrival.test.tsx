@@ -67,6 +67,45 @@ it('does not steal a manual scroll and settles pending motion', async () => {
   expect(view.result.current.ready).toBe(true);
   expect(view.result.current.reducedMotion).toBe(true);
 });
+it('waits for the successful list geometry and ignores late layout callbacks from its fallback', async () => {
+  const view = await renderHook(
+    ({ version, enabled }: { version: number; enabled: boolean }) =>
+      useSheepArrival('new', enabled, version),
+    { initialProps: { version: 0, enabled: false } },
+  );
+  const scrollTo = jest.fn();
+  Object.assign(view.result.current.scrollRef, { current: { scrollTo } });
+  const fallback = view.result.current;
+  await act(async () => {
+    fallback.onPastureLayout(layout(400));
+    fallback.onSheepLayout(0);
+    fallback.onContentSizeChange();
+  });
+  await view.rerender({ version: 1, enabled: true });
+  await frame();
+  expect(scrollTo).not.toHaveBeenCalled();
+  await act(async () => {
+    fallback.onPastureLayout(layout(300));
+    fallback.onSheepLayout(10);
+  });
+  await frame();
+  expect(scrollTo).not.toHaveBeenCalled();
+  await act(async () => {
+    view.result.current.onPastureLayout(layout(400));
+    view.result.current.onSheepLayout(800);
+  });
+  await frame();
+  expect(scrollTo).toHaveBeenCalledWith({ y: 1100, animated: false });
+  const key = view.result.current.layoutKey;
+  await view.rerender({ version: 2, enabled: true });
+  await act(async () => {
+    view.result.current.onPastureLayout(layout(500));
+    view.result.current.onSheepLayout(900);
+  });
+  await frame();
+  expect(view.result.current.layoutKey).toBe(key);
+  expect(scrollTo).toHaveBeenCalledTimes(1);
+});
 it('cancels a pending reveal on unmount', async () => {
   const view = await renderHook(() => useSheepArrival('new', true));
   const scrollTo = jest.fn();

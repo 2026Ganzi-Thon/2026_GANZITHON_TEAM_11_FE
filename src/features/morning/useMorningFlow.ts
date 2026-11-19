@@ -29,6 +29,7 @@ export function useMorningFlow(
   const [confirmed, setConfirmed] = useState<Sheep | null>(null);
   const [newId, setNewId] = useState<string | null>(null);
   const [flock, setFlock] = useState<Sheep[]>([]);
+  const [flockVersion, setFlockVersion] = useState(0);
   const [busy, setBusy] = useState(true);
   const [failure, setFailure] = useState<Failure>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -56,7 +57,10 @@ export function useMorningFlow(
     async (signal: AbortSignal) => {
       try {
         const items = await api.loadFlock(signal);
-        if (!signal.aborted) setFlock(items);
+        if (!signal.aborted) {
+          setFlock(items);
+          setFlockVersion((value) => value + 1);
+        }
       } catch {
         if (!signal.aborted) setFailure('flock');
       }
@@ -207,6 +211,8 @@ export function useMorningFlow(
     selected,
     page,
     newId,
+    flockVersion,
+    newSheepInFlock: newId !== null && flock.some((item) => item.id === newId),
     items: unique,
     busy,
     failure,

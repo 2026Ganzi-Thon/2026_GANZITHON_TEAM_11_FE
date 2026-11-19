@@ -20,6 +20,7 @@ export function MorningPasture({
   fortune,
   arrival,
   onSheepLayout,
+  layoutKey = 'static',
 }: {
   items: Sheep[];
   lastNightId?: string;
@@ -29,21 +30,24 @@ export function MorningPasture({
   fortune?: ReactNode;
   arrival?: { ready: boolean; reducedMotion: boolean };
   onSheepLayout?: (y: number) => void;
+  layoutKey?: string;
 }) {
   const { width, fontScale } = useWindowDimensions(),
     scale = Math.min(width, 480) / 360;
   const [gridY, setGridY] = useState<number | null>(null);
-  const [cellY, setCellY] = useState<number | null>(null);
+  const [cell, setCell] = useState<{ key: string; y: number } | null>(null);
   useEffect(() => {
-    if (gridY !== null && cellY !== null) onSheepLayout?.(gridY + cellY);
-  }, [gridY, cellY, onSheepLayout]);
+    if (gridY !== null && cell?.key === layoutKey)
+      onSheepLayout?.(gridY + cell.y);
+  }, [gridY, cell, layoutKey, onSheepLayout]);
   const cells: ReactNode[] = items.map((item, index) => (
     <View
-      key={item.id}
+      key={item.id === newId ? `${item.id}:${layoutKey}` : item.id}
       testID={item.id === newId ? 'arriving-sheep-cell' : undefined}
       onLayout={
         item.id === newId
-          ? (event) => setCellY(event.nativeEvent.layout.y)
+          ? (event) =>
+              setCell({ key: layoutKey, y: event.nativeEvent.layout.y })
           : undefined
       }
       style={[styles.cell, { paddingTop: index % 2 === 0 ? 10 : 0 }]}

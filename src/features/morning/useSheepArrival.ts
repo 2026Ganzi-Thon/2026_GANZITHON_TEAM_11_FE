@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState, type ComponentRef } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ComponentRef,
+} from 'react';
 import {
   AccessibilityInfo,
   AppState,
@@ -6,11 +12,19 @@ import {
   type LayoutChangeEvent,
 } from 'react-native';
 
-export function useSheepArrival(id: string | null, enabled: boolean) {
+export function useSheepArrival(
+  id: string | null,
+  enabled: boolean,
+  layoutVersion = 0,
+) {
   const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
   const [reduced, setReduced] = useState(true);
-  const [pastureY, setPastureY] = useState<number | null>(null);
-  const [sheepY, setSheepY] = useState<number | null>(null);
+  const [pasture, setPasture] = useState<{ version: number; y: number } | null>(
+    null,
+  );
+  const [sheep, setSheep] = useState<{ version: number; y: number } | null>(
+    null,
+  );
   const [contentReady, setContentReady] = useState(false);
   const [readyId, setReadyId] = useState<string | null>(null);
   const [skippedId, setSkippedId] = useState<string | null>(null);
@@ -56,8 +70,8 @@ export function useSheepArrival(id: string | null, enabled: boolean) {
     if (
       !id ||
       !enabled ||
-      pastureY === null ||
-      sheepY === null ||
+      pasture?.version !== layoutVersion ||
+      sheep?.version !== layoutVersion ||
       !contentReady ||
       revealed.current === id
     )
@@ -66,18 +80,44 @@ export function useSheepArrival(id: string | null, enabled: boolean) {
       if (revealed.current === id) return;
       revealed.current = id;
       scrollRef.current?.scrollTo({
-        y: Math.max(0, pastureY + sheepY - 100),
+        y: Math.max(0, pasture.y + sheep.y - 100),
         animated: false,
       });
       setReadyId(id);
     });
     return () => cancelAnimationFrame(frame);
-  }, [id, enabled, pastureY, sheepY, contentReady]);
+  }, [id, enabled, pasture, sheep, contentReady, layoutVersion]);
+  const onPastureLayout = useCallback(
+    (event: LayoutChangeEvent) => {
+      const y = event.nativeEvent.layout.y;
+      setPasture((value) =>
+        value?.version === layoutVersion && value.y === y
+          ? value
+          : { version: layoutVersion, y },
+      );
+    },
+    [layoutVersion],
+  );
+  const onSheepLayout = useCallback(
+    (y: number) => {
+      setSheep((value) =>
+        value?.version === layoutVersion && value.y === y
+          ? value
+          : { version: layoutVersion, y },
+      );
+    },
+    [layoutVersion],
+  );
   return {
     scrollRef,
-    onPastureLayout: (event: LayoutChangeEvent) =>
-      setPastureY(event.nativeEvent.layout.y),
-    onSheepLayout: setSheepY,
+    onPastureLayout,
+    onSheepLayout,
+    // Only the arrival marker/cell remount; other home sections keep their state.
+    layoutKey: !id
+      ? 'static'
+      : readyId === id
+        ? 'settled'
+        : `pending-${layoutVersion}`,
     onContentSizeChange: () => setContentReady(true),
     onScrollBeginDrag: () => {
       if (!id) return;

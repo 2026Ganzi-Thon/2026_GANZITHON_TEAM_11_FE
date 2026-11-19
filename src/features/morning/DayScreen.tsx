@@ -145,10 +145,17 @@ export function DayScreen({
         pointerEvents="none"
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
-        style={[
-          StyleSheet.absoluteFill,
-          home && { width: Math.min(width, 480), alignSelf: 'center' },
-        ]}
+        style={
+          home
+            ? {
+                position: 'absolute',
+                top: 0,
+                bottom: 0,
+                width: Math.min(width, 480),
+                alignSelf: 'center',
+              }
+            : StyleSheet.absoluteFill
+        }
       >
         {(home ? dayLayers.slice(0, 10) : dayLayers).map(
           ([source, x, y, w, h], index) => (

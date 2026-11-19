@@ -70,6 +70,7 @@ export function HomeSavedSong({
 }
 const styles = StyleSheet.create({
   panel: {
+    marginTop: 14,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,

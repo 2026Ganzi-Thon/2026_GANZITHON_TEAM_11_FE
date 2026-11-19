@@ -77,9 +77,16 @@ export function MorningPasture({
             onPress={onDecorate}
             style={styles.sign}
           >
-            <Text style={styles.signLabel}>양 꾸미기</Text>
+            <View style={styles.board}>
+              <Text style={styles.signLabel}>양 꾸미기</Text>
+            </View>
           </Pressable>
-          <View style={styles.post} />
+          <View
+            style={[
+              styles.post,
+              fontScale > 1.3 && { marginTop: 0, height: 12 },
+            ]}
+          />
         </View>
       )}
       <View
@@ -100,15 +107,14 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     overflow: 'hidden',
   },
-  signArea: { alignItems: 'center', alignSelf: 'flex-start', paddingTop: 22 },
-  sign: {
+  signArea: { alignItems: 'center', alignSelf: 'flex-start', paddingTop: 26 },
+  sign: { minHeight: 44, justifyContent: 'center' },
+  board: {
     backgroundColor: '#F4EBDD',
     borderWidth: 2,
     borderColor: '#8C6E62',
     paddingHorizontal: 8,
-    paddingVertical: 6,
-    minHeight: 44,
-    justifyContent: 'center',
+    paddingVertical: 2,
     boxShadow: '2px 2px 0 #5A443B',
   },
   signLabel: {
@@ -118,7 +124,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#5A443B',
   },
-  post: { width: 5, height: 12, backgroundColor: '#8C6E62' },
+  post: { width: 5, height: 22, marginTop: -10, backgroundColor: '#8C6E62' },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -150,8 +156,8 @@ const styles = StyleSheet.create({
     fontSize: 9,
     lineHeight: 14,
     paddingHorizontal: 4,
-    backgroundColor: '#FFFFFF',
-    color: '#2F3A9E',
+    backgroundColor: '#2F3A9E',
+    color: '#FFFFFF',
     textAlign: 'center',
   },
 });

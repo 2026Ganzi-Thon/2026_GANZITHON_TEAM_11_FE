@@ -96,7 +96,7 @@ it('requires the pause to be viewed and rejects card reactions to its placeholde
   ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   await expect(
     settle(d.songs.set('preview-card-4', true, signal())),
-  ).rejects.toMatchObject({ code: 'CARD_UNAVAILABLE' });
+  ).rejects.toMatchObject({ code: 'NOT_SONG_CARD' });
 });
 it('cancels before commit and does not entrust a worry after leaving the request', async () => {
   const d = createNightMorningDemo('entrust-slow');

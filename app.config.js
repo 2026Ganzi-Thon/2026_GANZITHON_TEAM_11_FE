@@ -10,13 +10,13 @@ module.exports = ({ config }) => {
     ...base,
     name: preview ? '양 세는 밤 · 체험판' : base.name,
     scheme: preview ? 'yangsebam-preview' : base.scheme,
-    version: preview ? `${base.version}-preview.1` : base.version,
+    version: preview ? `${base.version}-preview.3` : base.version,
     android: {
       ...base.android,
       package: preview
         ? 'com.ganzithon.yangsebam.preview'
         : base.android.package,
-      versionCode: 1,
+      versionCode: preview ? 3 : 1,
     },
     extra: { ...config.extra, appVariant: variant },
   };

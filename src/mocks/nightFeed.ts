@@ -1,6 +1,7 @@
 import type { Card } from '../api/contracts';
 import { ApiError } from '../api/errors';
 import type { FeedLoad } from '../features/night/feed/model';
+import { planMockNightFeed, type MockFeedSlot } from './nightFeedPlan';
 export type FeedScenario =
   'success' | 'retry' | 'empty' | 'long' | 'unavailable';
 const viewer = { yarn_sent: false, fluff_saved: false, song_saved: false };
@@ -94,14 +95,53 @@ const sampleCards: Card[] = [
     content: { text: '오늘 하루도 버틴 너, 이제 눈 감아도 괜찮아.' },
   },
 ];
-/** UI samples only, not the server's feed composition or pause-placement algorithm. */
+function compositionSample(
+  slot: MockFeedSlot,
+  userSongIndex: number,
+  hasWorry: boolean,
+): Card {
+  if (slot === 'entrust_worry' || slot === 'stop_offer')
+    return { ...sampleCards[4], tone: null, available: false, content: null };
+  const source =
+    sampleCards[
+      slot === 'empathy'
+        ? 0
+        : slot === 'light'
+          ? 1
+          : slot === 'warm'
+            ? 5
+            : slot === 'ai_song'
+              ? 2
+              : 3
+    ];
+  const card = JSON.parse(JSON.stringify(source)) as Card;
+  if (!hasWorry) card.category_id = null;
+  if (
+    slot === 'user_song' &&
+    card.kind === 'song' &&
+    card.content &&
+    userSongIndex > 0
+  )
+    card.content.track = {
+      ...card.content.track,
+      id: 'example-user-track-3',
+      title: '내일의 바람 (예시)',
+    };
+  return card;
+}
+/** Without context this keeps the independent UI-type samples.
+ * Integrated nights pass context to use the specification's preview layout. */
 export function createMockNightFeed(
   count: number,
   scenario: FeedScenario = 'success',
+  context?: { hasWorry: boolean },
 ): FeedLoad {
   if (!Number.isInteger(count) || count < 3 || count > 30)
     throw new Error('Preview count must be an integer from 3 to 30.');
   let failed = false;
+  const hasWorry = context?.hasWorry;
+  const plan =
+    hasWorry === undefined ? null : planMockNightFeed(count, hasWorry);
   return (signal) =>
     new Promise((resolve, reject) => {
       if (signal.aborted) {
@@ -127,8 +167,16 @@ export function createMockNightFeed(
           resolve([]);
           return;
         }
+        let userSongIndex = 0;
         const cards = Array.from({ length: count }, (_, index): Card => {
-          const sample = sampleCards[index === count - 1 ? 5 : index % 6];
+          const sample =
+            plan && hasWorry !== undefined
+              ? compositionSample(
+                  plan[index],
+                  plan[index] === 'user_song' ? userSongIndex++ : 0,
+                  hasWorry,
+                )
+              : sampleCards[index === count - 1 ? 5 : index % 6];
           const card = {
             ...sample,
             id: `preview-card-${index + 1}`,

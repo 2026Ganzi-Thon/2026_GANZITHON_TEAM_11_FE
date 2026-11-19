@@ -608,7 +608,9 @@ export function createNightMorningDemo(
           ),
       };
     }
-    loader = createMockNightFeed(value);
+    loader = createMockNightFeed(value, 'success', {
+      hasWorry: draft.category_id !== 'none' && !!draft.worry_text,
+    });
   }
   const entry: NightEntryActions = {
     checkWorry: (value, signal) =>

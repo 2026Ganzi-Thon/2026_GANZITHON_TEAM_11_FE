@@ -13,6 +13,7 @@ export function SignupFlow(props: {
   actions: SignupActions;
   onExit: () => void;
   onComplete?: (registration: Registration, birth: BirthDateResult) => void;
+  onLoginComplete?: () => void;
 }) {
   const [source, setSource] = useState({ actions: props.actions, version: 0 });
   if (source.actions !== props.actions)
@@ -23,10 +24,12 @@ function SignupSession({
   actions,
   onExit,
   onComplete,
+  onLoginComplete,
 }: {
   actions: SignupActions;
   onExit: () => void;
   onComplete?: (registration: Registration, birth: BirthDateResult) => void;
+  onLoginComplete?: () => void;
 }) {
   const [c] = useState(() => createSignupController(actions));
   const state = useSyncExternalStore(c.subscribe, c.getSnapshot, c.getSnapshot);
@@ -63,6 +66,7 @@ function SignupSession({
         submit={actions.login}
         resetActions={actions.passwordReset}
         onExit={c.back}
+        onSuccess={onLoginComplete}
       />
     );
   if (state.stage === 'email') return <EmailSignup state={state} c={c} />;

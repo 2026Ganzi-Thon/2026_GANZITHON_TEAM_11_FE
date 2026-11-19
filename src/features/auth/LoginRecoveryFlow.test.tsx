@@ -58,3 +58,48 @@ it('aborts a pending login before entering recovery and ignores its late complet
   ).toBeTruthy();
   expect(screen.queryByText('화면 확인이 완료됐어요')).toBeNull();
 });
+it('notifies its host only after a confirmed uncancelled login', async () => {
+  const wait = deferred<void>(),
+    done = jest.fn();
+  await render(
+    <LoginRecoveryFlow
+      submit={() => wait.promise}
+      resetActions={{ request: async () => ({ accepted: true }) }}
+      onExit={() => {}}
+      onSuccess={done}
+    />,
+  );
+  await fireEvent.changeText(
+    screen.getByLabelText('이메일 주소'),
+    'user@example.com',
+  );
+  await fireEvent.changeText(screen.getByLabelText('비밀번호'), 'password');
+  await press('로그인');
+  expect(done).not.toHaveBeenCalled();
+  await act(async () => wait.resolve());
+  expect(done).toHaveBeenCalledTimes(1);
+});
+it('does not route a cancelled login to the home when its response arrives late', async () => {
+  const wait = deferred<void>(),
+    done = jest.fn();
+  await render(
+    <LoginRecoveryFlow
+      submit={() => wait.promise}
+      resetActions={{ request: async () => ({ accepted: true }) }}
+      onExit={() => {}}
+      onSuccess={done}
+    />,
+  );
+  await fireEvent.changeText(
+    screen.getByLabelText('이메일 주소'),
+    'user@example.com',
+  );
+  await fireEvent.changeText(screen.getByLabelText('비밀번호'), 'password');
+  await press('로그인');
+  await press('비밀번호를 잊었어요');
+  await act(async () => wait.resolve());
+  expect(done).not.toHaveBeenCalled();
+  expect(
+    screen.getByRole('header', { name: '비밀번호를 잊었나요?' }),
+  ).toBeTruthy();
+});

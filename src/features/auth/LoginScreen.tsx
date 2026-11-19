@@ -28,11 +28,13 @@ export function LoginScreen({
   onBack,
   onResetPassword,
   initialEmail = '',
+  onSuccess,
 }: {
   submit: LoginSubmit;
   onBack: () => void;
   onResetPassword?: (email: string) => void;
   initialEmail?: string;
+  onSuccess?: () => void;
 }) {
   const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState('');
@@ -76,6 +78,7 @@ export function LoginScreen({
       if (controller.signal.aborted) return;
       setStatus('success');
       setPassword('');
+      onSuccess?.();
     } catch (error) {
       if (controller.signal.aborted) return;
       setStatus('error');

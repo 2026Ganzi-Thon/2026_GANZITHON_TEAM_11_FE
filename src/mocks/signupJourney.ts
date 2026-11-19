@@ -15,13 +15,16 @@ export function createMockSignupJourney(
   options: {
     withdrawalScenario?: 'success' | 'retry' | 'slow';
     receivedYarnScenario?: ReceivedYarnScenario;
+    startAt?: number;
   } = {},
 ) {
-  let base = Date.parse(
-      phase === 'night'
-        ? '2026-11-16T21:30:00+09:00'
-        : '2026-11-16T14:20:00+09:00',
-    ),
+  let base =
+      options.startAt ??
+      Date.parse(
+        phase === 'night'
+          ? '2026-11-16T21:30:00+09:00'
+          : '2026-11-16T14:20:00+09:00',
+      ),
     started = performance.now();
   const now = () => base + performance.now() - started;
   const advanceTo = (date: string) => {
@@ -44,6 +47,7 @@ export function createMockSignupJourney(
   function createAccount() {
     const generation = version;
     let journey: ReturnType<typeof createMockMultiNightJourney> | null = null;
+    let loginEmail: string | null = null;
     let failed = false,
       busy = false;
     const withdrawal: WithdrawalActions = {
@@ -101,9 +105,19 @@ export function createMockSignupJourney(
       },
     };
     const scope = createMockAccountScope(withdrawal);
-    const signup = scope.protect(
-      createMockSignup('success', now, `signup-preview-account-${generation}`),
+    const rawSignup = createMockSignup(
+      'success',
+      now,
+      `signup-preview-account-${generation}`,
     );
+    const login = rawSignup.login;
+    // Keep the live date getter on the original mock action object.
+    rawSignup.login = async (credentials, signal) => {
+      await login(credentials, signal);
+      if (signal.aborted) throw new ApiError('aborted');
+      loginEmail = credentials.email;
+    };
+    const signup = scope.protect(rawSignup);
     const account = createMockSignupOnboarding(reminder, phase, {
       now,
       signup,
@@ -122,6 +136,14 @@ export function createMockSignupJourney(
     const guarded = scope.protect(account.onboarding);
     return {
       signup: account.signup,
+      onLoginComplete: () => {
+        if (generation !== version || !loginEmail) return;
+        account.onboarding.restoreHome(
+          { id: `login-preview-account-${generation}`, email: loginEmail },
+          { birth_date: '2004-05-14', edits_remaining: 1, zodiac: 'taurus' },
+        );
+        loginEmail = null;
+      },
       onboarding: {
         ...guarded,
         start: account.onboarding.start,
@@ -140,6 +162,7 @@ export function createMockSignupJourney(
     get onboarding() {
       return current.onboarding;
     },
+    onLoginComplete: () => current.onLoginComplete(),
     subscribe: (listener: () => void) => {
       listeners.add(listener);
       return () => {

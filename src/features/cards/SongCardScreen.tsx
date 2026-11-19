@@ -15,6 +15,8 @@ import {
 } from 'react-native';
 import { Button } from '../../ui/Button';
 import { NightScreen } from '../../ui/NightScreen';
+import { categories } from '../night/categories';
+import type { TextCardCategory } from './types';
 import { theme } from '../../ui/theme';
 import { SupportContent } from '../support/SupportContent';
 import { TextCardArtwork } from './TextCardArtwork';
@@ -37,15 +39,18 @@ export function SongCardScreen(props: Parameters<typeof SongCardSession>[0]) {
   const [source, setSource] = useState({
     actions: props.actions,
     night: props.sourceNightId,
+    card: props.resubmission?.id,
     version: 0,
   });
   if (
     source.actions !== props.actions ||
-    source.night !== props.sourceNightId
+    source.night !== props.sourceNightId ||
+    source.card !== props.resubmission?.id
   ) {
     setSource({
       actions: props.actions,
       night: props.sourceNightId,
+      card: props.resubmission?.id,
       version: source.version + 1,
     });
   }
@@ -59,6 +64,7 @@ function SongCardSession({
   modal = false,
   completionLabel = '이제 잘게요',
   conflictTitle = '작성할 수 있는 밤을 확인해 주세요',
+  resubmission,
 }: {
   actions: SongCardActions;
   sourceNightId?: string;
@@ -67,9 +73,17 @@ function SongCardSession({
   modal?: boolean;
   completionLabel?: string;
   conflictTitle?: string;
+  resubmission?: { id: string; reason: string };
 }) {
-  const flow = useSongCardWriting(actions, sourceNightId, onBack, onDone),
+  const flow = useSongCardWriting(
+      actions,
+      sourceNightId,
+      onBack,
+      onDone,
+      resubmission?.id,
+    ),
     { draft, pending, step, error } = flow;
+  const locked = pending || (!!resubmission && flow.blocked);
   const manual = draft.selection?.mode === 'manual' ? draft.selection : null;
   const selected =
     draft.selection?.mode === 'search' ? draft.selection.track : null;
@@ -81,7 +95,7 @@ function SongCardSession({
   const search = useTrackSearch(
     actions,
     draft.query,
-    !manual && !pending && step === 'write',
+    !manual && !locked && step === 'write',
   );
   const body = useRef<ComponentRef<typeof ScrollView>>(null);
   const back = flow.back;
@@ -116,7 +130,7 @@ function SongCardSession({
             <Text style={styles.arrow}>←</Text>
           </Pressable>
           <Text style={styles.headerTitle} accessibilityRole="header">
-            노래 추천
+            {resubmission ? '노래 다시 내기' : '노래 추천'}
           </Text>
         </View>
       )}
@@ -137,11 +151,17 @@ function SongCardSession({
               <TextCardArtwork />
               <View style={styles.panel}>
                 <Text style={styles.title} accessibilityRole="header">
-                  카드를 맡겼어요
+                  {resubmission ? '다시 검수를 맡겼어요' : '카드를 맡겼어요'}
                 </Text>
                 <Text style={styles.text}>
                   검수를 기다리고 있어요. 승인된 뒤 다른 사람에게 보여요.
                 </Text>
+                {resubmission && (
+                  <Text style={styles.text}>
+                    기존 카드의 곡과 문장을 수정했어요. 새 카드를 만들지
+                    않았어요.
+                  </Text>
+                )}
               </View>
               <View style={styles.spacer} />
               <Button label={completionLabel} onPress={flow.back} />
@@ -153,6 +173,56 @@ function SongCardSession({
             />
           ) : (
             <>
+              {resubmission && (
+                <>
+                  <View style={styles.panel}>
+                    <Text accessibilityRole="header" style={styles.section}>
+                      반려 사유
+                    </Text>
+                    <Text style={styles.text}>{resubmission.reason}</Text>
+                  </View>
+                  <View style={styles.panel}>
+                    <Text style={styles.section}>고민 분류</Text>
+                    <View style={styles.categories}>
+                      {categories
+                        .filter((c) => c.id !== 'none')
+                        .map((c) => (
+                          <Pressable
+                            key={c.id}
+                            accessibilityRole="radio"
+                            accessibilityLabel={c.label}
+                            accessibilityState={{
+                              checked: draft.category_id === c.id,
+                              disabled: locked,
+                            }}
+                            disabled={locked}
+                            onPress={() =>
+                              flow.update({
+                                category_id: c.id as TextCardCategory,
+                              })
+                            }
+                            style={[
+                              styles.category,
+                              draft.category_id === c.id &&
+                                styles.selectedCategory,
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.text,
+                                draft.category_id === c.id && {
+                                  color: '#242565',
+                                },
+                              ]}
+                            >
+                              {c.label}
+                            </Text>
+                          </Pressable>
+                        ))}
+                    </View>
+                  </View>
+                </>
+              )}
               {!manual ? (
                 <>
                   <View style={[styles.panel, styles.search]}>
@@ -165,7 +235,7 @@ function SongCardSession({
                       accessibilityLabel="곡 이름 또는 가수 검색"
                       placeholder="곡 이름 또는 가수"
                       placeholderTextColor={theme.color.muted}
-                      editable={!pending}
+                      editable={!locked}
                       value={draft.query}
                       onChangeText={(query) =>
                         flow.update({ query, selection: null })
@@ -201,7 +271,7 @@ function SongCardSession({
                       </Text>
                       <Button
                         label="검색 다시 시도"
-                        disabled={pending}
+                        disabled={locked}
                         onPress={search.retry}
                       />
                     </View>
@@ -211,7 +281,7 @@ function SongCardSession({
                       key={track.id}
                       track={track}
                       checked={selected?.id === track.id}
-                      disabled={pending}
+                      disabled={locked}
                       onPress={() => {
                         Keyboard.dismiss();
                         flow.update({ selection: { mode: 'search', track } });
@@ -225,7 +295,7 @@ function SongCardSession({
                         <Text style={styles.text}>검색 결과가 없어요</Text>
                         <Button
                           label="곡 직접 입력"
-                          disabled={pending}
+                          disabled={locked}
                           onPress={() =>
                             flow.update({
                               selection: {
@@ -247,7 +317,7 @@ function SongCardSession({
                     placeholder="곡 제목"
                     placeholderTextColor={theme.color.muted}
                     value={manual.title}
-                    editable={!pending}
+                    editable={!locked}
                     onChangeText={(title) =>
                       flow.update({ selection: { ...manual, title } })
                     }
@@ -258,7 +328,7 @@ function SongCardSession({
                     placeholder="가수"
                     placeholderTextColor={theme.color.muted}
                     value={manual.artist}
-                    editable={!pending}
+                    editable={!locked}
                     onChangeText={(artist) =>
                       flow.update({ selection: { ...manual, artist } })
                     }
@@ -270,7 +340,7 @@ function SongCardSession({
                   </Text>
                   <Button
                     label="곡 다시 찾기"
-                    disabled={pending}
+                    disabled={locked}
                     onPress={() => flow.update({ selection: null })}
                   />
                 </View>
@@ -283,7 +353,7 @@ function SongCardSession({
                   multiline
                   textAlignVertical="top"
                   scrollEnabled
-                  editable={!pending}
+                  editable={!locked}
                   value={draft.recommendation}
                   onChangeText={(recommendation) =>
                     flow.update({ recommendation })
@@ -342,8 +412,11 @@ function SongCardSession({
                   접수를 확인하고 있어요. 잠시 기다려 주세요.
                 </Text>
               )}
+              {resubmission && flow.blocked && (
+                <Button label="최신 목록 확인" onPress={flow.back} />
+              )}
               <Button
-                label="검수 요청하기"
+                label={resubmission ? '다시 검수 요청' : '검수 요청하기'}
                 disabled={!flow.valid || flow.blocked || flow.recoveryChanged}
                 busy={pending}
                 onPress={() => {
@@ -385,6 +458,14 @@ function SongCardSession({
   );
 }
 const styles = StyleSheet.create({
+  categories: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  category: {
+    padding: 12,
+    minHeight: 48,
+    borderWidth: 1,
+    borderColor: '#6875CA',
+  },
+  selectedCategory: { backgroundColor: theme.color.primary },
   fill: { flex: 1 },
   header: {
     minHeight: 52,

@@ -22,12 +22,12 @@ import { Button } from '../../ui/Button';
 import { theme } from '../../ui/theme';
 import { useMyCards } from './useMyCards';
 import { CardDeleteDialog } from './CardDeleteDialog';
+import { ResubmitSongCardScreen } from './ResubmitSongCardScreen';
 import { ResubmitTextCardScreen } from './ResubmitTextCardScreen';
 import type {
   MyCardsActions,
   MyCardDeleteActions,
   MyCardResubmitActions,
-  RejectedTextCard,
   MyCardsFilter,
   Submission,
 } from './types';
@@ -74,7 +74,7 @@ export function MyCardsScreen({
   const [editing, setEditing] = useState<{
     source: MyCardsActions;
     actions: MyCardResubmitActions;
-    item: RejectedTextCard;
+    item: Submission;
   } | null>(null);
   const list = useMyCards(actions, filter);
   if (confirmNotice && list.loaded) setConfirmNotice(false);
@@ -191,7 +191,8 @@ export function MyCardsScreen({
                   item={item}
                   onEdit={
                     resubmissions &&
-                    item.kind === 'text' &&
+                    (item.kind === 'text' ||
+                      !!resubmissions.createSongResubmitSession) &&
                     item.moderation_status === 'rejected'
                       ? () =>
                           setEditing({
@@ -250,7 +251,7 @@ export function MyCardsScreen({
       {editing &&
         editing.source === actions &&
         editing.actions === resubmissions && (
-          <ResubmitTextCardScreen
+          <ResubmitEditor
             key={editing.item.id}
             item={editing.item}
             actions={editing.actions}
@@ -276,6 +277,33 @@ export function MyCardsScreen({
           />
         )}
     </NightScreen>
+  );
+}
+function ResubmitEditor({
+  item,
+  actions,
+  onClose,
+  onRefresh,
+}: {
+  item: Submission;
+  actions: MyCardResubmitActions;
+  onClose: () => void;
+  onRefresh: () => void;
+}) {
+  return item.kind === 'text' ? (
+    <ResubmitTextCardScreen
+      item={item}
+      actions={actions}
+      onClose={onClose}
+      onRefresh={onRefresh}
+    />
+  ) : (
+    <ResubmitSongCardScreen
+      item={item}
+      actions={actions}
+      onClose={onClose}
+      onRefresh={onRefresh}
+    />
   );
 }
 function SubmissionRow({
@@ -329,7 +357,14 @@ function SubmissionRow({
           </Text>
         </View>
       )}
-      {onEdit && <Button label="고쳐서 다시 내기" onPress={onEdit} />}
+      {onEdit && (
+        <Button
+          label={
+            item.kind === 'song' ? '노래 고쳐서 다시 내기' : '고쳐서 다시 내기'
+          }
+          onPress={onEdit}
+        />
+      )}
       {onDelete && (
         <Pressable
           accessibilityRole="button"

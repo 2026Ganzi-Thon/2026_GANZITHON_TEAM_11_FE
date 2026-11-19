@@ -1,3 +1,4 @@
+import type { SongCardActions } from '../cards/songTypes';
 import type { Card } from '../../api/contracts';
 import type { TextCardDraft, TextCardSubmission } from '../cards/types';
 import type { CardWritingActions } from '../cards/CardWritingScreen';
@@ -46,6 +47,7 @@ export interface MyCardsWritingSource
   createWritingSession(): CardWritingActions;
 }
 
+export type RejectedSongCard = Extract<Submission, { kind: 'song' }>;
 export type RejectedTextCard = Extract<Submission, { kind: 'text' }>;
 export interface TextCardResubmitRequest {
   kind: 'text';
@@ -54,6 +56,7 @@ export interface TextCardResubmitRequest {
 }
 /** Same card ID, separate from a new night's writing offer. */
 export interface MyCardResubmitActions {
+  createSongResubmitSession?(item: RejectedSongCard): SongCardActions;
   readDraft(item: RejectedTextCard): TextCardDraft;
   writeDraft(
     id: string,

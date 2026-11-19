@@ -10,6 +10,16 @@ import { Notice } from '../../ui/Notice';
 import { Button } from '../../ui/Button';
 const scenarios = [
   ['success', '내 카드 목록'],
+  ['song-resubmit', '반려 노래 수정·재제출'],
+  ['song-lost-resubmit', '노래 재제출 응답 유실·복구'],
+  ['song-slow-resubmit', '느린 노래 재제출'],
+  ['song-resubmit-field', '노래 재제출 입력 오류'],
+  ['song-resubmit-category-field', '노래 재제출 분류 오류'],
+  ['song-resubmit-support', '노래 재제출 도움 안내'],
+  ['song-resubmit-approved', '노래 편집 중 게시 상태로 변경'],
+  ['song-resubmit-deleted', '노래 편집 중 삭제'],
+  ['song-empty-search', '반려 노래 곡 직접 입력'],
+  ['song-long', '긴 반려 노래·사유'],
   ['empty', '빈 목록'],
   ['load-retry', '첫 조회 실패·재시도'],
   ['more-retry', '추가 조회 실패·재시도'],
@@ -60,7 +70,7 @@ export default function MyCardsPreview() {
       <ScrollView contentContainerStyle={styles.content}>
         <Notice
           title="내 카드와 검수 상태"
-          description="글·노래 작성, 목록·삭제, 반려 글 수정·재제출을 같은 메모리 예시로 연결해요. 접수한 카드는 검수 중으로 표시돼요. 실제 서버·곡 검색·검수·영속 저장과 연결되지 않으며 시연을 끝내면 초기화돼요. 밤·아침 시연의 기록 통합과 노래 수정·재제출은 후속 범위예요."
+          description="글·노래 작성, 목록·삭제, 반려 글·노래 수정·재제출을 같은 메모리 예시로 연결해요. 접수한 카드는 검수 중으로 표시돼요. 실제 서버·곡 검색·검수·영속 저장과 연결되지 않으며 시연을 끝내면 초기화돼요. 노래 재제출 예시는 기존 카드의 곡·분류·추천 문장을 고쳐 다시 검수 중으로 반영해요."
         />
         {scenarios.map(([value, label]) => (
           <Button

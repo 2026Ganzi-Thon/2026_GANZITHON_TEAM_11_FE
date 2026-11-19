@@ -83,17 +83,15 @@ it.each([
 );
 it('keeps an initialized account on screen remount and clears the account on withdrawal', async () => {
   const account = createMockReminder();
-  jest
-    .mocked(getNativeReminderSession)
-    .mockReturnValue({
-      reminder: {
-        ...account,
-        ...createReminderConnection(
-          account,
-          createDeviceReminder(storedDevice().port),
-        ),
-      },
-    } as never);
+  jest.mocked(getNativeReminderSession).mockReturnValue({
+    reminder: {
+      ...account,
+      ...createReminderConnection(
+        account,
+        createDeviceReminder(storedDevice().port),
+      ),
+    },
+  } as never);
   const source = getMockAppSession();
   await render(ui(source, getMockAppSession));
   await login();

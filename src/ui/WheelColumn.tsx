@@ -1,14 +1,29 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentRef,
+} from 'react';
 import {
   AccessibilityInfo,
   Animated,
-  PanResponder,
+  ScrollView,
+  Pressable,
   StyleSheet,
   Text,
   View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from 'react-native';
 import { selectionFeedback } from './selectionFeedback';
 import { theme } from './theme';
+
+const WRAP_CYCLES = 101;
+const CENTER_CYCLE = 50;
+type ScrollEvent = NativeSyntheticEvent<NativeScrollEvent>;
 export function WheelColumn({
   label,
   values,
@@ -28,121 +43,172 @@ export function WheelColumn({
   onChange: (value: number) => void;
   wrap?: boolean;
 }) {
-  const [offset] = useState(() => new Animated.Value(0));
-  const animation = useRef<Animated.CompositeAnimation | null>(null),
-    busy = useRef(false),
-    reduced = useRef(true);
-  const settle = useCallback(() => {
-    animation.current?.stop();
-    animation.current = null;
-    busy.current = false;
-    offset.setValue(0);
-  }, [offset]);
+  const count = values.length;
+  const index = Math.max(0, values.indexOf(value));
+  const initialIndex = index + (wrap ? count * CENTER_CYCLE : 0);
+  const data = useMemo(
+    () =>
+      wrap ? Array.from({ length: WRAP_CYCLES }, () => values).flat() : values,
+    [values, wrap],
+  );
+  const list = useRef<ComponentRef<typeof ScrollView>>(null);
+  const [scrollY] = useState(
+    () => new Animated.Value(initialIndex * rowHeight),
+  );
+  const [reduced, setReduced] = useState(true);
+  const [initialOffset] = useState(() => ({
+    x: 0,
+    y: initialIndex * rowHeight,
+  }));
+  const [windowCenter, setWindowCenter] = useState(initialIndex);
+  const pendingTap = useRef<number | null>(null);
+  const ensureWindow = useCallback((at: number) => setWindowCenter(at), []);
+  const selected = useRef(value);
+  const dragging = useRef(false);
+  const position = useRef(initialIndex * rowHeight);
+  const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const layoutKey = `${rowHeight}:${wrap}:${values.join(',')}`;
+  const previousLayout = useRef(layoutKey);
+  const wasDisabled = useRef(disabled);
+  const clearSettle = useCallback(() => {
+    if (settleTimer.current !== null) clearTimeout(settleTimer.current);
+    settleTimer.current = null;
+  }, []);
   useEffect(() => {
     let disposed = false,
       changed = false;
     void AccessibilityInfo.isReduceMotionEnabled()
       .then((v) => {
-        if (!disposed && !changed) reduced.current = v;
+        if (!disposed && !changed) setReduced(v);
       })
       .catch(() => {});
     const listener = AccessibilityInfo.addEventListener(
       'reduceMotionChanged',
       (v) => {
         changed = true;
-        reduced.current = v;
-        if (v) settle();
+        setReduced(v);
       },
     );
     return () => {
       disposed = true;
       listener.remove();
-      settle();
+      clearSettle();
     };
-  }, [settle]);
-  useEffect(() => {
-    if (disabled) settle();
-  }, [disabled, settle]);
-  const move = useCallback(
-    (direction: number) => {
-      if (disabled || busy.current) return;
-      const index = values.indexOf(value),
-        step = Math.sign(direction);
-      const nextIndex = wrap
-        ? (index + step + values.length) % values.length
-        : Math.max(0, Math.min(values.length - 1, index + step));
-      if (!step || values[nextIndex] === value) {
-        settle();
-        return;
-      }
-      onChange(values[nextIndex]);
+  }, [clearSettle]);
+  useLayoutEffect(() => {
+    if (
+      selected.current !== value ||
+      previousLayout.current !== layoutKey ||
+      (disabled && !wasDisabled.current)
+    ) {
+      clearSettle();
+      dragging.current = false;
+      pendingTap.current = null;
+      ensureWindow(initialIndex);
+      selected.current = value;
+      position.current = initialIndex * rowHeight;
+      list.current?.scrollTo({
+        y: position.current,
+        animated: false,
+      });
+      scrollY.setValue(position.current);
+    }
+    previousLayout.current = layoutKey;
+    wasDisabled.current = disabled;
+  }, [
+    value,
+    layoutKey,
+    disabled,
+    initialIndex,
+    rowHeight,
+    scrollY,
+    clearSettle,
+    ensureWindow,
+  ]);
+  const nearest = useCallback(
+    (y: number) =>
+      Math.max(0, Math.min(data.length - 1, Math.round(y / rowHeight))),
+    [data.length, rowHeight],
+  );
+  const publish = useCallback(
+    (at: number) => {
+      const next = data[at];
+      if (disabled || next === undefined || next === selected.current) return;
+      selected.current = next;
+      onChange(next);
       selectionFeedback();
-      if (reduced.current) {
-        offset.setValue(0);
+    },
+    [data, disabled, onChange],
+  );
+  const finish = useCallback(
+    (y: number) => {
+      clearSettle();
+      if (disabled || (!dragging.current && pendingTap.current === null))
         return;
-      }
-      busy.current = true;
-      offset.setValue(step * rowHeight * 0.4);
-      const spring = Animated.spring(offset, {
-        toValue: 0,
-        stiffness: 220,
-        damping: 19,
-        mass: 0.65,
-        useNativeDriver: true,
+      const at = pendingTap.current ?? nearest(y);
+      publish(at);
+      dragging.current = false;
+      pendingTap.current = null;
+      // Recenter cyclic time columns only once motion has finished, with the same visible values.
+      const centered = wrap ? count * CENTER_CYCLE + (at % count) : at;
+      ensureWindow(centered);
+      position.current = centered * rowHeight;
+      list.current?.scrollTo({
+        y: position.current,
+        animated: false,
       });
-      animation.current = spring;
-      spring.start(() => {
-        if (animation.current === spring) {
-          animation.current = null;
-          busy.current = false;
-          offset.setValue(0);
-        }
+      scrollY.setValue(position.current);
+    },
+    [
+      clearSettle,
+      disabled,
+      nearest,
+      publish,
+      wrap,
+      count,
+      rowHeight,
+      scrollY,
+      ensureWindow,
+    ],
+  );
+  const select = useCallback(
+    (at: number) => {
+      if (disabled) return;
+      clearSettle();
+      dragging.current = false;
+      pendingTap.current = at;
+      ensureWindow(at);
+      publish(at);
+      position.current = at * rowHeight;
+      list.current?.scrollTo({
+        y: position.current,
+        animated: !reduced,
       });
+      if (reduced) finish(position.current);
+      else settleTimer.current = setTimeout(() => finish(at * rowHeight), 500);
     },
-    [disabled, values, value, wrap, onChange, offset, rowHeight, settle],
+    [disabled, clearSettle, publish, rowHeight, reduced, ensureWindow, finish],
   );
-  const onPanMove = useCallback(
-    (_event: unknown, g: { dx: number; dy: number }) => {
-      if (!disabled && !busy.current && !reduced.current)
-        offset.setValue(
-          Math.max(-rowHeight * 0.35, Math.min(rowHeight * 0.35, g.dy * 0.25)),
-        );
+  const trackScroll = useCallback(
+    (e: ScrollEvent) => {
+      position.current = e.nativeEvent.contentOffset.y;
+      ensureWindow(nearest(position.current));
+      if (dragging.current) publish(nearest(position.current));
     },
-    [disabled, offset, rowHeight],
+    [nearest, publish, ensureWindow],
   );
-  const onPanRelease = useCallback(
-    (
-      event: { nativeEvent: { locationY: number } },
-      g: { dx: number; dy: number },
-    ) => {
-      if (disabled || busy.current) return;
-      if (
-        Math.abs(g.dy) >= Math.max(14, rowHeight * 0.45) &&
-        Math.abs(g.dy) > Math.abs(g.dx) * 1.2
-      )
-        move(-Math.sign(g.dy));
-      else if (Math.abs(g.dx) <= 8 && Math.abs(g.dy) <= 8)
-        move(
-          Math.sign(Math.floor(event.nativeEvent.locationY / rowHeight) - 2),
-        );
-      else settle();
-    },
-    [disabled, move, rowHeight, settle],
-  );
-  const pan = useMemo(
+  const onScroll = useMemo(
     () =>
-      // PanResponder stores these callbacks; ref reads occur only on gesture events.
+      // Animated.event stores this listener; refs are read only on scroll events.
       // eslint-disable-next-line react-hooks/refs
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => !disabled,
-        onPanResponderTerminationRequest: () => false,
-        onPanResponderMove: onPanMove,
-        onPanResponderRelease: onPanRelease,
-        onPanResponderTerminate: settle,
+      Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+        useNativeDriver: true,
+        listener: trackScroll,
       }),
-    [disabled, onPanMove, onPanRelease, settle],
+    [scrollY, trackScroll],
   );
-  const index = values.indexOf(value);
+  const start = Math.max(0, Math.min(data.length - 1, windowCenter) - 12);
+  const end = Math.min(data.length, start + 25);
   return (
     <View
       accessible
@@ -151,7 +217,7 @@ export function WheelColumn({
       accessibilityState={{ disabled }}
       accessibilityValue={{
         min: values[0],
-        max: values[values.length - 1],
+        max: values[count - 1],
         now: value,
         text: format(value),
       }}
@@ -160,45 +226,100 @@ export function WheelColumn({
         { name: 'decrement', label: '이전 값' },
       ]}
       onAccessibilityAction={(e) => {
-        if (e.nativeEvent.actionName === 'increment') move(1);
-        if (e.nativeEvent.actionName === 'decrement') move(-1);
+        const step =
+          e.nativeEvent.actionName === 'increment'
+            ? 1
+            : e.nativeEvent.actionName === 'decrement'
+              ? -1
+              : 0;
+        if (!step) return;
+        const at = values.indexOf(selected.current) + step;
+        select(
+          wrap
+            ? count * CENTER_CYCLE + ((at + count) % count)
+            : Math.max(0, Math.min(count - 1, at)),
+        );
       }}
-      style={styles.column}
+      style={[styles.column, { height: rowHeight * 5 }]}
     >
-      <Animated.View
-        {...pan.panHandlers}
-        style={{ transform: [{ translateY: offset }] }}
+      <Animated.ScrollView
+        ref={list}
+        testID={`wheel-${label}`}
+        contentOffset={initialOffset}
+        contentContainerStyle={{ paddingVertical: rowHeight * 2 }}
+        scrollEnabled={!disabled}
+        showsVerticalScrollIndicator={false}
+        snapToInterval={rowHeight}
+        decelerationRate="fast"
+        bounces={false}
+        overScrollMode="never"
+        nestedScrollEnabled
+        scrollEventThrottle={16}
+        onScrollBeginDrag={() => {
+          clearSettle();
+          dragging.current = !disabled;
+          pendingTap.current = null;
+        }}
+        onScroll={onScroll}
+        onScrollEndDrag={() => {
+          clearSettle();
+          // Native snap can end without momentum. Delay that fallback so a real fling keeps scrolling.
+          settleTimer.current = setTimeout(() => finish(position.current), 180);
+        }}
+        onMomentumScrollBegin={clearSettle}
+        onMomentumScrollEnd={(e) => finish(e.nativeEvent.contentOffset.y)}
       >
-        {[-2, -1, 0, 1, 2].map((delta) => {
-          const at = index + delta;
-          const shown = wrap
-            ? values[(at + values.length) % values.length]
-            : values[at];
+        <View style={{ height: start * rowHeight }} />
+        {data.slice(start, end).map((item, localIndex) => {
+          const at = start + localIndex;
+          const inputRange = [
+            (at - 2.5) * rowHeight,
+            at * rowHeight,
+            (at + 2.5) * rowHeight,
+          ];
           return (
-            <View
-              key={delta}
+            <Pressable
+              key={at}
               accessible={false}
-              pointerEvents="none"
+              disabled={disabled}
+              onPress={() => select(at)}
               style={[styles.row, { height: rowHeight }]}
             >
-              <Text
-                style={[
-                  styles.value,
-                  {
-                    fontSize:
-                      delta === 0 ? 18 : Math.abs(delta) === 1 ? 15 : 13,
-                  },
-                  delta === 0 && styles.selected,
-                ]}
+              <Animated.View
+                style={{
+                  opacity: scrollY.interpolate({
+                    inputRange,
+                    outputRange: [0.25, 1, 0.25],
+                    extrapolate: 'clamp',
+                  }),
+                  transform: reduced
+                    ? []
+                    : [
+                        { perspective: 500 },
+                        {
+                          rotateX: scrollY.interpolate({
+                            inputRange,
+                            outputRange: ['55deg', '0deg', '-55deg'],
+                            extrapolate: 'clamp',
+                          }),
+                        },
+                        {
+                          scale: scrollY.interpolate({
+                            inputRange,
+                            outputRange: [0.7, 1, 0.7],
+                            extrapolate: 'clamp',
+                          }),
+                        },
+                      ],
+                }}
               >
-                {shown === undefined || (values.length === 2 && delta !== 0)
-                  ? ' '
-                  : format(shown)}
-              </Text>
-            </View>
+                <Text style={styles.value}>{format(item)}</Text>
+              </Animated.View>
+            </Pressable>
           );
         })}
-      </Animated.View>
+        <View style={{ height: (data.length - end) * rowHeight }} />
+      </Animated.ScrollView>
     </View>
   );
 }
@@ -214,13 +335,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(195,201,240,0.12)',
+    borderBottomColor: 'rgba(195,201,240,0.09)',
   },
   value: {
     fontFamily: theme.font,
-    color: theme.color.muted,
+    color: theme.color.text,
+    fontSize: 18,
+    fontWeight: '700',
     lineHeight: 26,
     textAlign: 'center',
   },
-  selected: { color: theme.color.text, fontWeight: '700' },
 });

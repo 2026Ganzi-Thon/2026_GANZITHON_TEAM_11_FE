@@ -23,6 +23,7 @@ export function useSongCardWriting(
   sourceNightId: string | undefined,
   onBack: () => void,
   onDone: () => void,
+  resubmitCardId?: string,
 ) {
   const [draft, setDraft] = useState(() => actions.readDraft());
   const [step, setStep] = useState<'write' | 'support' | 'complete'>('write');
@@ -47,9 +48,17 @@ export function useSongCardWriting(
     length <= PREVIEW_RECOMMENDATION_LIMIT;
   const blocked =
     error?.code === 'WRITING_ENTRY_REQUIRED' ||
-    error?.code === 'IDEMPOTENCY_CONFLICT';
+    error?.code === 'IDEMPOTENCY_CONFLICT' ||
+    (!!resubmitCardId &&
+      (error?.status === 404 || error?.code === 'CARD_NOT_REJECTED'));
   function update(value: Partial<SongCardInput>) {
-    if (!active.current || request.current || step !== 'write') return;
+    if (
+      !active.current ||
+      request.current ||
+      step !== 'write' ||
+      (resubmitCardId && blocked)
+    )
+      return;
     setDraft(actions.writeDraft({ ...draft, ...value }));
     setError(null);
   }
@@ -79,6 +88,7 @@ export function useSongCardWriting(
     JSON.stringify(body) !== JSON.stringify(recovery.value.body);
   async function submit(recover = false) {
     if (!active.current || request.current || step !== 'write') return;
+    if (resubmitCardId && blocked) return;
     if (recover ? !recovery.value : !valid || blocked || recoveryChanged)
       return;
     let submission = recovery.value;
@@ -115,6 +125,7 @@ export function useSongCardWriting(
       const track = receipt?.content?.track;
       if (
         !receipt?.id?.trim() ||
+        (resubmitCardId !== undefined && receipt.id !== resubmitCardId) ||
         receipt.kind !== 'song' ||
         receipt.category_id !== original.category_id ||
         receipt.moderation_status !== 'pending' ||
@@ -138,7 +149,12 @@ export function useSongCardWriting(
       )
         return;
       const problem = e instanceof ApiError ? e : new ApiError('network');
-      if (submissionWasRejected(problem)) recovery.clear(submission);
+      if (
+        submissionWasRejected(problem) ||
+        (resubmitCardId &&
+          (problem.status === 404 || problem.code === 'CARD_NOT_REJECTED'))
+      )
+        recovery.clear(submission);
       setError(problem);
       if (problem.code === 'SUPPORT_RECOMMENDED') setStep('support');
     } finally {
@@ -150,7 +166,7 @@ export function useSongCardWriting(
   }
   function back() {
     if (request.current || !active.current) return;
-    if (step === 'complete') {
+    if (step === 'complete' || (resubmitCardId && blocked)) {
       active.current = false;
       onDone();
     } else if (step === 'support') {

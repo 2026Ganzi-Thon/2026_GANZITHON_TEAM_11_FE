@@ -17,6 +17,10 @@ export default function DeveloperMenu() {
         {canUseMock() && (
           <>
             <Button
+              label="내 카드 작성·재제출"
+              onPress={() => router.push('/dev/my-cards')}
+            />
+            <Button
               label="설정 이메일·문서 열람"
               onPress={() => router.push('/dev/settings-documents')}
             />

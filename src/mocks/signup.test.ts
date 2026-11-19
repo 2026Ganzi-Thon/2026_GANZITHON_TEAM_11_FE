@@ -1,3 +1,4 @@
+import { PREVIEW_LEGAL_REVISION } from '../features/legal/previewPolicy';
 import { afterEach, expect, it, jest } from '@jest/globals';
 import { createMockSignup } from './signup';
 const signal = () => new AbortController().signal;
@@ -64,7 +65,6 @@ it('requires current required consents and saves the initial birth date without 
         choices: {
           terms: true,
           privacy: true,
-          processing: true,
           notifications: false,
         },
       },
@@ -120,11 +120,10 @@ it('validates birth dates against the same injected KST day exposed to the signu
     a.consent(
       user.id,
       {
-        revision: 'v1',
+        revision: PREVIEW_LEGAL_REVISION,
         choices: {
           terms: true,
           privacy: true,
-          processing: true,
           notifications: false,
         },
       },

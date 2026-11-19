@@ -57,8 +57,7 @@ async function birth() {
   await tick();
   for (const label of [
     '[필수] 서비스 이용약관',
-    '[필수] 개인정보 수집 · 이용',
-    '[필수] 고민 글 외부 AI 전송',
+    '[필수] 개인정보·입력정보 처리 안내',
   ])
     await fireEvent.press(screen.getByRole('checkbox', { name: label }));
   await press('동의하고 계속');

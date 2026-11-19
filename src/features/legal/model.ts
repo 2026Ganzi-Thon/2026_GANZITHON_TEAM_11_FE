@@ -1,12 +1,20 @@
-export const consentIds = [
+export const legalDocumentIds = [
   'terms',
   'privacy',
   'processing',
   'notifications',
 ] as const;
+export type LegalDocumentId = (typeof legalDocumentIds)[number];
+export const consentIds = ['terms', 'privacy', 'notifications'] as const;
 export type ConsentId = (typeof consentIds)[number];
+export const requiredConsentIds = ['terms', 'privacy'] as const;
+export function hasRequiredConsents(
+  choices: Readonly<Partial<Record<ConsentId, boolean>>>,
+) {
+  return requiredConsentIds.every((id) => choices[id] === true);
+}
 export interface ConsentDocument {
-  id: ConsentId;
+  id: LegalDocumentId;
   title: string;
   version: string;
   body: string;
@@ -25,8 +33,8 @@ export function validDocuments(value: unknown): value is ConsentDocuments {
     typeof d.revision === 'string' &&
     !!d.revision.trim() &&
     Array.isArray(d.documents) &&
-    d.documents.length === consentIds.length &&
-    consentIds.every(
+    d.documents.length === legalDocumentIds.length &&
+    legalDocumentIds.every(
       (id) =>
         d.documents.filter(
           (doc) =>

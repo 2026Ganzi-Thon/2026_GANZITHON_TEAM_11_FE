@@ -65,8 +65,9 @@ export function LegalDocumentsScreen({
       <ScrollView contentContainerStyle={s.content}>
         <View style={s.panel}>
           <Text style={s.body}>
-            가입 동의 화면과 같은 예시 문서예요. 열람만으로 동의 내용이 바뀌지
-            않아요. 실제 약관 원문은 서비스 연결 시 적용해요.
+            가입 화면과 같은 체험판 검토안이에요. 열람만으로 동의 선택은 바뀌지
+            않아요. 문의처·시행일은 확정 전이며, 실제 개인정보는 입력하지 말아
+            주세요.
           </Text>
         </View>
         {state.error ? (
@@ -87,7 +88,7 @@ export function LegalDocumentsScreen({
         ) : (
           state.data.documents.map((d) => (
             <View key={d.id} style={s.panel}>
-              <Text style={s.caption}>{d.version} · 예시 문서</Text>
+              <Text style={s.caption}>문서 버전 · {d.version}</Text>
               <Button
                 label={`${d.title} 보기`}
                 onPress={() => setSelected(d)}

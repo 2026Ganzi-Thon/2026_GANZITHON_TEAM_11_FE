@@ -1,4 +1,4 @@
-import { validDocuments } from '../legal/model';
+import { validDocuments, hasRequiredConsents } from '../legal/model';
 import { ApiError } from '../../api/errors';
 import type { LoginRequest } from '../../api/contracts';
 import {
@@ -22,7 +22,6 @@ export type SignupStage =
 const unchecked = (): Choices => ({
   terms: false,
   privacy: false,
-  processing: false,
   notifications: false,
 });
 export interface SignupState {
@@ -148,10 +147,7 @@ export function createSignupController(actions: SignupActions) {
     }
     if (
       stage === 'consents' &&
-      (!state.documents ||
-        !state.choices.terms ||
-        !state.choices.privacy ||
-        !state.choices.processing)
+      (!state.documents || !hasRequiredConsents(state.choices))
     )
       return;
     if (stage === 'birth') {
@@ -333,7 +329,6 @@ export function createSignupController(actions: SignupActions) {
           choices: {
             terms: checked,
             privacy: checked,
-            processing: checked,
             notifications: checked,
           },
           error: '',

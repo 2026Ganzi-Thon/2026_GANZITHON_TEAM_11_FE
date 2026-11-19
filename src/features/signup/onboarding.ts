@@ -180,6 +180,10 @@ export function createSignupOnboarding(
       if (!active || state.stage !== 'signup') return;
       publish({ home: createHome(registration, birth), stage: 'choice' });
     },
+    restoreHome: (registration: Registration, birth: BirthDateResult) => {
+      if (!active || disposed || state.stage !== 'signup') return;
+      publish({ home: createHome(registration, birth), stage: 'home' });
+    },
     openTime: () => {
       if (!state.busy && state.stage === 'choice' && state.retry !== 'clock')
         publish({ stage: 'time', draftTime: parseLocalTime(state.localTime)! });

@@ -3,6 +3,7 @@ import { act, render, screen, fireEvent } from '@testing-library/react-native';
 import Constants from 'expo-constants';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import Start from '../../app/index';
+import DeveloperMenu from '../../app/dev';
 import { AndroidReminderRuntime } from '../../notifications/AndroidReminderRuntime';
 import Route0 from '../../app/dev/android-reminder';
 import Route1 from '../../app/dev/birth-date-flow';
@@ -52,6 +53,7 @@ jest.mock('expo-constants', () => ({
 }));
 const mockPush = jest.fn();
 jest.mock('expo-router', () => ({
+  usePathname: () => '/',
   router: {
     push: (path: string) => mockPush(path),
     canGoBack: () => false,
@@ -95,6 +97,7 @@ afterEach(() => {
   Constants.expoConfig!.extra = { appVariant: 'preview' };
 });
 const routes = [
+  ['menu', DeveloperMenu],
   ['settings-documents', SettingsDocumentsPreview],
   ['android-reminder', Route0],
   ['birth-date-flow', Route1],
@@ -160,7 +163,7 @@ it('shows the mock limits and representative entry points in the preview release
     value: false,
     configurable: true,
   });
-  await render(<Start />);
+  await render(<DeveloperMenu />);
   expect(screen.getByText('테스트 체험판')).toBeTruthy();
   expect(screen.getByText(/재실행하면 기록이 초기화/)).toBeTruthy();
   await fireEvent.press(screen.getByRole('button', { name: '밤→아침 시연' }));
@@ -221,3 +224,28 @@ it.each([Route27, Route33, Route34])(
     expect(getNativeReminderSession).not.toHaveBeenCalled();
   },
 );
+
+it('starts the preview from the app entry instead of a scenario menu and defers its native session', async () => {
+  Object.defineProperty(globalThis, '__DEV__', {
+    value: false,
+    configurable: true,
+  });
+  await render(<Start />);
+  expect(screen.getByRole('button', { name: '체험 시작' })).toBeTruthy();
+  expect(screen.queryByRole('button', { name: '밤→아침 시연' })).toBeNull();
+  expect(getNativeReminderSession).not.toHaveBeenCalled();
+  await fireEvent.press(
+    screen.getByRole('button', { name: '기능별 미리보기' }),
+  );
+  expect(mockPush).toHaveBeenCalledWith('/dev');
+});
+it('blocks the app mock runtime in production', async () => {
+  Object.defineProperty(globalThis, '__DEV__', {
+    value: false,
+    configurable: true,
+  });
+  Constants.expoConfig!.extra = { appVariant: 'production' };
+  await render(<Start />);
+  expect(screen.queryByRole('button', { name: '체험 시작' })).toBeNull();
+  expect(getNativeReminderSession).not.toHaveBeenCalled();
+});

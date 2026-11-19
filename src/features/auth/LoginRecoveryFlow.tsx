@@ -9,6 +9,7 @@ interface Props {
   resetActions: PasswordResetActions;
   onExit: () => void;
   initialRecovery?: boolean;
+  onSuccess?: () => void;
 }
 export function LoginRecoveryFlow(props: Props) {
   const [source, setSource] = useState({
@@ -29,6 +30,7 @@ function Session({
   resetActions,
   onExit,
   initialRecovery = false,
+  onSuccess,
 }: Props) {
   const [recover, setRecover] = useState(initialRecovery),
     [email, setEmail] = useState('');
@@ -52,6 +54,7 @@ function Session({
   ) : (
     <LoginScreen
       submit={submit}
+      onSuccess={onSuccess}
       initialEmail={email}
       onBack={onExit}
       onResetPassword={(value) => {

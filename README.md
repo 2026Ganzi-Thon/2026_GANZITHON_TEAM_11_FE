@@ -47,6 +47,8 @@ npm run android
 
 체험판 APK는 Metro 없이 실행되며 기존 개발 앱과 함께 설치할 수 있습니다. 앱 이름은 **양 세는 밤 · 체험판**, 패키지는 `com.ganzithon.yangsebam.preview`입니다. 시작 화면의 체험 시작에서 가입·mock 로그인과 홈을 이어 확인합니다. 기능별 미리보기는 별도 메뉴에서 선택합니다. 계정·기록은 mock이며 앱 재실행 시 초기화됩니다. 기기 알림과 외부 앱 열기는 실제로 동작합니다.
 
+공유용 최신 APK는 [0.1.0-preview.3 릴리스](https://github.com/2026Ganzi-Thon/2026_GANZITHON_TEAM_11_FE/releases/tag/v0.1.0-preview.3)에서 받습니다. 체험판 versionCode는 3이며 기존 preview.1·preview.2와 같은 서명을 사용해 업데이트 설치합니다. APK와 SHA-256 파일을 함께 제공합니다.
+
 로컬 빌드는 Android SDK·Build Tools 37·JDK 21과 저장소 밖의 전용 PKCS12 서명 키가 필요합니다. 키 저장소와 개인 키는 같은 비밀번호를 사용합니다. 다음 환경 변수를 설정한 뒤 실행합니다. 키와 비밀번호는 커밋·공유 파일에 넣지 않습니다.
 
 - `ANDROID_HOME`: Android SDK 경로

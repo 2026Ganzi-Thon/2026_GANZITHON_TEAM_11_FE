@@ -153,6 +153,10 @@ export function createMockMultiNightJourney(
   return {
     home,
     history,
+    clearTransient() {
+      history.clearTransient();
+      sources.clear();
+    },
     previewReceiveYarn(amount: 1 | 3 = 3) {
       const ids = [
         `${options.identity.id}-published-a`,

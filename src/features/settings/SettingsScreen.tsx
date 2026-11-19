@@ -1,4 +1,5 @@
 import { LegalDocumentsScreen } from '../legal/LegalDocumentsScreen';
+import { LogoutDialog } from '../auth/LogoutDialog';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import {
@@ -45,6 +46,7 @@ function SettingsSession({
   const [list, setList] = useState(false);
   const [legal, setLegal] = useState(false);
   const [withdrawalOpen, setWithdrawalOpen] = useState(false);
+  const [logoutOpen, setLogoutOpen] = useState(false);
   const [birthDateOpen, setBirthDateOpen] = useState(false);
   const [reminderOpen, setReminderOpen] = useState(false);
   const back = () => {
@@ -217,6 +219,16 @@ function SettingsSession({
                   icon={require('../../../assets/images/settings/legal.svg')}
                 />
                 <View style={styles.divider} />
+                {actions.logout && (
+                  <>
+                    <Row
+                      label="로그아웃"
+                      onPress={() => setLogoutOpen(true)}
+                      icon={require('../../../assets/images/settings/login.svg')}
+                    />
+                    <View style={styles.divider} />
+                  </>
+                )}
                 <Row
                   label="탈퇴"
                   onPress={
@@ -254,6 +266,12 @@ function SettingsSession({
   return (
     <>
       {screen}
+      {logoutOpen && actions.logout && (
+        <LogoutDialog
+          actions={actions.logout}
+          onCancel={() => setLogoutOpen(false)}
+        />
+      )}
       {withdrawalOpen && actions.withdrawal && (
         <WithdrawalDialog
           actions={actions.withdrawal}

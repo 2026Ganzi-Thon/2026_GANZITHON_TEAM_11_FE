@@ -59,6 +59,7 @@ export type MyCardsScenario =
   | 'write-slow'
   | 'write-empty-search';
 export interface MockMyCards extends MyCardsWritingSource {
+  clearDrafts(): void;
   seedPublishedText(id: string, text: string): void;
   readPublished(id: string): Submission | null;
   recordReceivedYarn(id: string, receiptId: string): boolean;
@@ -260,6 +261,10 @@ export function createMockMyCards(
     });
   }
   return {
+    clearDrafts() {
+      drafts.clear();
+      songSessions.clear();
+    },
     acceptSubmission,
     createSongResubmitSession(item) {
       const sessionKey = JSON.stringify([item.id, item.revision]);

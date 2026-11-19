@@ -113,6 +113,14 @@ export function createMockNightHistory(
   };
   return {
     cards,
+    clearTransient() {
+      cards.clearDrafts();
+      for (const entry of all()) {
+        entry.demo.clearWritingDrafts();
+        entry.morning.writing = entry.demo.cardWriting;
+        entry.navigation = createNightMorningNavigation();
+      }
+    },
     deletions,
     worries,
     loadFlock,

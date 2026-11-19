@@ -1,8 +1,9 @@
 import { it, expect, jest, afterEach } from '@jest/globals';
 import { act, render, screen, fireEvent } from '@testing-library/react-native';
-import { AccessibilityInfo } from 'react-native';
+import { AccessibilityInfo, Dimensions } from 'react-native';
 import { NightMorningFlow } from '../demo/NightMorningFlow';
 import { createNightMorningDemo } from '../../mocks/nightMorningDemo';
+const originalWindow = Dimensions.get('window');
 const press = (name: string) =>
   fireEvent.press(screen.getByRole('button', { name }));
 const tick = () =>
@@ -10,6 +11,7 @@ const tick = () =>
     await jest.runAllTimersAsync();
   });
 afterEach(() => {
+  Dimensions.set({ window: originalWindow });
   jest.restoreAllMocks();
   jest.useRealTimers();
 });
@@ -80,6 +82,7 @@ async function openSong(demo: ReturnType<typeof createNightMorningDemo>) {
 it.each([false, true])(
   'keeps a delayed song change when saved=%s despite immediate next/previous or stage moves with reduced motion',
   async (saved) => {
+    Dimensions.set({ window: { ...originalWindow, fontScale: 1 } });
     const demo = createNightMorningDemo();
     await openSong(demo);
     if (saved) {
@@ -91,6 +94,49 @@ it.each([false, true])(
     const request = set.mock.calls[0];
     await press('다음 양');
     await press('이전 양');
+    await act(async () => {
+      screen
+        .getByTestId('feed-scroll')
+        .props.onLayout({ nativeEvent: { layout: { height: 700 } } });
+      screen.getByTestId('feed-scroll').props.onContentSizeChange(360, 650);
+      screen
+        .getByTestId('feed-card-content')
+        .props.onLayout({ nativeEvent: { layout: { height: 100 } } });
+      screen
+        .getByTestId('feed-card-content')
+        .props.onContentSizeChange(280, 70);
+    });
+    const area = screen.getByTestId('feed-card-swipe');
+    const touch = (y: number, previousY = y, stamp = 1) => ({
+      nativeEvent: { touches: [{ identifier: 0, pageX: 50, pageY: y }] },
+      touchHistory: {
+        numberActiveTouches: 1,
+        indexOfSingleActiveTouch: 0,
+        mostRecentTimeStamp: stamp,
+        touchBank: [
+          {
+            touchActive: true,
+            currentTimeStamp: stamp,
+            currentPageX: 50,
+            previousPageX: 50,
+            currentPageY: y,
+            previousPageY: previousY,
+          },
+        ],
+      },
+    });
+    for (const delta of [-60, 60]) {
+      await act(async () => {
+        area.props.onStartShouldSetResponderCapture(touch(150));
+        expect(
+          area.props.onMoveShouldSetResponderCapture(
+            touch(150 + delta, 150, 2),
+          ),
+        ).toBe(true);
+        area.props.onResponderGrant(touch(150 + delta));
+        area.props.onResponderRelease(touch(150 + delta));
+      });
+    }
     expect(request[2].aborted).toBe(false);
     expect(screen.getByText('3 / 6')).toBeTruthy();
     expect(screen.getByRole('button', { name: '다음 양' })).toBeDisabled();
@@ -140,11 +186,7 @@ it('explicitly leaving the feed cancels a pending change instead of trapping the
   await openSong(demo);
   const set = jest.spyOn(demo.songs, 'set');
   await press('노래 담기');
-  expect(
-    screen.getByText(
-      '양 이동은 변경을 마치면 가능해요. 피드를 나가거나 그만 세면 진행 중인 요청을 취소해요.',
-    ),
-  ).toBeTruthy();
+  expect(screen.getByText('노래를 담는 중이에요.')).toBeTruthy();
   await press('그만 세고 싶어요');
   expect(set.mock.calls[0][2].aborted).toBe(true);
   await tick();

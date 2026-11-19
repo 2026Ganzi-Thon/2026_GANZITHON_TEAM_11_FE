@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { SheepArrival } from './SheepArrival';
 import {
   Pressable,
   StyleSheet,
@@ -17,6 +18,9 @@ export function MorningPasture({
   onSelect,
   onDecorate,
   fortune,
+  arrival,
+  onSheepLayout,
+  layoutKey = 'static',
 }: {
   items: Sheep[];
   lastNightId?: string;
@@ -24,27 +28,50 @@ export function MorningPasture({
   onSelect?: (id: string) => void;
   onDecorate?: () => void;
   fortune?: ReactNode;
+  arrival?: { ready: boolean; reducedMotion: boolean };
+  onSheepLayout?: (y: number) => void;
+  layoutKey?: string;
 }) {
   const { width, fontScale } = useWindowDimensions(),
     scale = Math.min(width, 480) / 360;
+  const [gridY, setGridY] = useState<number | null>(null);
+  const [cell, setCell] = useState<{ key: string; y: number } | null>(null);
+  useEffect(() => {
+    if (gridY !== null && cell?.key === layoutKey)
+      onSheepLayout?.(gridY + cell.y);
+  }, [gridY, cell, layoutKey, onSheepLayout]);
   const cells: ReactNode[] = items.map((item, index) => (
     <View
-      key={item.id}
+      key={item.id === newId ? `${item.id}:${layoutKey}` : item.id}
+      testID={item.id === newId ? 'arriving-sheep-cell' : undefined}
+      onLayout={
+        item.id === newId
+          ? (event) =>
+              setCell({ key: layoutKey, y: event.nativeEvent.layout.y })
+          : undefined
+      }
       style={[styles.cell, { paddingTop: index % 2 === 0 ? 10 : 0 }]}
     >
-      <Pressable
-        accessible
-        accessibilityRole={onSelect ? 'button' : undefined}
-        disabled={!onSelect}
-        onPress={() => onSelect?.(item.id)}
-        accessibilityLabel={`${item.night_date}의 양${item.id === newId ? ' · 새로 온 양' : ''}${item.placements?.length ? ` · 스티커 ${item.placements.length}개` : ''}`}
-        style={[styles.sheep, item.id === newId && styles.newSheep]}
+      <SheepArrival
+        active={item.id === newId && !!arrival}
+        ready={arrival?.ready ?? true}
+        reducedMotion={arrival?.reducedMotion ?? true}
+        scale={scale}
       >
-        {item.night_id === lastNightId && (
-          <Text style={styles.badge}>어젯밤</Text>
-        )}
-        <DecoratedSheepArt sheep={item} />
-      </Pressable>
+        <Pressable
+          accessible
+          accessibilityRole={onSelect ? 'button' : undefined}
+          disabled={!onSelect}
+          onPress={() => onSelect?.(item.id)}
+          accessibilityLabel={`${item.night_date}의 양${item.id === newId ? ' · 새로 온 양' : ''}${item.placements?.length ? ` · 스티커 ${item.placements.length}개` : ''}`}
+          style={[styles.sheep, item.id === newId && styles.newSheep]}
+        >
+          {item.night_id === lastNightId && (
+            <Text style={styles.badge}>어젯밤</Text>
+          )}
+          <DecoratedSheepArt sheep={item} />
+        </Pressable>
+      </SheepArrival>
     </View>
   ));
   if (fortune)
@@ -90,6 +117,8 @@ export function MorningPasture({
         </View>
       )}
       <View
+        testID="morning-flock-grid"
+        onLayout={(event) => setGridY(event.nativeEvent.layout.y)}
         style={[
           styles.grid,
           { paddingTop: onDecorate ? 32 : 110 * scale },

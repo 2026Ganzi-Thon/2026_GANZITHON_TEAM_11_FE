@@ -33,6 +33,7 @@ import { FortuneSection } from '../fortune/FortuneSection';
 import { MorningHomeHeader } from './MorningHomeHeader';
 import { HomeSavedSong } from './HomeSavedSong';
 import { MorningPasture } from './MorningPasture';
+import { useSheepArrival } from './useSheepArrival';
 
 function Action({
   label,
@@ -149,6 +150,33 @@ function MorningSession({
   const scale = Math.min(width, 480) / 360;
   const flow = useMorningFlow(actions, onExit, homeWhenNoCandidates);
   const { morning, busy, failure } = flow;
+  const {
+    scrollRef,
+    onContentSizeChange,
+    onScrollBeginDrag,
+    onPastureLayout,
+    onSheepLayout,
+    ready,
+    reducedMotion,
+    layoutKey,
+  } = useSheepArrival(
+    flow.newId,
+    flow.page === 'home' &&
+      !busy &&
+      failure !== 'flock' &&
+      flow.newSheepInFlock &&
+      !homeBlocked &&
+      !decorationPicking &&
+      decorationId === null &&
+      !cardsOpen &&
+      !settingsOpen &&
+      detailId === null &&
+      !songsOpen &&
+      !reflectionOpen &&
+      !deferredWritingOpen &&
+      !fortuneOpen,
+    flow.flockVersion,
+  );
   const multipleSessions =
     morning?.candidate_cards.some((item) => (item.session_number ?? 1) > 1) ??
     false;
@@ -169,6 +197,9 @@ function MorningSession({
     <DayScreen home={flow.page === 'home'}>
       <ScrollView
         key={flow.page}
+        ref={scrollRef}
+        onContentSizeChange={onContentSizeChange}
+        onScrollBeginDrag={onScrollBeginDrag}
         contentContainerStyle={
           flow.page === 'home' ? styles.homeContent : styles.content
         }
@@ -212,14 +243,6 @@ function MorningSession({
                     onVisibilityChange={setDeferredWritingOpen}
                   />
                 )}
-              {flow.newId && (
-                <Text
-                  accessibilityLiveRegion="polite"
-                  style={[styles.text, styles.card]}
-                >
-                  한 마리가 양떼에 도착했어요.
-                </Text>
-              )}
               {busy && (
                 <ActivityIndicator
                   accessibilityLabel="양떼 불러오는 중"
@@ -258,7 +281,26 @@ function MorningSession({
                 />
               )}
             </View>
+            {flow.newId && (
+              <Text
+                accessibilityLiveRegion="polite"
+                style={[styles.text, styles.card]}
+              >
+                한 마리가 양떼에 도착했어요.
+              </Text>
+            )}
+            <View
+              key={layoutKey}
+              collapsable={false}
+              testID="morning-pasture"
+              onLayout={onPastureLayout}
+            />
             <MorningPasture
+              layoutKey={layoutKey}
+              arrival={
+                flow.newSheepInFlock ? { ready, reducedMotion } : undefined
+              }
+              onSheepLayout={onSheepLayout}
               items={flow.items}
               lastNightId={
                 !fortuneKey ||

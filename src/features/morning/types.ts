@@ -23,6 +23,8 @@ export interface MorningCandidate {
 export interface Sheep {
   version?: number;
   placements?: Placement[];
+  /** Read-only catalog projection; never sent in placement writes. */
+  sticker_assets?: Readonly<Record<string, string>>;
   id: string;
   night_id: string;
   night_date: string;

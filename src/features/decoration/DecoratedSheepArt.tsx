@@ -41,8 +41,11 @@ export function DecoratedSheepArt({
         />
         {!editor &&
           sheep.placements?.map((p) => {
-            const shape = mockStickerShape(p.sticker_id);
-            return shape ? (
+            const uri = sheep.sticker_assets?.[p.sticker_id];
+            const shape = sheep.sticker_assets
+              ? undefined
+              : mockStickerShape(p.sticker_id);
+            return shape || uri ? (
               <View
                 key={p.instance_id}
                 style={{
@@ -57,7 +60,7 @@ export function DecoratedSheepArt({
                   ],
                 }}
               >
-                <StickerArt shape={shape} />
+                <StickerArt shape={shape} uri={uri} />
               </View>
             ) : null;
           })}

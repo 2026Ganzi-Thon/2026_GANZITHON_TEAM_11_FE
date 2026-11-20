@@ -3,13 +3,27 @@ import { View } from 'react-native';
 import type { StickerShape } from './types';
 export function StickerArt({
   shape,
+  uri,
   onError,
   testID,
 }: {
-  shape: StickerShape;
+  shape?: StickerShape;
+  uri?: string;
   onError?: () => void;
   testID?: string;
 }) {
+  if (uri)
+    return (
+      <Image
+        source={{ uri }}
+        testID={testID}
+        onError={onError}
+        accessible={false}
+        contentFit="contain"
+        style={{ width: 22, height: 22 }}
+      />
+    );
+  if (!shape) return null;
   if (shape === 'diamond')
     return (
       <View

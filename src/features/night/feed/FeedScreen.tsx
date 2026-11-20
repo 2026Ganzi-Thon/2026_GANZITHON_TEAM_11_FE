@@ -546,14 +546,6 @@ export function FeedScreen({
                   />
                 </View>
               )}
-              {reactionsVisible && fluffState?.pending && (
-                <View style={styles.yarnStatus}>
-                  <Text style={styles.message}>
-                    다른 양은 볼 수 있어요. 밤 마무리는 솜털 확인 후 가능하며,
-                    뒤로 나가면 남은 요청을 취소해요.
-                  </Text>
-                </View>
-              )}
               {reactionsVisible && yarnState?.error === 'failed' && (
                 <View
                   style={styles.yarnStatus}
@@ -581,17 +573,6 @@ export function FeedScreen({
                       yarnFlow.retry(card);
                     }}
                   />
-                </View>
-              )}
-              {reactionsVisible && yarnState?.pending && (
-                <View style={styles.yarnStatus}>
-                  <Text style={styles.message} accessibilityLiveRegion="polite">
-                    {yarnState.target
-                      ? '털실을 보내는 중이에요.'
-                      : '털실을 거두는 중이에요.'}{' '}
-                    다른 양을 보는 동안에도 처리를 계속해요. 피드를 나가거나
-                    마치면 남은 요청을 취소해요.
-                  </Text>
                 </View>
               )}
               {songs &&

@@ -42,6 +42,7 @@ it('enables fluff and yarn independently and displays confirmed attached and rem
   await open();
   await press('솜털 붙이기');
   expect(screen.getByRole('button', { name: '솜털 떼기' })).toBeBusy();
+  expect(screen.queryByText(/다른 양은 볼 수 있어요/)).toBeNull();
   expect(screen.getByRole('button', { name: '솜털 떼기' })).not.toBeSelected();
   await tick();
   expect(screen.getByRole('button', { name: '솜털 떼기' })).toBeSelected();

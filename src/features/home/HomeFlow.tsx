@@ -1,10 +1,16 @@
 import type { HomeSource } from './types';
 import { fortuneDate, type HomeSnapshot } from './model';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import {
+  ActivityIndicator,
+  StyleSheet,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { HomeTime } from './HomeTime';
 import type { HomeContext } from './useHomeContext';
+import { FirstNightArtwork } from './FirstNightArtwork';
 import { FirstNightHome } from './FirstNightHome';
 import { HomeNightButton } from './HomeNightButton';
 import { MorningScreen } from '../morning/MorningScreen';
@@ -13,6 +19,7 @@ export function HomeFlow(props: {
   onNight: (snapshot: HomeSnapshot) => void;
   onExit: () => void;
 }) {
+  const { width } = useWindowDimensions();
   const [current, setCurrent] = useState({ source: props.source, version: 0 });
   if (current.source !== props.source)
     setCurrent({ source: props.source, version: current.version + 1 });
@@ -25,6 +32,7 @@ export function HomeFlow(props: {
       {(flow) =>
         !flow.snapshot ? (
           <SafeAreaView style={styles.loading}>
+            <FirstNightArtwork scale={Math.min(width, 480) / 360} />
             <View style={styles.center}>
               {flow.pending && (
                 <ActivityIndicator

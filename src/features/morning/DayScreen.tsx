@@ -1,8 +1,20 @@
 import type { PropsWithChildren } from 'react';
 import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import {
+  StyleSheet,
+  View,
+  useWindowDimensions,
+  type ImageStyle,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+export const daySkyColors = [
+  '#AFC0FF',
+  '#BCCAFF',
+  '#CAD5FF',
+  '#D8E0FF',
+  '#E6EBFF',
+] as const;
 const dayLayers: readonly [number, number, number, number, number][] = [
   [require('../../../assets/images/morning/sky-1.svg'), 0, 0, 360, 140],
   [require('../../../assets/images/morning/sky-2.svg'), 0, 140, 360, 140],
@@ -158,30 +170,37 @@ export function DayScreen({
         }
       >
         {(home ? dayLayers.slice(0, 10) : dayLayers).map(
-          ([source, x, y, w, h], index) => (
-            <Image
-              key={index}
-              source={source}
-              contentFit="fill"
-              style={
-                home
-                  ? {
-                      position: 'absolute',
-                      left: x * scale,
-                      top: y * scale,
-                      width: w * scale,
-                      height: h * scale,
-                    }
-                  : {
-                      position: 'absolute',
-                      left: `${(x / 360) * 100}%`,
-                      top: `${(y / 780) * 100}%`,
-                      width: `${(w / 360) * 100}%`,
-                      height: `${(h / 780) * 100}%`,
-                    }
-              }
-            />
-          ),
+          ([source, x, y, w, h], index) => {
+            const style: ImageStyle = home
+              ? {
+                  position: 'absolute',
+                  left: x * scale,
+                  top: y * scale,
+                  width: w * scale,
+                  height: h * scale,
+                }
+              : {
+                  position: 'absolute',
+                  left: `${(x / 360) * 100}%`,
+                  top: `${(y / 780) * 100}%`,
+                  width: `${(w / 360) * 100}%`,
+                  height: `${(h / 780) * 100}%`,
+                };
+            return index < 5 ? (
+              <View
+                key={index}
+                style={[style, { backgroundColor: daySkyColors[index] }]}
+              />
+            ) : (
+              <Image
+                key={index}
+                source={source}
+                contentFit="fill"
+                transition={0}
+                style={style}
+              />
+            );
+          },
         )}
       </View>
       <SafeAreaView style={styles.safe}>{children}</SafeAreaView>

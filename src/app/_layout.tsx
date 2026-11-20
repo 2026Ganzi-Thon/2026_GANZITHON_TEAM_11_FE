@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react';
+import { prepareNightBackground } from '../ui/nightBackground';
 import { useFonts } from 'expo-font';
 import { ActivityIndicator, View } from 'react-native';
 import { Stack } from 'expo-router';
@@ -5,6 +7,18 @@ import { AndroidReminderRuntime } from '../notifications/AndroidReminderRuntime'
 import { StatusBar } from 'expo-status-bar';
 
 export default function RootLayout() {
+  const [backgroundReady, setBackgroundReady] = useState(false);
+  useEffect(() => {
+    let active = true;
+    void prepareNightBackground()
+      .catch(() => {})
+      .finally(() => {
+        if (active) setBackgroundReady(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
   const [fontsLoaded, fontError] = useFonts([
     {
       fontFamily: 'PFStardust',
@@ -23,12 +37,12 @@ export default function RootLayout() {
       ],
     },
   ]);
-  if (!fontsLoaded && !fontError)
+  if ((!fontsLoaded && !fontError) || !backgroundReady)
     return (
       <View
         style={{
           flex: 1,
-          backgroundColor: '#242460',
+          backgroundColor: '#242565',
           alignItems: 'center',
           justifyContent: 'center',
         }}
@@ -43,7 +57,8 @@ export default function RootLayout() {
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: '#242460' },
+          animation: 'none',
+          contentStyle: { backgroundColor: '#242565' },
         }}
       />
     </>

@@ -41,6 +41,7 @@ describe('yarn reactions in a moving feed', () => {
     const { view } = await open(createYarnPreview('slow'));
     await press('털실 보내기');
     expect(screen.getByRole('button', { name: '털실 보내기 취소' })).toBeBusy();
+    expect(screen.queryByText(/털실을 보내는 중이에요/)).toBeNull();
     await press('다음 양');
     expect(screen.getByText('2 / 6')).toBeTruthy();
     await press('이전 양');

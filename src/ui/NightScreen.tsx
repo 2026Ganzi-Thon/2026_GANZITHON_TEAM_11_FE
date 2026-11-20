@@ -3,6 +3,7 @@ import { Image, type ImageSource } from 'expo-image';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from './theme';
+import { nightBackgroundSource } from './nightBackground';
 
 export function NightScreen({
   children,
@@ -11,7 +12,8 @@ export function NightScreen({
   return (
     <View style={styles.screen}>
       <Image
-        source={background}
+        source={nightBackgroundSource(background)}
+        transition={0}
         style={StyleSheet.absoluteFill}
         contentFit="fill"
         accessible={false}

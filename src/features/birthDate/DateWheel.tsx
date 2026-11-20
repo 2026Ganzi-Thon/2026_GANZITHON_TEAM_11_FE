@@ -53,7 +53,6 @@ export function DateWheel({
         ]}
       />
       <WheelColumn
-        fontFamily="NotoSansKR"
         textScale={scale}
         label="출생 연도"
         value={value.year}
@@ -64,8 +63,8 @@ export function DateWheel({
         onChange={(v) => onChange('year', v)}
       />
       <WheelColumn
-        fontFamily="NotoSansKR"
         textScale={scale}
+        wrap
         label="출생 월"
         value={value.month}
         values={Array.from({ length: 12 }, (_, i) => i + 1)}
@@ -75,7 +74,6 @@ export function DateWheel({
         onChange={(v) => onChange('month', v)}
       />
       <WheelColumn
-        fontFamily="NotoSansKR"
         textScale={scale}
         label="출생 일"
         value={value.day}

@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { DayScreen } from './DayScreen';
@@ -69,6 +70,22 @@ function ReflectionSession({
   const matchingReply =
     reflection?.answer === flow.selected ? reflection : null;
   const dirty = !!flow.selected && flow.selected !== reflection?.answer;
+  const { width } = useWindowDimensions();
+  const scale = Math.min(width, 480) / 360;
+  const choices: ReflectionAnswer[] = [
+    'same',
+    'smaller',
+    'much_better',
+    'new_worry',
+    'cannot_recall',
+  ];
+  // Keep an older saved answer readable without changing its API value.
+  if (reflection?.answer === 'bigger') choices.push('bigger');
+  const labels: Partial<Record<ReflectionAnswer, string>> = {
+    much_better: '생각보다\n괜찮아요',
+    new_worry: '다른 고민이\n생겼어요',
+    cannot_recall: '기억이\n잘 안 나요',
+  };
   return (
     <DayScreen>
       <View style={styles.header}>
@@ -88,28 +105,7 @@ function ReflectionSession({
         key={completed ? 'result' : 'form'}
         contentContainerStyle={styles.content}
       >
-        {completed && reflection ? (
-          <View style={styles.panel}>
-            <Text
-              accessibilityRole="header"
-              accessibilityLiveRegion="polite"
-              style={styles.question}
-            >
-              회고를 저장했어요.
-            </Text>
-            <Text style={styles.text}>
-              저장한 회고 · {reflectionLabels[reflection.answer]}
-            </Text>
-            <Text style={styles.message}>{reflection.message}</Text>
-            <Image
-              source={require('../../../assets/images/reflection/face.svg')}
-              style={styles.face}
-              contentFit="contain"
-              accessibilityIgnoresInvertColors
-            />
-            <Action label="회고 다시 선택하기" onPress={flow.edit} />
-          </View>
-        ) : flow.phase === 'loading' ? (
+        {flow.phase === 'loading' ? (
           <View style={styles.panel}>
             <ActivityIndicator color="#2F3A9E" />
             <Text style={styles.text}>지난밤 기록을 불러오고 있어요.</Text>
@@ -156,94 +152,123 @@ function ReflectionSession({
               />
               <View style={styles.tape} />
               <Text style={styles.caption}>
-                {night!.night_date} 밤 · {timeLabel(night!.worry_saved_at)}
+                어젯밤 {timeLabel(night!.worry_saved_at)}
                 {night!.entrusted ? '맡긴 걱정' : '지난밤 걱정'}
               </Text>
               <Text style={[styles.text, theme.contentText]}>
                 {night!.worry_text}
               </Text>
             </View>
-            <View style={styles.panel}>
-              <Text accessibilityRole="header" style={styles.question}>
-                이 걱정, 지금은 어때요?
-              </Text>
-              {matchingReply && (
-                <View style={styles.reply}>
-                  <Text style={styles.text}>
-                    저장된 회고 · {reflectionLabels[matchingReply.answer]}
-                  </Text>
-                  <Text style={styles.message}>{matchingReply.message}</Text>
-                </View>
-              )}
+            <Text accessibilityRole="header" style={styles.question}>
+              이 걱정, 지금은 어때요?
+            </Text>
+            <View style={styles.character}>
+              <View style={styles.bubbleSpace}>
+                {matchingReply && (
+                  <View style={styles.bubble}>
+                    <Text
+                      accessibilityLiveRegion="polite"
+                      style={styles.message}
+                    >
+                      {matchingReply.message}
+                    </Text>
+                    <View style={styles.tail} />
+                  </View>
+                )}
+              </View>
               <Image
                 source={require('../../../assets/images/reflection/face.svg')}
-                style={styles.face}
+                style={[
+                  styles.face,
+                  { width: 114.545 * scale, height: 98.182 * scale },
+                ]}
                 contentFit="contain"
                 accessibilityIgnoresInvertColors
               />
-              <View
-                accessibilityRole="radiogroup"
-                accessibilityLabel="걱정 돌아보기 선택"
-              >
-                {(Object.keys(reflectionLabels) as ReflectionAnswer[]).map(
-                  (answer) => (
-                    <Pressable
-                      key={answer}
-                      accessibilityRole="radio"
-                      accessibilityLabel={reflectionLabels[answer]}
-                      accessibilityState={{
-                        checked: flow.selected === answer,
-                        disabled: flow.busy,
-                      }}
-                      disabled={flow.busy}
-                      onPress={() => flow.select(answer)}
+              <Text style={styles.answer}>
+                {flow.selected
+                  ? reflectionLabels[flow.selected]
+                  : '마음을 골라 주세요'}
+              </Text>
+            </View>
+            <View
+              accessibilityRole="radiogroup"
+              accessibilityLabel="걱정 돌아보기 선택"
+              style={styles.choices}
+            >
+              <View pointerEvents="none" style={styles.path}>
+                {Array.from({ length: 16 }, (_, i) => (
+                  <View
+                    key={i}
+                    style={[
+                      styles.dot,
+                      { top: Math.sin((i / 15) * Math.PI) * 22 },
+                    ]}
+                  />
+                ))}
+              </View>
+              {choices.map((answer, index) => {
+                const selected = flow.selected === answer;
+                return (
+                  <Pressable
+                    key={answer}
+                    accessibilityRole="radio"
+                    accessibilityLabel={reflectionLabels[answer]}
+                    accessibilityState={{
+                      checked: selected,
+                      disabled: flow.busy,
+                    }}
+                    disabled={flow.busy}
+                    onPress={() => flow.select(answer)}
+                    style={[
+                      styles.choice,
+                      { paddingTop: [0, 17, 26, 20, 0, 0][index] },
+                    ]}
+                  >
+                    <View style={[styles.square, selected && styles.selected]}>
+                      {selected && <View style={styles.selectedDot} />}
+                    </View>
+                    <Text
                       style={[
-                        styles.choice,
-                        flow.selected === answer && styles.selected,
+                        styles.choiceLabel,
+                        selected && styles.selectedLabel,
                       ]}
                     >
-                      <Text style={styles.text}>
-                        {flow.selected === answer ? '▣' : '□'}{' '}
-                        {reflectionLabels[answer]}
-                      </Text>
-                    </Pressable>
-                  ),
-                )}
-              </View>
-              {flow.failure && (
-                <Text accessibilityRole="alert" style={styles.text}>
-                  저장하지 못했어요. 선택은 그대로예요. 다시 시도해 주세요.
-                </Text>
-              )}
-              {dirty && (
-                <Text accessibilityLiveRegion="polite" style={styles.text}>
-                  아직 저장하지 않은 선택이에요.
-                </Text>
-              )}
-              {flow.busy && (
-                <ActivityIndicator
-                  accessibilityLabel="회고 저장 중"
-                  color="#2F3A9E"
-                />
-              )}
+                      {labels[answer] ?? reflectionLabels[answer]}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            {flow.failure && (
+              <Text accessibilityRole="alert" style={styles.notice}>
+                저장하지 못했어요. 선택은 그대로예요. 다시 시도해 주세요.
+              </Text>
+            )}
+            {flow.busy && (
+              <ActivityIndicator
+                accessibilityLabel="회고 저장 중"
+                color="#2F3A9E"
+              />
+            )}
+            {dirty && !flow.busy && (
+              <Text accessibilityLiveRegion="polite" style={styles.notice}>
+                아직 저장하지 않은 선택이에요.
+              </Text>
+            )}
+            <View style={styles.spacer} />
+            {dirty && (
               <Action
                 label="회고 저장하기"
-                disabled={
-                  flow.busy ||
-                  !flow.selected ||
-                  flow.selected === flow.record?.reflection?.answer
-                }
+                disabled={flow.busy}
                 onPress={() => void flow.save()}
               />
-            </View>
+            )}
           </>
         )}
         <Action
-          label={
-            flow.saved || flow.record?.reflection
-              ? '양떼 보러 가기'
-              : '건너뛰고 양떼 보기'
-          }
+          label="양떼 보러 가기"
+          disabled={flow.busy}
           onPress={flow.back}
         />
       </ScrollView>
@@ -289,7 +314,13 @@ const styles = StyleSheet.create({
     color: '#242565',
     flex: 1,
   },
-  content: { padding: 20, gap: 24, paddingBottom: 32, flexGrow: 1 },
+  content: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    gap: 12,
+    paddingBottom: 32,
+    flexGrow: 1,
+  },
   text: {
     fontFamily: theme.font,
     fontSize: 16,
@@ -327,25 +358,98 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#2F3A9E',
   },
+  character: { alignItems: 'center', gap: 12 },
+  bubbleSpace: {
+    width: '100%',
+    minHeight: 48,
+    alignItems: 'flex-end',
+    paddingBottom: 14,
+  },
+  bubble: {
+    maxWidth: '88%',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#2F3A9E',
+    boxShadow: '3px 3px 0 #AFC0FF',
+  },
   message: {
     fontFamily: theme.font,
     fontSize: 14,
     lineHeight: 23,
-    padding: 12,
-    borderWidth: 2,
-    borderColor: '#2F3A9E',
+    fontWeight: '700',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     color: '#2F3A9E',
   },
-  face: { width: 114.545, height: 98.182, alignSelf: 'center' },
-  choice: {
-    padding: 12,
-    minHeight: 48,
-    borderWidth: 2,
+  tail: {
+    position: 'absolute',
+    bottom: -8,
+    left: 6,
+    width: 8,
+    height: 8,
+    borderLeftWidth: 2,
+    borderBottomWidth: 2,
     borderColor: '#2F3A9E',
-    marginBottom: 10,
     backgroundColor: '#FFFFFF',
   },
-  selected: { backgroundColor: '#FFE7A3' },
+  face: { alignSelf: 'center' },
+  answer: {
+    fontFamily: theme.font,
+    fontSize: 20,
+    lineHeight: 30,
+    fontWeight: '700',
+    color: '#2F3A9E',
+    textAlign: 'center',
+  },
+  choices: {
+    flexDirection: 'row',
+    minHeight: 130,
+    marginHorizontal: -12,
+    marginTop: 8,
+  },
+  path: {
+    position: 'absolute',
+    top: 14,
+    left: '8%',
+    right: '8%',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  dot: { width: 6, height: 4, backgroundColor: '#AFC0FF' },
+  choice: { flex: 1, alignItems: 'center', gap: 8, minHeight: 48 },
+  square: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderColor: '#2F3A9E',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selected: {
+    width: 26,
+    height: 26,
+    backgroundColor: '#FFE7A3',
+    boxShadow: '3px 3px 0 #D9B65E',
+  },
+  selectedDot: { width: 8, height: 8, backgroundColor: '#2F3A9E' },
+  choiceLabel: {
+    fontFamily: theme.font,
+    fontSize: 14,
+    lineHeight: 21,
+    color: '#4A5290',
+    textAlign: 'center',
+  },
+  selectedLabel: { color: '#2F3A9E', fontWeight: '700' },
+  notice: {
+    fontFamily: theme.font,
+    fontSize: 16,
+    lineHeight: 25,
+    color: '#2F3A9E',
+    padding: 12,
+    backgroundColor: '#E6EBFF',
+  },
+  spacer: { flex: 1, minHeight: 24 },
   action: {
     padding: 14,
     minHeight: 52,

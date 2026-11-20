@@ -87,7 +87,9 @@ describe('short text cards', () => {
       }),
     );
     expect(screen.getByText('카드를 맡겼어요')).toBeTruthy();
-    expect(screen.getByText('검수를 기다리고 있어요.')).toBeTruthy();
+    expect(
+      screen.getByText('검수가 끝나면 누군가의 밤에 나타나요'),
+    ).toBeTruthy();
     expect(screen.queryByLabelText('짧은 글')).toBeNull();
     await press('이제 잘게요');
     expect(done).toHaveBeenCalledTimes(1);

@@ -154,7 +154,9 @@ it.each(['load', 'save'] as const)(
       />,
     );
     if (phase === 'save') {
-      await fireEvent.press(screen.getByRole('radio', { name: '더 커졌어요' }));
+      await fireEvent.press(
+        screen.getByRole('radio', { name: '다른 고민이 생겼어요' }),
+      );
       await press('회고 저장하기');
     }
     const pending =

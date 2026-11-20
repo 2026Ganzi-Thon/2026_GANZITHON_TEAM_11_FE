@@ -1,3 +1,4 @@
+import { useLiveService } from '../live/ServiceMode';
 import { DecorationPicker } from '../decoration/DecorationPicker';
 import { DecorationScreen } from '../decoration/DecorationScreen';
 import { MyCardsWritingFlow } from '../myCards/MyCardsWritingFlow';
@@ -136,6 +137,7 @@ function MorningSession({
   fortuneKey?: string;
   myCards?: MyCardsWritingSource;
 }) {
+  const live = useLiveService();
   const [sheepWriting] = useState(() =>
     myCards ? createSheepWritingSessions(myCards) : undefined,
   );
@@ -526,7 +528,7 @@ function MorningSession({
           {actions.songs && morning?.night && (
             <Action label="담은 노래 보기" onPress={() => setSongsOpen(true)} />
           )}
-          <Action label="미리보기 나가기" onPress={flow.exit} />
+          {!live && <Action label="미리보기 나가기" onPress={flow.exit} />}
         </View>
       </ScrollView>
       {flow.page === 'home' && homeFooter && (
@@ -659,8 +661,14 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     gap: 12,
   },
-  homeActions: { padding: 20, gap: 8, backgroundColor: '#E8F2DA' },
-  content: { flexGrow: 1, padding: 20, gap: 16 },
+  homeActions: { padding: 20, gap: 8 },
+  content: {
+    flexGrow: 1,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 24,
+    gap: 16,
+  },
   text: {
     fontFamily: theme.font,
     color: '#2F3A9E',

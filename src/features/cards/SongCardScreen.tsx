@@ -151,19 +151,13 @@ function SongCardSession({
             <>
               <View style={styles.spacer} />
               <TextCardArtwork />
-              <View style={styles.panel}>
+              <View style={styles.completion}>
                 <Text style={styles.title} accessibilityRole="header">
                   {resubmission ? '다시 검수를 맡겼어요' : '카드를 맡겼어요'}
                 </Text>
                 <Text style={styles.text}>
-                  검수를 기다리고 있어요. 승인된 뒤 다른 사람에게 보여요.
+                  검수가 끝나면 누군가의 밤에 나타나요
                 </Text>
-                {resubmission && (
-                  <Text style={styles.text}>
-                    기존 카드의 곡과 문장을 수정했어요. 새 카드를 만들지
-                    않았어요.
-                  </Text>
-                )}
               </View>
               <View style={styles.spacer} />
               <Button label={completionLabel} onPress={flow.back} />
@@ -378,7 +372,7 @@ function SongCardSession({
                   {flow.length} / {PREVIEW_RECOMMENDATION_LIMIT}
                 </Text>
               </View>
-              <Text style={[styles.hint, styles.panel]}>
+              <Text style={styles.hint}>
                 추천 이유를 내 말로 적어 주세요. 가사는 옮겨 적지 않아요.
               </Text>
               {error && (
@@ -444,9 +438,6 @@ function SongCardSession({
               )}
             </>
           )}
-          <Text style={[styles.hint, styles.panel]}>
-            추천 문장은 50자까지 적을 수 있어요.
-          </Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </NightScreen>
@@ -474,6 +465,7 @@ const styles = StyleSheet.create({
   },
   selectedCategory: { backgroundColor: theme.color.primary },
   fill: { flex: 1 },
+  completion: { alignItems: 'center', gap: 14 },
   header: {
     minHeight: 52,
     paddingHorizontal: 12,

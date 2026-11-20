@@ -14,6 +14,7 @@ if [[ ! -f "$PREVIEW_KEYSTORE_FILE" || ! -f "$PREVIEW_PASSWORD_FILE" ]]; then
 fi
 
 export APP_VARIANT=preview
+node scripts/fetch-fonts.mjs
 npx expo prebuild --clean --platform android --no-install
 (
   cd android

@@ -13,7 +13,6 @@ import {
   ScrollView,
   Pressable,
   StyleSheet,
-  Text,
   View,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -250,6 +249,7 @@ export function WheelColumn({
         scrollEnabled={!disabled}
         showsVerticalScrollIndicator={false}
         snapToInterval={rowHeight}
+        disableIntervalMomentum
         decelerationRate="fast"
         bounces={false}
         overScrollMode="never"
@@ -272,11 +272,9 @@ export function WheelColumn({
         <View style={{ height: start * rowHeight }} />
         {data.slice(start, end).map((item, localIndex) => {
           const at = start + localIndex;
-          const inputRange = [
-            (at - 2.5) * rowHeight,
-            at * rowHeight,
-            (at + 2.5) * rowHeight,
-          ];
+          const inputRange = [-2, -1, 0, 1, 2].map(
+            (distance) => (at + distance) * rowHeight,
+          );
           return (
             <Pressable
               key={at}
@@ -287,33 +285,38 @@ export function WheelColumn({
             >
               <Animated.View
                 style={{
-                  opacity: scrollY.interpolate({
-                    inputRange,
-                    outputRange: [0.25, 1, 0.25],
-                    extrapolate: 'clamp',
-                  }),
-                  transform: reduced
-                    ? []
-                    : [
-                        { perspective: 500 },
-                        {
-                          rotateX: scrollY.interpolate({
-                            inputRange,
-                            outputRange: ['55deg', '0deg', '-55deg'],
-                            extrapolate: 'clamp',
-                          }),
-                        },
-                        {
-                          scale: scrollY.interpolate({
-                            inputRange,
-                            outputRange: [0.7, 1, 0.7],
-                            extrapolate: 'clamp',
-                          }),
-                        },
-                      ],
+                  transform: [
+                    {
+                      scale: scrollY.interpolate({
+                        inputRange,
+                        outputRange: [13 / 18, 15 / 18, 1, 15 / 18, 13 / 18],
+                        extrapolate: 'clamp',
+                      }),
+                    },
+                  ],
                 }}
               >
-                <Text style={styles.value}>{format(item)}</Text>
+                <Animated.Text
+                  style={[
+                    styles.value,
+                    {
+                      color: scrollY.interpolate({
+                        inputRange,
+                        outputRange: [
+                          '#8F98D6',
+                          '#C3C9F0',
+                          '#EEF0FF',
+                          '#C3C9F0',
+                          '#8F98D6',
+                        ],
+                        extrapolate: 'clamp',
+                      }),
+                    },
+                    at === windowCenter && styles.selected,
+                  ]}
+                >
+                  {format(item)}
+                </Animated.Text>
               </Animated.View>
             </Pressable>
           );
@@ -328,20 +331,17 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     overflow: 'hidden',
-    borderRightWidth: 1,
-    borderRightColor: '#46519F',
   },
   row: {
     justifyContent: 'center',
     alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(195,201,240,0.09)',
   },
+  selected: { fontWeight: '700' },
   value: {
     fontFamily: theme.font,
     color: theme.color.text,
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '400',
     lineHeight: 26,
     textAlign: 'center',
   },

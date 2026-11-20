@@ -194,7 +194,7 @@ export function TextCardScreen({
                   onChangeText={(text) => flow.update({ text })}
                   placeholder="오늘의 나처럼 잠 못 드는 누군가에게"
                   placeholderTextColor={theme.color.muted}
-                  style={styles.input}
+                  style={[styles.input, !!draft.text && theme.contentText]}
                   textAlignVertical="top"
                   scrollEnabled
                 />

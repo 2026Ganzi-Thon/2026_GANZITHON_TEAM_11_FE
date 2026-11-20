@@ -272,7 +272,7 @@ function WorryListSession({
                   </View>
                   <Text
                     numberOfLines={fontScale > 1 ? undefined : 1}
-                    style={styles.body}
+                    style={[styles.body, theme.contentText]}
                   >
                     {item.worry_text}
                   </Text>

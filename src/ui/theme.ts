@@ -8,7 +8,8 @@ export const theme = {
     error: '#FFD2DB',
     panel: '#303879',
   },
-  font: 'NotoSansKR',
+  font: 'PFStardust',
+  contentText: { fontFamily: 'OwnglyphPDH', fontWeight: '400' },
   radius: 4,
   gutter: 20,
 } as const;

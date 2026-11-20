@@ -20,7 +20,9 @@ export function SubmissionRecoveryPanel({
         아래의 처음 보낸 내용으로 접수를 확인해요. 지금 편집한 내용은 새로
         보내지 않아요.
       </Text>
-      <Text style={styles.text}>처음 보낸 내용: {original}</Text>
+      <Text style={styles.text}>
+        처음 보낸 내용: <Text style={theme.contentText}>{original}</Text>
+      </Text>
       <Button label="이전 접수 확인" busy={pending} onPress={onRecover} />
     </View>
   );

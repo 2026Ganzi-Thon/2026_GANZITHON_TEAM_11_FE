@@ -2,6 +2,7 @@ import type { Bootstrap, User } from './contracts';
 import { ApiError } from './errors';
 import { operationKey, type ApiSession } from './session';
 import { createLiveCardWriting, createLiveMyCards } from './cardWriting';
+import { createLiveDecoration } from './decoration';
 import type { ConsentDocuments } from '../features/legal/model';
 import { previewZodiac as zodiacForDate } from '../features/birthDate/zodiac';
 import type { SignupActions } from '../features/signup/types';
@@ -137,6 +138,7 @@ export function createLiveResources(api: ApiSession) {
   };
   const deletions = createWorryDeletions(records, records);
   const cards = createLiveMyCards(api);
+  const decoration = createLiveDecoration(api);
   const settings: SettingsActions = {
     documents,
     deletions,
@@ -222,22 +224,36 @@ export function createLiveResources(api: ApiSession) {
         }),
     },
   };
-  const loadMorning = (signal: AbortSignal, id?: string) =>
-    api.request<ServerMorning>(
+  const loadMorning = async (signal: AbortSignal, id?: string) => {
+    const value = await api.request<ServerMorning>(
       `/morning${id ? `?night_id=${segment(id)}` : ''}`,
       { signal },
     );
+    return {
+      ...value,
+      adoption: value.adoption
+        ? (await decoration.withAssets([value.adoption], signal))[0]
+        : null,
+    };
+  };
   const morning: MorningActions = {
+    decoration: decoration.actions,
     settings,
     worries: deletions,
     writing: createLiveCardWriting(api),
     loadMorning,
-    adopt: (id, cardId, signal) =>
-      api.request(`/nights/${segment(id)}/adoption`, {
-        method: 'PUT',
-        body: { card_id: cardId },
-        signal,
-      }),
+    adopt: async (id, cardId, signal) => {
+      const sheep = await api.request<Sheep>(
+          `/nights/${segment(id)}/adoption`,
+          {
+            method: 'PUT',
+            body: { card_id: cardId },
+            signal,
+          },
+        ),
+        decorated = await decoration.withAssets([sheep], signal);
+      return decorated[0];
+    },
     async loadFlock(signal) {
       const sheep: Sheep[] = [];
       let cursor: string | null = null;
@@ -250,7 +266,7 @@ export function createLiveResources(api: ApiSession) {
         sheep.push(...page.items);
         cursor = page.next_cursor;
       } while (cursor);
-      return sheep;
+      return decoration.withAssets(sheep, signal);
     },
     reflection: {
       load: async (id, signal) => {
@@ -304,8 +320,15 @@ export function createLiveResources(api: ApiSession) {
       load: async (signal) =>
         readFortune(await api.request('/fortune/today', { signal })),
     },
-    loadDetail: (id, signal) =>
-      api.request<SheepDetail>(`/sheep/${segment(id)}`, { signal }),
+    loadDetail: async (id, signal) => {
+      const detail = await api.request<SheepDetail>(`/sheep/${segment(id)}`, {
+        signal,
+      });
+      return {
+        ...detail,
+        sheep: (await decoration.withAssets([detail.sheep], signal))[0],
+      };
+    },
   };
   return {
     bootstrap,

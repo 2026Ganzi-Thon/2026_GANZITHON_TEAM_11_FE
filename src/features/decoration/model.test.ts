@@ -63,7 +63,16 @@ it.each([
     },
     stickers,
   },
-  { sheep, stickers: [] },
+  {
+    sheep,
+    stickers: [
+      {
+        id: 'remote',
+        label: '스티커',
+        asset_url: 'http://example.com/sticker.svg',
+      },
+    ],
+  },
   { sheep, stickers: [...stickers.slice(0, 6), stickers[0]] },
 ])('rejects malformed or unrelated editor data %#', (data) =>
   expect(() => readDecoration(data, 'a')).toThrow(),

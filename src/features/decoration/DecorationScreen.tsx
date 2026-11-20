@@ -174,6 +174,9 @@ function Session({
               스티커
             </Text>
             <View style={s.palette}>
+              {flow.data.stickers.length === 0 && (
+                <Text style={s.hint}>아직 준비된 스티커가 없어요.</Text>
+              )}
               {flow.data.stickers.map((st) => (
                 <DragItem
                   key={`${assetVersion}:${st.id}`}
@@ -211,6 +214,7 @@ function Session({
                   >
                     <StickerArt
                       shape={st.asset_key}
+                      uri={st.asset_url}
                       onError={() => errorAsset(st.id)}
                       testID={`catalog-image-${st.id}`}
                     />

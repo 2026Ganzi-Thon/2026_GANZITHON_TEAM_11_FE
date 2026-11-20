@@ -9,10 +9,10 @@ import {
 } from 'react';
 import {
   AccessibilityInfo,
-  Animated,
   ScrollView,
   Pressable,
   StyleSheet,
+  Text,
   View,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -30,6 +30,8 @@ export function WheelColumn({
   format,
   rowHeight,
   disabled,
+  fontFamily = theme.font,
+  textScale = 1,
   onChange,
   wrap = false,
 }: {
@@ -39,6 +41,8 @@ export function WheelColumn({
   format: (value: number) => string;
   rowHeight: number;
   disabled: boolean;
+  fontFamily?: string;
+  textScale?: number;
   onChange: (value: number) => void;
   wrap?: boolean;
 }) {
@@ -51,9 +55,6 @@ export function WheelColumn({
     [values, wrap],
   );
   const list = useRef<ComponentRef<typeof ScrollView>>(null);
-  const [scrollY] = useState(
-    () => new Animated.Value(initialIndex * rowHeight),
-  );
   const [reduced, setReduced] = useState(true);
   const [initialOffset] = useState(() => ({
     x: 0,
@@ -110,7 +111,6 @@ export function WheelColumn({
         y: position.current,
         animated: false,
       });
-      scrollY.setValue(position.current);
     }
     previousLayout.current = layoutKey;
     wasDisabled.current = disabled;
@@ -120,7 +120,6 @@ export function WheelColumn({
     disabled,
     initialIndex,
     rowHeight,
-    scrollY,
     clearSettle,
     ensureWindow,
   ]);
@@ -156,7 +155,6 @@ export function WheelColumn({
         y: position.current,
         animated: false,
       });
-      scrollY.setValue(position.current);
     },
     [
       clearSettle,
@@ -166,7 +164,6 @@ export function WheelColumn({
       wrap,
       count,
       rowHeight,
-      scrollY,
       ensureWindow,
     ],
   );
@@ -195,16 +192,6 @@ export function WheelColumn({
       if (dragging.current) publish(nearest(position.current));
     },
     [nearest, publish, ensureWindow],
-  );
-  const onScroll = useMemo(
-    () =>
-      // Animated.event stores this listener; refs are read only on scroll events.
-      // eslint-disable-next-line react-hooks/refs
-      Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
-        useNativeDriver: true,
-        listener: trackScroll,
-      }),
-    [scrollY, trackScroll],
   );
   const start = Math.max(0, Math.min(data.length - 1, windowCenter) - 12);
   const end = Math.min(data.length, start + 25);
@@ -241,7 +228,7 @@ export function WheelColumn({
       }}
       style={[styles.column, { height: rowHeight * 5 }]}
     >
-      <Animated.ScrollView
+      <ScrollView
         ref={list}
         testID={`wheel-${label}`}
         contentOffset={initialOffset}
@@ -260,7 +247,7 @@ export function WheelColumn({
           dragging.current = !disabled;
           pendingTap.current = null;
         }}
-        onScroll={onScroll}
+        onScroll={trackScroll}
         onScrollEndDrag={() => {
           clearSettle();
           // Native snap can end without momentum. Delay that fallback so a real fling keeps scrolling.
@@ -272,9 +259,8 @@ export function WheelColumn({
         <View style={{ height: start * rowHeight }} />
         {data.slice(start, end).map((item, localIndex) => {
           const at = start + localIndex;
-          const inputRange = [-2, -1, 0, 1, 2].map(
-            (distance) => (at + distance) * rowHeight,
-          );
+          const distance = Math.min(2, Math.abs(at - windowCenter));
+          const fontSize = [18, 15, 13][distance] * textScale;
           return (
             <Pressable
               key={at}
@@ -283,46 +269,25 @@ export function WheelColumn({
               onPress={() => select(at)}
               style={[styles.row, { height: rowHeight }]}
             >
-              <Animated.View
-                style={{
-                  transform: [
-                    {
-                      scale: scrollY.interpolate({
-                        inputRange,
-                        outputRange: [13 / 18, 15 / 18, 1, 15 / 18, 13 / 18],
-                        extrapolate: 'clamp',
-                      }),
-                    },
-                  ],
-                }}
+              <Text
+                style={[
+                  styles.value,
+                  {
+                    fontFamily,
+                    fontSize,
+                    lineHeight: Math.ceil(fontSize * 1.5),
+                    color: ['#EEF0FF', '#C3C9F0', '#8F98D6'][distance],
+                  },
+                  distance === 0 && styles.selected,
+                ]}
               >
-                <Animated.Text
-                  style={[
-                    styles.value,
-                    {
-                      color: scrollY.interpolate({
-                        inputRange,
-                        outputRange: [
-                          '#8F98D6',
-                          '#C3C9F0',
-                          '#EEF0FF',
-                          '#C3C9F0',
-                          '#8F98D6',
-                        ],
-                        extrapolate: 'clamp',
-                      }),
-                    },
-                    at === windowCenter && styles.selected,
-                  ]}
-                >
-                  {format(item)}
-                </Animated.Text>
-              </Animated.View>
+                {format(item)}
+              </Text>
             </Pressable>
           );
         })}
         <View style={{ height: (data.length - end) * rowHeight }} />
-      </Animated.ScrollView>
+      </ScrollView>
     </View>
   );
 }

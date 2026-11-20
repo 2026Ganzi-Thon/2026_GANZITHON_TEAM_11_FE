@@ -33,12 +33,23 @@ export function readDecoration(raw: unknown, id: string): DecorationData {
   const catalog = data?.stickers;
   if (
     !Array.isArray(catalog) ||
-    catalog.length !== 7 ||
+    catalog.length > 200 ||
     !catalog.every(
       (st) =>
-        st && nonempty(st.id) && nonempty(st.label) && shapes.has(st.asset_key),
+        st &&
+        nonempty(st.id) &&
+        nonempty(st.label) &&
+        (st.asset_url
+          ? (() => {
+              try {
+                return new URL(st.asset_url).protocol === 'https:';
+              } catch {
+                return false;
+              }
+            })()
+          : !!st.asset_key && shapes.has(st.asset_key)),
     ) ||
-    new Set(catalog.map((st) => st.id)).size !== 7 ||
+    new Set(catalog.map((st) => st.id)).size !== catalog.length ||
     !s ||
     s.id !== id ||
     !nonempty(s.night_id) ||

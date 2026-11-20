@@ -9,11 +9,12 @@ export interface Placement {
 }
 export type StickerShape =
   'star' | 'circle' | 'triangle' | 'sparkle' | 'diamond';
-/** Local asset projection; asset_url mapping is deferred with HTTP integration. */
+/** Local preview art or an HTTPS asset supplied by the server catalog. */
 export interface Sticker {
   id: string;
   label: string;
-  asset_key: StickerShape;
+  asset_key?: StickerShape;
+  asset_url?: string;
 }
 export interface DecoratedSheep extends Sheep {
   version: number;

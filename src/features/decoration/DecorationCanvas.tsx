@@ -126,6 +126,7 @@ export const DecorationCanvas = forwardRef<
             >
               <StickerArt
                 shape={st.asset_key}
+                uri={st.asset_url}
                 onError={() => onAssetError(st.id)}
               />
             </View>

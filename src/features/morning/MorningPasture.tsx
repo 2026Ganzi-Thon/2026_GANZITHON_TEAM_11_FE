@@ -42,7 +42,7 @@ export function MorningPasture({
   const cellWidth = (Math.min(width, 480) - 32) / 4;
   const travelX = Math.min(
     22 * scale,
-    Math.max(0, (cellWidth - Math.max(48, 27 * fontScale + 20)) / 2 - 4),
+    Math.max(0, (cellWidth - Math.max(48, 36 * fontScale + 20)) / 2 - 4),
   );
   const [gridY, setGridY] = useState<number | null>(null);
   const [cell, setCell] = useState<{ key: string; y: number } | null>(null);
@@ -179,8 +179,8 @@ const styles = StyleSheet.create({
   },
   signLabel: {
     fontFamily: theme.font,
-    fontSize: 11,
-    lineHeight: 17,
+    fontSize: 14,
+    lineHeight: 21,
     fontWeight: '700',
     color: '#5A443B',
   },
@@ -213,8 +213,8 @@ const styles = StyleSheet.create({
   },
   badge: {
     fontFamily: theme.font,
-    fontSize: 9,
-    lineHeight: 14,
+    fontSize: 12,
+    lineHeight: 18,
     paddingHorizontal: 4,
     backgroundColor: '#2F3A9E',
     color: '#FFFFFF',

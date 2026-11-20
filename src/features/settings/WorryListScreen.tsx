@@ -438,8 +438,8 @@ const styles = StyleSheet.create({
   date: {
     fontFamily: theme.font,
     color: '#C3C9F0',
-    fontSize: 11,
-    lineHeight: 16,
+    fontSize: 14,
+    lineHeight: 21,
   },
   reply: {
     flexDirection: 'row',
@@ -450,8 +450,8 @@ const styles = StyleSheet.create({
   replyCaption: {
     fontFamily: theme.font,
     color: '#C3C9F0',
-    fontSize: 10,
-    lineHeight: 15,
+    fontSize: 14,
+    lineHeight: 21,
   },
   replyBadge: {
     backgroundColor: '#FFE7A3',
@@ -461,14 +461,14 @@ const styles = StyleSheet.create({
   replyText: {
     fontFamily: theme.font,
     color: '#1E2063',
-    fontSize: 10,
-    lineHeight: 14,
+    fontSize: 14,
+    lineHeight: 21,
     fontWeight: '700',
   },
   selectAllText: {
     fontFamily: theme.font,
-    fontSize: 12,
-    lineHeight: 20,
+    fontSize: 14,
+    lineHeight: 22,
     color: '#D6A8FF',
     fontWeight: '700',
   },
@@ -505,8 +505,8 @@ const styles = StyleSheet.create({
   removeLabel: {
     fontFamily: theme.font,
     color: '#1E2063',
-    fontSize: 15,
-    lineHeight: 24,
+    fontSize: 18,
+    lineHeight: 27,
     fontWeight: '700',
   },
   content: {
@@ -519,8 +519,8 @@ const styles = StyleSheet.create({
   summary: {
     fontFamily: theme.font,
     color: theme.color.muted,
-    fontSize: 13,
-    lineHeight: 21,
+    fontSize: 16,
+    lineHeight: 24,
     flexShrink: 1,
   },
   record: {
@@ -539,8 +539,8 @@ const styles = StyleSheet.create({
   caption: {
     fontFamily: theme.font,
     color: theme.color.muted,
-    fontSize: 12,
-    lineHeight: 20,
+    fontSize: 14,
+    lineHeight: 22,
   },
   category: {
     flexDirection: 'row',
@@ -554,14 +554,14 @@ const styles = StyleSheet.create({
   categoryText: {
     fontFamily: theme.font,
     color: theme.color.text,
-    fontSize: 10,
-    lineHeight: 14,
+    fontSize: 14,
+    lineHeight: 21,
   },
   body: {
     fontFamily: theme.font,
     color: theme.color.text,
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: 16,
+    lineHeight: 24,
   },
   info: {
     flexDirection: 'row',

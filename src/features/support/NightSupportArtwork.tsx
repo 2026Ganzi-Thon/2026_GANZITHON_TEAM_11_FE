@@ -53,8 +53,8 @@ const styles = StyleSheet.create({
   },
   message: {
     fontFamily: theme.font,
-    fontSize: 14,
-    lineHeight: 23,
+    fontSize: 16,
+    lineHeight: 25,
     color: theme.color.muted,
   },
 });

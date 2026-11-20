@@ -43,8 +43,8 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: theme.font,
     fontWeight: '700',
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 18,
+    lineHeight: 27,
     includeFontPadding: false,
     color: theme.color.background,
     textAlign: 'center',

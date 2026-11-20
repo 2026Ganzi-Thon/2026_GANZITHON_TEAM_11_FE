@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
   text: {
     fontFamily: theme.font,
     color: theme.color.text,
-    fontSize: 15,
-    lineHeight: 24,
+    fontSize: 18,
+    lineHeight: 27,
   },
 });

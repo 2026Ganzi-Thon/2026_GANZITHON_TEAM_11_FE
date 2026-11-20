@@ -22,7 +22,7 @@ export function DateWheel({
   // Both entry screens use NightScreen (max 480) with 20px horizontal gutters.
   const scale = (Math.min(width, 480) - 40) / 318;
   const rowHeight = PixelRatio.roundToNearestPixel(
-    Math.max(34, Math.ceil(28 * fontScale)) * scale,
+    Math.max(34, Math.ceil(32 * fontScale)) * scale,
   );
   const years = useMemo(
     () => Array.from({ length: todayYear }, (_, i) => i + 1),

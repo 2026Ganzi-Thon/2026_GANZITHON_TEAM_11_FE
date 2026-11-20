@@ -97,8 +97,8 @@ const s = StyleSheet.create({
   },
   body: {
     fontFamily: theme.font,
-    fontSize: 14,
-    lineHeight: 21,
+    fontSize: 16,
+    lineHeight: 24,
     color: theme.color.muted,
     textAlign: 'center',
     flexShrink: 1,

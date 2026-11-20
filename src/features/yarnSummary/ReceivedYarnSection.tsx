@@ -220,16 +220,16 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: theme.font,
     color: '#242565',
-    fontSize: 22,
-    lineHeight: 31,
+    fontSize: 24,
+    lineHeight: 36,
     fontWeight: '700',
     textAlign: 'center',
   },
   subtitle: {
     fontFamily: theme.font,
     color: '#4A5290',
-    fontSize: 14,
-    lineHeight: 21,
+    fontSize: 16,
+    lineHeight: 24,
     textAlign: 'center',
   },
   summary: {
@@ -244,14 +244,14 @@ const styles = StyleSheet.create({
   body: {
     fontFamily: theme.font,
     color: '#242565',
-    fontSize: 14,
-    lineHeight: 21,
+    fontSize: 16,
+    lineHeight: 24,
   },
   caption: {
     fontFamily: theme.font,
     color: '#4A5290',
-    fontSize: 12,
-    lineHeight: 20,
+    fontSize: 14,
+    lineHeight: 22,
   },
   close: {
     position: 'absolute',
@@ -272,14 +272,14 @@ const styles = StyleSheet.create({
   homeText: {
     fontFamily: theme.font,
     color: '#2F3A9E',
-    fontSize: 14,
-    lineHeight: 22,
+    fontSize: 16,
+    lineHeight: 24,
   },
   feedback: { gap: 12 },
   error: {
     fontFamily: theme.font,
     color: '#8D254A',
-    fontSize: 14,
-    lineHeight: 22,
+    fontSize: 16,
+    lineHeight: 24,
   },
 });

@@ -38,16 +38,16 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: theme.font,
     color: theme.color.muted,
-    fontSize: 14,
-    lineHeight: 21,
+    fontSize: 16,
+    lineHeight: 24,
     fontWeight: '700',
   },
   input: {
     fontFamily: theme.font,
     color: theme.color.text,
-    fontSize: 14,
+    fontSize: 16,
     minHeight: 48,
-    lineHeight: 21,
+    lineHeight: 24,
     includeFontPadding: false,
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
   error: {
     fontFamily: theme.font,
     color: theme.color.error,
-    fontSize: 12,
-    lineHeight: 18,
+    fontSize: 14,
+    lineHeight: 21,
   },
 });

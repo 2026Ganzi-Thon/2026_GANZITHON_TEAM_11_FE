@@ -140,8 +140,8 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: theme.font,
     color: '#EEF0FF',
-    fontSize: 18,
-    lineHeight: 26.1,
+    fontSize: 20,
+    lineHeight: 30,
     fontWeight: '700',
     textAlign: 'center',
   },
@@ -159,8 +159,8 @@ const styles = StyleSheet.create({
   },
   action: {
     fontFamily: theme.font,
-    fontSize: 15,
-    lineHeight: 24,
+    fontSize: 18,
+    lineHeight: 27,
     fontWeight: '700',
     textAlign: 'center',
   },
@@ -169,8 +169,8 @@ const styles = StyleSheet.create({
   status: { gap: 8 },
   statusText: {
     fontFamily: theme.font,
-    fontSize: 13,
-    lineHeight: 21,
+    fontSize: 16,
+    lineHeight: 24,
     color: '#EEF0FF',
     textAlign: 'center',
   },

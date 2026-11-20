@@ -239,8 +239,8 @@ const styles = StyleSheet.create({
   backText: { fontSize: 24, color: theme.color.text },
   preview: {
     fontFamily: theme.font,
-    fontSize: 11,
-    lineHeight: 17,
+    fontSize: 14,
+    lineHeight: 21,
     includeFontPadding: false,
     color: theme.color.muted,
     flexShrink: 1,
@@ -261,8 +261,8 @@ const styles = StyleSheet.create({
   subtitle: {
     fontFamily: theme.font,
     color: theme.color.muted,
-    fontSize: 14,
-    lineHeight: 21,
+    fontSize: 16,
+    lineHeight: 24,
     marginTop: 6,
   },
   form: { gap: 24, marginTop: 28 },
@@ -276,8 +276,8 @@ const styles = StyleSheet.create({
   },
   resetText: {
     fontFamily: theme.font,
-    fontSize: 12,
-    lineHeight: 18,
+    fontSize: 14,
+    lineHeight: 21,
     color: theme.color.muted,
   },
   icon: { width: 14, height: 14 },

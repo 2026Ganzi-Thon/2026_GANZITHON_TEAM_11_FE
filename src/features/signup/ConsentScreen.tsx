@@ -101,7 +101,7 @@ export function ConsentScreen({
           <Text
             style={[
               s.label,
-              id === 'all' && { fontWeight: '700', fontSize: 16 },
+              id === 'all' && { fontWeight: '700', fontSize: 18 },
             ]}
           >
             {id === 'all'
@@ -164,7 +164,7 @@ export function ConsentScreen({
           </View>
         )}
         <View style={s.notice}>
-          <Text style={[common.caption, { fontSize: 12, lineHeight: 18 }]}>
+          <Text style={[common.caption, { fontSize: 14, lineHeight: 21 }]}>
             현재 체험판은 고민 글을 외부 AI로 전송하지 않아요. 분류·추천·운세는
             준비된 예시예요. 실제 개인정보는 입력하지 말아 주세요.
           </Text>
@@ -196,8 +196,8 @@ const s = StyleSheet.create({
   },
   label: {
     fontFamily: theme.font,
-    fontSize: 14,
-    lineHeight: 21,
+    fontSize: 16,
+    lineHeight: 24,
     color: theme.color.text,
     flex: 1,
   },
@@ -209,8 +209,8 @@ const s = StyleSheet.create({
   },
   viewText: {
     fontFamily: theme.font,
-    fontSize: 12,
-    lineHeight: 18,
+    fontSize: 14,
+    lineHeight: 21,
     color: theme.color.muted,
   },
   all: {

@@ -122,8 +122,8 @@ const styles = StyleSheet.create({
   sign: {
     fontFamily: theme.font,
     color: theme.color.text,
-    fontSize: 22,
-    lineHeight: 30,
+    fontSize: 24,
+    lineHeight: 36,
     includeFontPadding: false,
   },
   count: {
@@ -152,15 +152,15 @@ const styles = StyleSheet.create({
   selected: { backgroundColor: '#3C47AD', borderColor: theme.color.primary },
   presetLabel: {
     fontFamily: theme.font,
-    fontSize: 13,
-    lineHeight: 20,
+    fontSize: 16,
+    lineHeight: 24,
     includeFontPadding: false,
     color: theme.color.text,
   },
   help: {
     fontFamily: theme.font,
-    fontSize: 12,
-    lineHeight: 18,
+    fontSize: 14,
+    lineHeight: 21,
     color: theme.color.muted,
     textAlign: 'center',
     marginTop: 10,

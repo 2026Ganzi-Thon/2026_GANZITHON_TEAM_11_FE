@@ -193,8 +193,8 @@ const styles = StyleSheet.create({
   },
   description: {
     color: '#D5D5F4',
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 18,
+    lineHeight: 27,
     textAlign: 'center',
   },
 });

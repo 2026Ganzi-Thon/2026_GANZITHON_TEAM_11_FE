@@ -134,8 +134,8 @@ const styles = StyleSheet.create({
   dot: { width: 6, height: 6 },
   name: {
     fontFamily: theme.font,
-    fontSize: 12,
-    lineHeight: 15,
+    fontSize: 14,
+    lineHeight: 21,
     includeFontPadding: false,
     fontWeight: '700',
     color: theme.color.background,

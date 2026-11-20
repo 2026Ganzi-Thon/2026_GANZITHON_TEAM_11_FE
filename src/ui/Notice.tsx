@@ -31,14 +31,14 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: theme.font,
-    fontSize: 14,
-    lineHeight: 21,
+    fontSize: 16,
+    lineHeight: 24,
     color: theme.color.text,
   },
   description: {
     fontFamily: theme.font,
-    fontSize: 12,
-    lineHeight: 18,
+    fontSize: 14,
+    lineHeight: 21,
     color: theme.color.muted,
   },
   error: { color: theme.color.error },

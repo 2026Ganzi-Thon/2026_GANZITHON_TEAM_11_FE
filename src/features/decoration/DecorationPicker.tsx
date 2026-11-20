@@ -112,8 +112,8 @@ const s = StyleSheet.create({
   content: { gap: 30 },
   toast: {
     fontFamily: theme.font,
-    fontSize: 14,
-    lineHeight: 22,
+    fontSize: 16,
+    lineHeight: 24,
     fontWeight: '700',
     color: '#2F3A9E',
     backgroundColor: '#FFF4D6',
@@ -141,8 +141,8 @@ const s = StyleSheet.create({
   },
   label: {
     fontFamily: theme.font,
-    fontSize: 12,
-    lineHeight: 18,
+    fontSize: 14,
+    lineHeight: 21,
     color: '#242565',
     backgroundColor: '#F4F5FF',
     paddingHorizontal: 4,

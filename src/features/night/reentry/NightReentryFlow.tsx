@@ -198,8 +198,8 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: theme.font,
     color: theme.color.text,
-    fontSize: 20,
-    lineHeight: 30,
+    fontSize: 24,
+    lineHeight: 36,
     fontWeight: '700',
   },
   content: { padding: 20, paddingBottom: 40, gap: 20, flexGrow: 1 },
@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
   message: {
     fontFamily: theme.font,
     color: theme.color.text,
-    fontSize: 16,
-    lineHeight: 26,
+    fontSize: 18,
+    lineHeight: 28,
   },
 });

@@ -106,14 +106,14 @@ const s = StyleSheet.create({
   panel: { backgroundColor: theme.color.panel, padding: 16, gap: 12 },
   body: {
     fontFamily: theme.font,
-    fontSize: 14,
-    lineHeight: 23,
+    fontSize: 16,
+    lineHeight: 25,
     color: theme.color.text,
   },
   caption: {
     fontFamily: theme.font,
-    fontSize: 12,
-    lineHeight: 20,
+    fontSize: 14,
+    lineHeight: 22,
     color: theme.color.muted,
   },
 });

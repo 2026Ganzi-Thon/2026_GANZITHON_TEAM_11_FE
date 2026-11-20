@@ -269,8 +269,8 @@ const styles = StyleSheet.create({
   arrow: { fontSize: 24, color: theme.color.text },
   headerTitle: {
     fontFamily: theme.font,
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 18,
+    lineHeight: 27,
     color: theme.color.text,
     fontWeight: '700',
     flex: 1,
@@ -285,21 +285,21 @@ const styles = StyleSheet.create({
   heading: {
     fontFamily: theme.font,
     color: theme.color.text,
-    fontSize: 22,
-    lineHeight: 32,
+    fontSize: 24,
+    lineHeight: 36,
     fontWeight: '700',
   },
   body: {
     fontFamily: theme.font,
     color: theme.color.text,
-    fontSize: 14,
-    lineHeight: 22,
+    fontSize: 16,
+    lineHeight: 24,
   },
   caption: {
     fontFamily: theme.font,
     color: theme.color.muted,
-    fontSize: 12,
-    lineHeight: 20,
+    fontSize: 14,
+    lineHeight: 22,
   },
   panel: { backgroundColor: '#1E2063', padding: 16, gap: 14, borderRadius: 4 },
   metadata: {
@@ -311,8 +311,8 @@ const styles = StyleSheet.create({
   error: {
     fontFamily: theme.font,
     color: theme.color.error,
-    fontSize: 14,
-    lineHeight: 22,
+    fontSize: 16,
+    lineHeight: 24,
   },
   bubbleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   bubble: {

@@ -62,8 +62,8 @@ export function ResetArtwork() {
             {
               left: left * scale,
               top: top * scale,
-              fontSize: 11 * scale,
-              lineHeight: 11.117 * scale,
+              fontSize: 14 * scale,
+              lineHeight: 21 * scale,
               letterSpacing: 1.21 * scale,
               width: 31 * scale,
               height: 18 * scale,

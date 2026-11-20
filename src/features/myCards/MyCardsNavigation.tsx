@@ -112,8 +112,8 @@ const styles = StyleSheet.create({
   selectedIcon: { backgroundColor: theme.color.primary },
   label: {
     fontFamily: theme.font,
-    fontSize: 11,
-    lineHeight: 18,
+    fontSize: 14,
+    lineHeight: 21,
     color: theme.color.muted,
     textAlign: 'center',
     flexShrink: 1,

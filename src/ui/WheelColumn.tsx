@@ -260,7 +260,7 @@ export function WheelColumn({
         {data.slice(start, end).map((item, localIndex) => {
           const at = start + localIndex;
           const distance = Math.min(2, Math.abs(at - windowCenter));
-          const fontSize = [18, 15, 13][distance] * textScale;
+          const fontSize = [20, 18, 16][distance] * textScale;
           return (
             <Pressable
               key={at}
@@ -305,9 +305,9 @@ const styles = StyleSheet.create({
   value: {
     fontFamily: theme.font,
     color: theme.color.text,
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '400',
-    lineHeight: 26,
+    lineHeight: 30,
     textAlign: 'center',
   },
 });

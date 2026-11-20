@@ -79,8 +79,8 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: theme.font,
     color: '#FFFFFF',
-    fontSize: 15,
-    lineHeight: 24,
+    fontSize: 18,
+    lineHeight: 27,
     fontWeight: '700',
     textAlign: 'center',
     flexShrink: 1,
@@ -89,8 +89,8 @@ const styles = StyleSheet.create({
   error: {
     fontFamily: theme.font,
     color: '#2F3A9E',
-    fontSize: 14,
-    lineHeight: 22,
+    fontSize: 16,
+    lineHeight: 24,
   },
   retry: { paddingVertical: 8, minHeight: 44, justifyContent: 'center' },
 });

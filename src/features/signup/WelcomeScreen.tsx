@@ -120,8 +120,8 @@ const s = StyleSheet.create({
   copy: { gap: 0 },
   subtitle: {
     fontFamily: theme.font,
-    fontSize: 14,
-    lineHeight: 21,
+    fontSize: 16,
+    lineHeight: 24,
     fontWeight: '700',
     color: theme.color.muted,
     textAlign: 'center',
@@ -140,8 +140,8 @@ const s = StyleSheet.create({
   secondaryText: {
     fontFamily: theme.font,
     color: theme.color.text,
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 18,
+    lineHeight: 27,
     fontWeight: '700',
     textAlign: 'center',
   },

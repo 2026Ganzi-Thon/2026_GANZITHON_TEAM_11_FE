@@ -10,7 +10,6 @@
   },
   "scripts": {
     "start": "expo start --dev-client",
-    "eas-build-post-install": "node scripts/fetch-fonts.mjs",
     "android": "expo run:android",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings=0",

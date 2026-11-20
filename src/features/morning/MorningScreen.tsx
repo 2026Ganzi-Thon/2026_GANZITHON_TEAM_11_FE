@@ -300,6 +300,20 @@ function MorningSession({
               onLayout={onPastureLayout}
             />
             <MorningPasture
+              paused={
+                homeBlocked ||
+                busy ||
+                failure === 'flock' ||
+                decorationPicking ||
+                decorationId !== null ||
+                cardsOpen ||
+                settingsOpen ||
+                detailId !== null ||
+                songsOpen ||
+                reflectionOpen ||
+                deferredWritingOpen ||
+                fortuneOpen
+              }
               layoutKey={layoutKey}
               arrival={
                 flow.newSheepInFlock ? { ready, reducedMotion } : undefined

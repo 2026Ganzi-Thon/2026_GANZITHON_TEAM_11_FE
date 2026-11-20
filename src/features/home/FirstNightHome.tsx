@@ -179,16 +179,17 @@ export function FirstNightHome({
               <View
                 style={{
                   marginLeft: fontScale > 1.3 ? 0 : 4 * scale,
-                  width: 153 * bubbleScale,
+                  width: Math.min(220 * bubbleScale, Math.min(width, 480) - 40),
                   minHeight: 36 * bubbleScale,
                   paddingHorizontal: 12 * bubbleScale,
-                  paddingVertical: 8 * bubbleScale,
+                  paddingTop: 8 * bubbleScale,
+                  paddingBottom: 14 * bubbleScale,
                   justifyContent: 'center',
                 }}
               >
                 <Image
                   source={require('../../../assets/images/first-night-home/guide-bubble.svg')}
-                  contentFit="contain"
+                  contentFit="fill"
                   style={StyleSheet.absoluteFill}
                   accessible={false}
                 />

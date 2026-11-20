@@ -77,8 +77,8 @@ const styles = StyleSheet.create({
   text: {
     fontFamily: theme.font,
     color: theme.color.text,
-    fontSize: 13,
-    lineHeight: 20,
+    fontSize: 16,
+    lineHeight: 24,
     includeFontPadding: false,
   },
 });

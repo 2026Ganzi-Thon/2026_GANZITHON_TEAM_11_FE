@@ -215,12 +215,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  arrow: { fontSize: 20, color: theme.color.text },
+  arrow: { fontSize: 24, color: theme.color.text },
   headerTitle: {
     fontFamily: theme.font,
     color: theme.color.text,
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 18,
+    lineHeight: 27,
     fontWeight: '700',
   },
   content: {
@@ -232,8 +232,8 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: theme.font,
-    fontSize: 22,
-    lineHeight: 31,
+    fontSize: 24,
+    lineHeight: 36,
     fontWeight: '700',
     color: theme.color.text,
   },
@@ -248,8 +248,8 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: theme.font,
     color: theme.color.text,
-    fontSize: 13,
-    lineHeight: 20,
+    fontSize: 16,
+    lineHeight: 24,
   },
   kind: {
     minHeight: 48,
@@ -262,8 +262,8 @@ const styles = StyleSheet.create({
   kindLabel: {
     fontFamily: theme.font,
     color: theme.color.text,
-    fontSize: 15,
-    lineHeight: 24,
+    fontSize: 18,
+    lineHeight: 27,
   },
   selected: {
     backgroundColor: theme.color.primary,

@@ -22,7 +22,7 @@ export function DateWheel({
   // Both entry screens use NightScreen (max 480) with 20px horizontal gutters.
   const scale = (Math.min(width, 480) - 40) / 318;
   const rowHeight = PixelRatio.roundToNearestPixel(
-    Math.max(34, Math.ceil(28 * fontScale)) * scale,
+    Math.max(34, Math.ceil(32 * fontScale)) * scale,
   );
   const years = useMemo(
     () => Array.from({ length: todayYear }, (_, i) => i + 1),
@@ -53,7 +53,6 @@ export function DateWheel({
         ]}
       />
       <WheelColumn
-        fontFamily="NotoSansKR"
         textScale={scale}
         label="출생 연도"
         value={value.year}
@@ -64,8 +63,8 @@ export function DateWheel({
         onChange={(v) => onChange('year', v)}
       />
       <WheelColumn
-        fontFamily="NotoSansKR"
         textScale={scale}
+        wrap
         label="출생 월"
         value={value.month}
         values={Array.from({ length: 12 }, (_, i) => i + 1)}
@@ -75,7 +74,6 @@ export function DateWheel({
         onChange={(v) => onChange('month', v)}
       />
       <WheelColumn
-        fontFamily="NotoSansKR"
         textScale={scale}
         label="출생 일"
         value={value.day}

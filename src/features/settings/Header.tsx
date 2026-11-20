@@ -38,8 +38,8 @@ const styles = StyleSheet.create({
   title: {
     flex: 1,
     fontFamily: theme.font,
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 18,
+    lineHeight: 27,
     fontWeight: '700',
     color: theme.color.text,
   },

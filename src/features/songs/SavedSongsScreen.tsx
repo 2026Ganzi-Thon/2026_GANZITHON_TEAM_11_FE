@@ -281,8 +281,8 @@ const styles = StyleSheet.create({
   },
   heading: {
     fontFamily: theme.font,
-    fontSize: 18,
-    lineHeight: 28,
+    fontSize: 20,
+    lineHeight: 30,
     fontWeight: '700',
     color: '#242565',
   },
@@ -300,21 +300,21 @@ const styles = StyleSheet.create({
   info: { flex: 1, gap: 6 },
   caption: {
     fontFamily: theme.font,
-    fontSize: 10,
-    lineHeight: 17,
+    fontSize: 14,
+    lineHeight: 21,
     color: '#5B6BC8',
   },
   title: {
     fontFamily: theme.font,
-    fontSize: 14,
-    lineHeight: 23,
+    fontSize: 16,
+    lineHeight: 25,
     fontWeight: '700',
     color: '#2F3A9E',
   },
   text: {
     fontFamily: theme.font,
-    fontSize: 13,
-    lineHeight: 22,
+    fontSize: 16,
+    lineHeight: 25,
     color: '#2F3A9E',
   },
   action: {

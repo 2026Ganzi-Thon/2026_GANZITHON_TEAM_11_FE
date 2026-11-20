@@ -90,8 +90,8 @@ const styles = StyleSheet.create({
   content: { flexGrow: 1, justifyContent: 'center', padding: 20, gap: 20 },
   message: {
     fontFamily: theme.font,
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 18,
+    lineHeight: 27,
     color: theme.color.text,
     textAlign: 'center',
   },

@@ -69,14 +69,14 @@ const styles = StyleSheet.create({
   label: {
     flexShrink: 1,
     fontFamily: theme.font,
-    fontSize: 15,
-    lineHeight: 24,
+    fontSize: 18,
+    lineHeight: 27,
     fontWeight: '700',
     color: theme.color.text,
     textAlign: 'center',
   },
   rowLabel: { flex: 1, fontWeight: '400', textAlign: 'left' },
   phone: { width: 18, height: 18 },
-  link: { fontSize: 18, color: theme.color.text },
+  link: { fontSize: 20, color: theme.color.text },
   dim: { opacity: 0.65 },
 });

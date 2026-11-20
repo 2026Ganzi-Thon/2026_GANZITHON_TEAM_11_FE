@@ -32,14 +32,14 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: theme.font,
     color: theme.color.text,
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 18,
+    lineHeight: 27,
     fontWeight: '700',
   },
   text: {
     fontFamily: theme.font,
     color: theme.color.text,
-    fontSize: 14,
-    lineHeight: 22,
+    fontSize: 16,
+    lineHeight: 24,
   },
 });

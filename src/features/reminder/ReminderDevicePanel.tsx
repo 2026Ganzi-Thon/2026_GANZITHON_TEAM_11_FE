@@ -92,13 +92,13 @@ const styles = StyleSheet.create({
   body: {
     fontFamily: theme.font,
     color: theme.color.text,
-    fontSize: 15,
-    lineHeight: 24,
+    fontSize: 18,
+    lineHeight: 27,
   },
   caption: {
     fontFamily: theme.font,
     color: theme.color.muted,
-    fontSize: 13,
-    lineHeight: 22,
+    fontSize: 16,
+    lineHeight: 25,
   },
 });

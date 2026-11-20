@@ -55,21 +55,21 @@ const styles = StyleSheet.create({
   },
   label: {
     fontFamily: theme.font,
-    fontSize: 11,
-    lineHeight: 16,
+    fontSize: 14,
+    lineHeight: 21,
     color: '#74584D',
   },
   title: {
     fontFamily: theme.font,
     fontWeight: '700',
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 18,
+    lineHeight: 27,
     color: theme.color.background,
   },
   meta: {
     fontFamily: theme.font,
-    fontSize: 12,
-    lineHeight: 18,
+    fontSize: 14,
+    lineHeight: 21,
     color: '#4A5290',
   },
 });

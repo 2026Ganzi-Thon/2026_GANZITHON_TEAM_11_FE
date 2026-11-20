@@ -79,21 +79,21 @@ const s = StyleSheet.create({
   },
   title: {
     fontFamily: theme.font,
-    fontSize: 20,
-    lineHeight: 30,
+    fontSize: 24,
+    lineHeight: 36,
     fontWeight: '700',
     color: theme.color.text,
   },
   body: {
     fontFamily: theme.font,
-    fontSize: 14,
-    lineHeight: 24,
+    fontSize: 16,
+    lineHeight: 26,
     color: theme.color.text,
   },
   caption: {
     fontFamily: theme.font,
-    fontSize: 12,
-    lineHeight: 20,
+    fontSize: 14,
+    lineHeight: 22,
     color: theme.color.muted,
   },
 });

@@ -14,7 +14,7 @@ export function TimeWheel({
   onChange: (part: keyof TimeParts, value: number) => void;
 }) {
   const { fontScale } = useWindowDimensions();
-  const rowHeight = Math.max(34, Math.ceil(28 * fontScale));
+  const rowHeight = Math.max(34, Math.ceil(32 * fontScale));
   return (
     <View
       style={[

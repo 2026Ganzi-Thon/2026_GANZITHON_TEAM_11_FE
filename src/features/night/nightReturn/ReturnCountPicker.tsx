@@ -72,8 +72,8 @@ const styles = StyleSheet.create({
   content: { gap: 10 },
   title: {
     fontFamily: theme.font,
-    fontSize: 13,
-    lineHeight: 20,
+    fontSize: 16,
+    lineHeight: 24,
     fontWeight: '700',
     color: theme.color.text,
   },
@@ -90,8 +90,8 @@ const styles = StyleSheet.create({
   fill: { position: 'absolute', top: 2, left: 2, right: 2, bottom: 2 },
   label: {
     fontFamily: theme.font,
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 18,
+    lineHeight: 27,
     textAlign: 'center',
     color: theme.color.muted,
   },

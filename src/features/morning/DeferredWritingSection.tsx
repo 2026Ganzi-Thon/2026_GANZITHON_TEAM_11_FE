@@ -170,15 +170,15 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: theme.font,
     color: '#2F3A9E',
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: 16,
+    lineHeight: 24,
     fontWeight: '700',
   },
   subtitle: {
     fontFamily: theme.font,
     color: '#4A5290',
-    fontSize: 11,
-    lineHeight: 17,
+    fontSize: 14,
+    lineHeight: 21,
   },
   writeTouch: {
     minWidth: 48,
@@ -194,8 +194,8 @@ const styles = StyleSheet.create({
   writeLabel: {
     fontFamily: theme.font,
     color: '#FFFFFF',
-    fontSize: 12,
-    lineHeight: 18,
+    fontSize: 14,
+    lineHeight: 21,
     fontWeight: '700',
   },
   receipt: { backgroundColor: '#FFF4D6', padding: 16, gap: 12 },

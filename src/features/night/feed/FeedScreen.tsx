@@ -313,14 +313,7 @@ export function FeedScreen({
             : undefined
       }
     >
-      <View
-        style={[
-          styles.topbar,
-          (isEntrust || isStopOffer) &&
-            fontScale > 1.3 &&
-            styles.expandedTopbar,
-        ]}
-      >
+      <View style={[styles.topbar, fontScale > 1.3 && styles.expandedTopbar]}>
         <View>
           <Text
             accessibilityLabel="양 세기 진행"
@@ -546,14 +539,6 @@ export function FeedScreen({
                   />
                 </View>
               )}
-              {reactionsVisible && fluffState?.pending && (
-                <View style={styles.yarnStatus}>
-                  <Text style={styles.message}>
-                    다른 양은 볼 수 있어요. 밤 마무리는 솜털 확인 후 가능하며,
-                    뒤로 나가면 남은 요청을 취소해요.
-                  </Text>
-                </View>
-              )}
               {reactionsVisible && yarnState?.error === 'failed' && (
                 <View
                   style={styles.yarnStatus}
@@ -581,17 +566,6 @@ export function FeedScreen({
                       yarnFlow.retry(card);
                     }}
                   />
-                </View>
-              )}
-              {reactionsVisible && yarnState?.pending && (
-                <View style={styles.yarnStatus}>
-                  <Text style={styles.message} accessibilityLiveRegion="polite">
-                    {yarnState.target
-                      ? '털실을 보내는 중이에요.'
-                      : '털실을 거두는 중이에요.'}{' '}
-                    다른 양을 보는 동안에도 처리를 계속해요. 피드를 나가거나
-                    마치면 남은 요청을 취소해요.
-                  </Text>
                 </View>
               )}
               {songs &&
@@ -713,8 +687,8 @@ const styles = StyleSheet.create({
   fluffMessage: {
     fontFamily: theme.font,
     color: theme.color.text,
-    fontSize: 11,
-    lineHeight: 18,
+    fontSize: 14,
+    lineHeight: 21,
   },
   feedViewport: { flex: 1 },
   feedScroll: { flex: 1 },
@@ -746,21 +720,21 @@ const styles = StyleSheet.create({
   progress: {
     fontFamily: theme.font,
     fontWeight: '700',
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 18,
+    lineHeight: 27,
     color: theme.color.text,
   },
   preview: {
     fontFamily: theme.font,
-    fontSize: 10,
-    lineHeight: 16,
+    fontSize: 14,
+    lineHeight: 21,
     color: theme.color.muted,
   },
   exit: { minHeight: 48, justifyContent: 'center', paddingLeft: 12 },
   exitLabel: {
     fontFamily: theme.font,
-    fontSize: 12,
-    lineHeight: 18,
+    fontSize: 14,
+    lineHeight: 21,
     color: theme.color.muted,
   },
   content: {
@@ -772,8 +746,8 @@ const styles = StyleSheet.create({
   },
   hint: {
     fontFamily: theme.font,
-    fontSize: 10,
-    lineHeight: 16,
+    fontSize: 14,
+    lineHeight: 21,
     color: theme.color.muted,
     marginBottom: 14,
   },
@@ -797,8 +771,8 @@ const styles = StyleSheet.create({
   previousLabel: {
     fontFamily: theme.font,
     fontWeight: '700',
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 18,
+    lineHeight: 27,
     includeFontPadding: false,
     color: theme.color.text,
   },
@@ -807,8 +781,8 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', padding: 20, gap: 20 },
   message: {
     fontFamily: theme.font,
-    fontSize: 15,
-    lineHeight: 24,
+    fontSize: 18,
+    lineHeight: 27,
     color: theme.color.text,
     textAlign: 'center',
   },

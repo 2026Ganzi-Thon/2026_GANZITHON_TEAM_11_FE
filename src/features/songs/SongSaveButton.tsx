@@ -134,8 +134,8 @@ const styles = StyleSheet.create({
   },
   text: {
     fontFamily: theme.font,
-    fontSize: 13,
-    lineHeight: 20,
+    fontSize: 16,
+    lineHeight: 24,
     color: '#2F3A9E',
   },
 });

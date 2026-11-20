@@ -49,14 +49,14 @@ export function FluffControl({
   );
 }
 const styles = StyleSheet.create({
-  button: { width: 70, minHeight: 58, alignItems: 'center' },
-  expanded: { width: 132 },
+  button: { width: 86, minHeight: 66, alignItems: 'center' },
+  expanded: { width: 140 },
   icon: { width: 44, height: 44 },
   label: {
     fontFamily: theme.font,
     color: '#4A5290',
-    fontSize: 10,
-    lineHeight: 14,
+    fontSize: 14,
+    lineHeight: 21,
     includeFontPadding: false,
     textAlign: 'center',
   },

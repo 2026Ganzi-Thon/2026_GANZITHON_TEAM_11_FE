@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
     minHeight: 52,
     paddingRight: 20,
   },
@@ -369,7 +369,7 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   answer: { fontWeight: '700', fontSize: 16, lineHeight: 24 },
-  spacer: { flexGrow: 1, minHeight: 40 },
+  spacer: { flexGrow: 1, minHeight: 100 },
   writeButton: {
     minHeight: 52,
     padding: 14,

@@ -324,9 +324,7 @@ export function FeedScreen({
               ? `${position.position} / ${cards.length}`
               : '양 세는 밤'}
           </Text>
-          <Text style={styles.preview}>
-            {live ? '서버 연결' : '미리보기 · 저장 안 함'}
-          </Text>
+          {!live && <Text style={styles.preview}>미리보기 · 저장 안 함</Text>}
         </View>
         <Pressable
           accessibilityRole="button"
@@ -452,11 +450,13 @@ export function FeedScreen({
                     direction={direction}
                     onMove={move}
                   />
-                  <Text style={styles.hint}>
-                    {fontScale > 1.3 || cardScroll?.scrollable
-                      ? '본문은 스크롤하고 양 위에서 넘겨요'
-                      : '카드나 양을 위·아래로 넘겨요'}
-                  </Text>
+                  {!live && (
+                    <Text style={styles.hint}>
+                      {fontScale > 1.3 || cardScroll?.scrollable
+                        ? '본문은 스크롤하고 양 위에서 넘겨요'
+                        : '카드나 양을 위·아래로 넘겨요'}
+                    </Text>
+                  )}
                   <CardSwipeArea
                     onMove={move}
                     canMove={canSwipeCard}

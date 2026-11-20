@@ -244,7 +244,9 @@ it('continues a second night on the same registered account and deletes one date
     await press('어젯밤 돌아보기');
     await tick();
     await fireEvent.press(
-      screen.getByRole('radio', { name: day ? '더 커졌어요' : '작아졌어요' }),
+      screen.getByRole('radio', {
+        name: day ? '다른 고민이 생겼어요' : '작아졌어요',
+      }),
     );
     await press('회고 저장하기');
     await tick();

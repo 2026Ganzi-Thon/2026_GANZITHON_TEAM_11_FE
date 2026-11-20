@@ -15,6 +15,7 @@ import {
 import { Button } from '../../ui/Button';
 import { NightScreen } from '../../ui/NightScreen';
 import { theme } from '../../ui/theme';
+import { TextCardArtwork } from '../cards/TextCardArtwork';
 import { SupportContent } from '../support/SupportContent';
 import { PREVIEW_TEXT_CARD_LIMIT, type TextCardCategory } from '../cards/types';
 import { categories } from '../night/categories';
@@ -84,7 +85,9 @@ export function ResubmitTextCardScreen({
           >
             {step === 'complete' ? (
               <>
-                <View style={styles.panel}>
+                <View style={styles.spacer} />
+                <TextCardArtwork />
+                <View style={styles.completion}>
                   <Text style={styles.resultTitle} accessibilityRole="header">
                     다시 검수를 맡겼어요
                   </Text>
@@ -95,6 +98,7 @@ export function ResubmitTextCardScreen({
                     같은 카드의 글을 수정했어요. 새 카드를 만들지 않았어요.
                   </Text>
                 </View>
+                <View style={styles.spacer} />
                 <Button label="내 카드로 돌아가기" onPress={onRefresh} />
               </>
             ) : step === 'support' ? (
@@ -210,7 +214,7 @@ export function ResubmitTextCardScreen({
                     </View>
                   )}
                 </View>
-                <View style={[styles.panel, styles.info]}>
+                <View style={styles.info}>
                   <Image
                     source={require('../../../assets/images/resubmit-text/info.svg')}
                     style={styles.icon}
@@ -221,6 +225,7 @@ export function ResubmitTextCardScreen({
                     고친 뒤 다시 검수해요. 수정은 반려된 카드만 가능해요.
                   </Text>
                 </View>
+                <View style={styles.spacer} />
                 {error && (
                   <View
                     style={styles.panel}
@@ -279,9 +284,6 @@ export function ResubmitTextCardScreen({
                 />
               </>
             )}
-            <Text style={[styles.caption, styles.panel]}>
-              검수 전에는 다른 사람에게 보여 주지 않아요.
-            </Text>
           </ScrollView>
         </KeyboardAvoidingView>
       </NightScreen>
@@ -290,6 +292,8 @@ export function ResubmitTextCardScreen({
 }
 const styles = StyleSheet.create({
   fill: { flex: 1 },
+  spacer: { flexGrow: 1, minHeight: 16 },
+  completion: { alignItems: 'center', gap: 12 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -312,7 +316,13 @@ const styles = StyleSheet.create({
     color: theme.color.text,
     flexShrink: 1,
   },
-  content: { flexGrow: 1, padding: 20, gap: 14, paddingBottom: 32 },
+  content: {
+    flexGrow: 1,
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    gap: 14,
+    paddingBottom: 24,
+  },
   panel: {
     backgroundColor: '#2B3591',
     padding: 14,

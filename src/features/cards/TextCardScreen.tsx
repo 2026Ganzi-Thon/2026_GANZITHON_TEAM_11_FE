@@ -1,4 +1,3 @@
-import { useLiveService } from '../live/ServiceMode';
 import { useEffect } from 'react';
 import {
   BackHandler,
@@ -50,7 +49,6 @@ export function TextCardScreen({
   completionLabel?: string;
   conflictTitle?: string;
 }) {
-  const live = useLiveService();
   const flow = useTextCardWriting(
     actions,
     sourceNightId,
@@ -93,31 +91,25 @@ export function TextCardScreen({
               onPress={flow.back}
               style={styles.back}
             >
-              <Text style={styles.link}>〈 이전</Text>
+              <Text style={styles.link}>←</Text>
+              <Text style={styles.headerTitle}>
+                {step === 'category' ? '카드 쓰기' : '글귀 작성'}
+              </Text>
             </Pressable>
           )}
-          <Text style={styles.preview}>
-            {live
-              ? '검수 요청 후 서버에 저장돼요'
-              : '미리보기 · 서버 전송 안 함'}
-          </Text>
           {step === 'complete' ? (
             <>
+              <View style={styles.spacer} />
               <TextCardArtwork />
-              <View style={styles.panel}>
+              <View style={styles.completion}>
                 <Text style={styles.title} accessibilityRole="header">
                   카드를 맡겼어요
                 </Text>
-                <Text style={styles.body}>검수를 기다리고 있어요.</Text>
-                <Text style={styles.body}>
-                  승인된 뒤에 다른 사람에게 보여요.
-                </Text>
-                <Text style={styles.hint}>
-                  {live
-                    ? '서버에서 접수한 카드를 내 카드에서 확인할 수 있어요.'
-                    : '지금은 예시 응답으로 접수 과정을 확인했어요. 실제 카드는 전송되지 않았어요.'}
+                <Text style={styles.completionHint}>
+                  검수가 끝나면 누군가의 밤에 나타나요
                 </Text>
               </View>
+              <View style={styles.spacer} />
               <Button label={completionLabel} onPress={onDone} />
             </>
           ) : step === 'support' ? (
@@ -184,12 +176,9 @@ export function TextCardScreen({
             </>
           ) : (
             <>
-              <View style={styles.panel}>
-                <Text style={styles.title} accessibilityRole="header">
-                  짧은 글 남기기
-                </Text>
-                <Text style={styles.body}>
-                  {category?.label} 고민을 가진 누군가에게
+              <View style={styles.recipient}>
+                <Text style={styles.hint}>
+                  받는 사람: {category?.label} 고민으로 잠 못 드는 누군가
                 </Text>
               </View>
               <View style={styles.panel}>
@@ -219,8 +208,9 @@ export function TextCardScreen({
                     {textError}
                   </Text>
                 )}
-                <Text style={styles.hint}>내 말로 적어 주세요.</Text>
               </View>
+              <Text style={styles.hint}>내 말로 적어 주세요.</Text>
+              <View style={styles.spacer} />
               {!!categoryError && (
                 <Text
                   style={[styles.panel, styles.error]}
@@ -258,7 +248,7 @@ export function TextCardScreen({
                   onRecover={flow.recover}
                 />
               )}
-              <Text style={[styles.hint, styles.panel]}>
+              <Text style={styles.hint}>
                 검수 전에는 다른 사람에게 보여 주지 않아요.
               </Text>
             </>
@@ -282,11 +272,40 @@ export function TextCardScreen({
 }
 const styles = StyleSheet.create({
   fill: { flex: 1 },
-  content: { padding: 20, paddingBottom: 32, gap: 20, flexGrow: 1 },
+  spacer: { flexGrow: 1, minHeight: 16 },
+  headerTitle: {
+    fontFamily: theme.font,
+    fontSize: 18,
+    lineHeight: 27,
+    fontWeight: '700',
+    color: theme.color.text,
+  },
+  recipient: {
+    padding: 14,
+    backgroundColor: '#2B3591',
+    boxShadow: '4px 4px 0 #0E1040',
+  },
+  completion: { alignItems: 'center', gap: 14 },
+  completionHint: {
+    fontFamily: theme.font,
+    fontSize: 18,
+    lineHeight: 27,
+    color: theme.color.muted,
+    textAlign: 'center',
+  },
+  content: {
+    paddingHorizontal: 20,
+    paddingTop: 0,
+    paddingBottom: 24,
+    gap: 14,
+    flexGrow: 1,
+  },
   back: {
-    alignSelf: 'flex-start',
-    minHeight: 48,
-    justifyContent: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    minHeight: 52,
+    justifyContent: 'flex-start',
     paddingRight: 20,
   },
   link: {
@@ -301,7 +320,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 21,
   },
-  panel: { backgroundColor: '#2B3591', borderRadius: 12, padding: 20, gap: 14 },
+  panel: {
+    backgroundColor: '#2B3591',
+    padding: 14,
+    gap: 8,
+    boxShadow: '4px 4px 0 #0E1040',
+  },
   title: {
     fontFamily: theme.font,
     color: theme.color.text,
@@ -331,7 +355,7 @@ const styles = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   chip: {
     minHeight: 48,
-    borderRadius: 24,
+    borderRadius: 0,
     borderWidth: 1,
     borderColor: '#6875CA',
     paddingHorizontal: 18,
@@ -352,7 +376,7 @@ const styles = StyleSheet.create({
   },
   selectedLabel: { color: '#252565', fontWeight: '700' },
   input: {
-    minHeight: 180,
+    minHeight: 200,
     padding: 0,
     fontFamily: theme.font,
     color: theme.color.text,

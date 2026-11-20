@@ -120,9 +120,9 @@ export function LoginScreen({
           >
             <Text style={styles.backText}>←</Text>
           </Pressable>
-          <Text style={styles.preview}>
-            {live ? '계정 로그인' : '화면 미리보기 · 실제 로그인 아님'}
-          </Text>
+          {!live && (
+            <Text style={styles.preview}>화면 미리보기 · 실제 로그인 아님</Text>
+          )}
         </View>
         <ScrollView
           keyboardShouldPersistTaps="handled"

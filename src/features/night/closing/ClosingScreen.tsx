@@ -181,19 +181,21 @@ export function ClosingScreen({
           : require('../../../../assets/images/closing/summary-sky.svg')
       }
     >
-      <View style={styles.header}>
-        <Text style={styles.preview}>
-          {live ? '밤 마무리' : '미리보기 · 저장 안 함'}
-        </Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="미리보기 나가기"
-          onPress={flow.exit}
-          style={styles.exit}
-        >
-          <Text style={styles.exitLabel}>미리보기 나가기</Text>
-        </Pressable>
-      </View>
+      {!live && (
+        <View style={styles.header}>
+          <Text style={styles.preview}>
+            {live ? '밤 마무리' : '미리보기 · 저장 안 함'}
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="미리보기 나가기"
+            onPress={flow.exit}
+            style={styles.exit}
+          >
+            <Text style={styles.exitLabel}>미리보기 나가기</Text>
+          </Pressable>
+        </View>
+      )}
       {content}
     </NightScreen>
   );

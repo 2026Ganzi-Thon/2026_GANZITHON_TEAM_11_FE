@@ -282,9 +282,7 @@ function NightEntrySession({
                 ? '도움 안내'
                 : '양 수 정하기'}
           </Text>
-          <Text style={styles.preview}>
-            {live ? '고민은 계정에 저장돼요' : '미리보기 · 저장 안 함'}
-          </Text>
+          {!live && <Text style={styles.preview}>미리보기 · 저장 안 함</Text>}
         </View>
         <ScrollView
           ref={scroll}

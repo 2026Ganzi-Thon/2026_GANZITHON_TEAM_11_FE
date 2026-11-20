@@ -25,7 +25,7 @@ const setup = (patch: Partial<jest.Mocked<ReflectionActions>> = {}) => ({
 const press = (label: string) =>
   fireEvent.press(screen.getByRole('button', { name: label }));
 describe('morning reflection', () => {
-  it('shows six choices and only confirms after saving', async () => {
+  it('shows the five Figma choices and keeps the answer beside the character after saving', async () => {
     let resolve!: (v: { answer: 'smaller'; message: string }) => void;
     const actions = setup({
       save: jest.fn<ReflectionActions['save']>().mockImplementation(
@@ -40,10 +40,8 @@ describe('morning reflection', () => {
     );
     expect(screen.getByText('면접이 걱정돼요.')).toBeTruthy();
     expect(screen.getByText(/01:12 · 맡긴 걱정/)).toBeTruthy();
-    expect(screen.getAllByRole('radio')).toHaveLength(6);
-    expect(
-      screen.getByRole('button', { name: '회고 저장하기' }),
-    ).toBeDisabled();
+    expect(screen.getAllByRole('radio')).toHaveLength(5);
+    expect(screen.queryByRole('button', { name: '회고 저장하기' })).toBeNull();
     await fireEvent.press(screen.getByRole('radio', { name: '작아졌어요' }));
     await press('회고 저장하기');
     await press('회고 저장하기');
@@ -53,11 +51,10 @@ describe('morning reflection', () => {
       resolve({ answer: 'smaller', message: '서버에서 온 답변' }),
     );
     expect(screen.getByText('서버에서 온 답변')).toBeTruthy();
-    expect(screen.queryAllByRole('radio')).toHaveLength(0);
-    expect(
-      screen.getByRole('button', { name: '회고 다시 선택하기' }),
-    ).toBeTruthy();
-    expect(screen.getByText('회고를 저장했어요.')).toBeTruthy();
+    expect(screen.getAllByRole('radio')).toHaveLength(5);
+    expect(screen.getByRole('radio', { name: '작아졌어요' })).toBeChecked();
+    expect(screen.getByText('면접이 걱정돼요.')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: '회고 저장하기' })).toBeNull();
   });
   it('retains selection on failure and retries', async () => {
     const actions = setup();
@@ -70,7 +67,7 @@ describe('morning reflection', () => {
     expect(await screen.findByText(/저장하지 못했어요/)).toBeTruthy();
     expect(screen.getByRole('radio', { name: '작아졌어요' })).toBeChecked();
     await press('회고 저장하기');
-    expect(await screen.findByText('회고를 저장했어요.')).toBeTruthy();
+    expect(await screen.findByText('봐, 밤엔 커 보였던 거야.')).toBeTruthy();
   });
   it.each(['none', 'deleted'])(
     'hides new input when %s and preserves saved reflection only for deleted originals',
@@ -117,7 +114,7 @@ describe('morning reflection', () => {
     await render(
       <ReflectionScreen nightId="n1" actions={actions} onBack={back} />,
     );
-    await press('건너뛰고 양떼 보기');
+    await press('양떼 보러 가기');
     expect(actions.save).not.toHaveBeenCalled();
     expect(back).toHaveBeenCalledTimes(1);
   });
@@ -218,27 +215,34 @@ describe('morning reflection', () => {
     });
     actions.save
       .mockRejectedValueOnce(new ApiError('network'))
-      .mockResolvedValue({ answer: 'bigger', message: '새 답변 B' });
+      .mockResolvedValue({ answer: 'new_worry', message: '새 답변 B' });
     await render(
       <ReflectionScreen nightId="n1" actions={actions} onBack={() => {}} />,
     );
-    expect(screen.getByText('저장된 회고 · 작아졌어요')).toBeTruthy();
+    expect(screen.getByRole('radio', { name: '작아졌어요' })).toBeChecked();
     expect(screen.getByText('이전 답변 A')).toBeTruthy();
-    await fireEvent.press(screen.getByRole('radio', { name: '더 커졌어요' }));
+    await fireEvent.press(
+      screen.getByRole('radio', { name: '다른 고민이 생겼어요' }),
+    );
     expect(screen.queryByText('이전 답변 A')).toBeNull();
     expect(screen.getByText('아직 저장하지 않은 선택이에요.')).toBeTruthy();
     await press('회고 저장하기');
     expect(await screen.findByText(/저장하지 못했어요/)).toBeTruthy();
-    expect(screen.getByRole('radio', { name: '더 커졌어요' })).toBeChecked();
+    expect(
+      screen.getByRole('radio', { name: '다른 고민이 생겼어요' }),
+    ).toBeChecked();
     expect(screen.queryByText('이전 답변 A')).toBeNull();
     await press('회고 저장하기');
     expect(await screen.findByText('새 답변 B')).toBeTruthy();
-    expect(screen.getByText('저장한 회고 · 더 커졌어요')).toBeTruthy();
-    expect(screen.queryAllByRole('radio')).toHaveLength(0);
+    expect(
+      screen.getByRole('radio', { name: '다른 고민이 생겼어요' }),
+    ).toBeChecked();
+    expect(screen.getAllByRole('radio')).toHaveLength(5);
     expect(screen.queryByText('이전 답변 A')).toBeNull();
-    await press('회고 다시 선택하기');
-    expect(screen.getByText('저장된 회고 · 더 커졌어요')).toBeTruthy();
-    expect(screen.getByRole('radio', { name: '더 커졌어요' })).toBeChecked();
+    expect(screen.getByText('새 답변 B')).toBeTruthy();
+    expect(
+      screen.getByRole('radio', { name: '다른 고민이 생겼어요' }),
+    ).toBeChecked();
     await fireEvent.press(screen.getByRole('radio', { name: '작아졌어요' }));
     expect(screen.queryByText('새 답변 B')).toBeNull();
   });
@@ -252,7 +256,9 @@ describe('morning reflection', () => {
     await render(
       <ReflectionScreen nightId="n1" actions={actions} onBack={() => {}} />,
     );
-    await fireEvent.press(screen.getByRole('radio', { name: '더 커졌어요' }));
+    await fireEvent.press(
+      screen.getByRole('radio', { name: '다른 고민이 생겼어요' }),
+    );
     expect(screen.queryByText('저장된 답변 A')).toBeNull();
     await fireEvent.press(screen.getByRole('radio', { name: '작아졌어요' }));
     expect(screen.getByText('저장된 답변 A')).toBeTruthy();

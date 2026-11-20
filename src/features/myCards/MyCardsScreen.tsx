@@ -357,24 +357,32 @@ function SubmissionRow({
           </Text>
         </View>
       )}
-      {onEdit && (
-        <Button
-          label={
-            item.kind === 'song' ? '노래 고쳐서 다시 내기' : '고쳐서 다시 내기'
-          }
-          onPress={onEdit}
-        />
-      )}
-      {onDelete && (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`카드 삭제: ${title}`}
-          onPress={onDelete}
-          style={styles.delete}
-        >
-          <Text style={[styles.caption, styles.deleteLabel]}>삭제</Text>
-        </Pressable>
-      )}
+      <View style={styles.cardActions}>
+        {onEdit && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={
+              item.kind === 'song'
+                ? '노래 고쳐서 다시 내기'
+                : '고쳐서 다시 내기'
+            }
+            onPress={onEdit}
+            style={styles.edit}
+          >
+            <Text style={styles.editLabel}>고쳐서 다시 내기</Text>
+          </Pressable>
+        )}
+        {onDelete && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`카드 삭제: ${title}`}
+            onPress={onDelete}
+            style={styles.delete}
+          >
+            <Text style={[styles.caption, styles.deleteLabel]}>삭제</Text>
+          </Pressable>
+        )}
+      </View>
     </View>
   );
 }
@@ -453,6 +461,27 @@ const styles = StyleSheet.create({
   },
   divider: { height: 1, backgroundColor: '#3B4FB8' },
   reason: { gap: 6, paddingTop: 4 },
+  cardActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 8,
+  },
+  edit: {
+    minHeight: 48,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    justifyContent: 'center',
+    backgroundColor: theme.color.primary,
+  },
+  editLabel: {
+    fontFamily: theme.font,
+    fontSize: 16,
+    lineHeight: 25,
+    color: '#242565',
+    fontWeight: '700',
+  },
   reasonTitle: {
     fontFamily: theme.font,
     fontSize: 14,

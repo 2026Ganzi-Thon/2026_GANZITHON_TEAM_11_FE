@@ -1,4 +1,12 @@
-import { Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Linking,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../ui/Button';
 import { theme } from '../../ui/theme';
@@ -11,6 +19,7 @@ export function DocumentDialog({
   document: ConsentDocument;
   onClose: () => void;
 }) {
+  const [linkError, setLinkError] = useState(false);
   return (
     <Modal
       transparent
@@ -30,6 +39,22 @@ export function DocumentDialog({
             </Text>
             <Text style={s.caption}>문서 버전 · {document.version}</Text>
             <Text style={s.body}>{document.body}</Text>
+            {!!document.body_url && (
+              <Button
+                label="서버 약관 원문 열기"
+                onPress={() => {
+                  setLinkError(false);
+                  void Linking.openURL(document.body_url!).catch(() =>
+                    setLinkError(true),
+                  );
+                }}
+              />
+            )}
+            {linkError && (
+              <Text accessibilityRole="alert" style={s.body}>
+                원문을 열지 못했어요. 잠시 후 다시 시도해 주세요.
+              </Text>
+            )}
           </ScrollView>
           <Button label="문서 닫기" onPress={onClose} />
         </View>

@@ -12,10 +12,12 @@ export function AppEntryFlow({
   loadSource,
   onExit,
   onTools,
+  onLive,
 }: {
   loadSource: () => SignupJourneySource;
   onExit: () => void;
   onTools: () => void;
+  onLive?: () => void;
 }) {
   const [source, setSource] = useState<SignupJourneySource | null>(null),
     [error, setError] = useState(false);
@@ -53,6 +55,7 @@ export function AppEntryFlow({
           }}
         />
         <Button label="기능별 미리보기" onPress={onTools} />
+        {onLive && <Button label="실제 서버로 시작" onPress={onLive} />}
       </ScrollView>
     </NightScreen>
   );

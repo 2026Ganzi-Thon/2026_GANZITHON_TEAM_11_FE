@@ -1,3 +1,4 @@
+import { useLiveService } from '../live/ServiceMode';
 import type { LoginRequest } from '../../api/contracts';
 import { useEffect, useRef, useState } from 'react';
 import { Image } from 'expo-image';
@@ -36,6 +37,7 @@ export function LoginScreen({
   initialEmail?: string;
   onSuccess?: () => void;
 }) {
+  const live = useLiveService();
   const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<{ email?: string; password?: string }>(
@@ -118,7 +120,9 @@ export function LoginScreen({
           >
             <Text style={styles.backText}>←</Text>
           </Pressable>
-          <Text style={styles.preview}>화면 미리보기 · 실제 로그인 아님</Text>
+          <Text style={styles.preview}>
+            {live ? '계정 로그인' : '화면 미리보기 · 실제 로그인 아님'}
+          </Text>
         </View>
         <ScrollView
           keyboardShouldPersistTaps="handled"

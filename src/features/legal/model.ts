@@ -18,6 +18,7 @@ export interface ConsentDocument {
   title: string;
   version: string;
   body: string;
+  body_url?: string;
 }
 export interface ConsentDocuments {
   revision: string;

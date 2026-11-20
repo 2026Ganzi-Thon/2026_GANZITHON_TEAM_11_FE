@@ -11,6 +11,7 @@ jest.mock('../../notifications/nativeRuntime', () => ({
   startNativeReminderRuntime: jest.fn(),
 }));
 jest.mock('expo-router', () => ({
+  usePathname: () => '/',
   Redirect: ({ href }: { href: string }) => {
     const { Text } =
       jest.requireActual<typeof import('react-native')>('react-native');

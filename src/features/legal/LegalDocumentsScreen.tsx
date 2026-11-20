@@ -65,9 +65,7 @@ export function LegalDocumentsScreen({
       <ScrollView contentContainerStyle={s.content}>
         <View style={s.panel}>
           <Text style={s.body}>
-            가입 화면과 같은 체험판 검토안이에요. 열람만으로 동의 선택은 바뀌지
-            않아요. 문의처·시행일은 확정 전이며, 실제 개인정보는 입력하지 말아
-            주세요.
+            가입 화면에서 확인한 문서예요. 열람만으로 동의 선택은 바뀌지 않아요.
           </Text>
         </View>
         {state.error ? (

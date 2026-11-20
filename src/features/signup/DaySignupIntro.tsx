@@ -66,7 +66,12 @@ export function DaySignupIntro({ c }: { c: SignupOnboarding }) {
           </View>
         </View>
         <View style={s.spacer} />
-        <Button label="밤에 만나요" onPress={c.acknowledge} />
+        {!!state.error && (
+          <Text accessibilityRole="alert" style={s.body}>
+            {state.error}
+          </Text>
+        )}
+        <Button label="밤에 만나요" onPress={c.acknowledge} busy={state.busy} />
       </ScrollView>
     </NightScreen>
   );

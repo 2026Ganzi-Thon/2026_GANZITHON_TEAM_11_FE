@@ -62,10 +62,11 @@ function isDefiniteRejection(
 export function createSignupController(
   actions: SignupActions,
   initialStage: 'welcome' | 'login' = 'welcome',
+  resume?: { registration: Registration; stage: 'consents' | 'birth' },
 ) {
   let state: SignupState = {
-    stage: initialStage,
-    email: '',
+    stage: resume?.stage ?? initialStage,
+    email: resume?.registration.email ?? '',
     password: '',
     confirmation: '',
     fields: {},
@@ -78,7 +79,7 @@ export function createSignupController(
     documentError: false,
     busy: false,
     error: '',
-    registration: null,
+    registration: resume?.registration ?? null,
     result: null,
     uncertain: false,
     birthUncertain: false,
@@ -283,6 +284,7 @@ export function createSignupController(
   return {
     start() {
       stopped = false;
+      if (state.stage === 'consents' && !state.documents) void reload();
     },
     getSnapshot: () => state,
     subscribe(listener: () => void) {
@@ -308,6 +310,7 @@ export function createSignupController(
             ? 'email'
             : 'welcome';
       patch({ stage, error: '', documentLoading: false });
+      if (stage === 'consents' && !state.documents) void reload();
     },
     edit(field: 'email' | 'password' | 'confirmation', value: string) {
       if (

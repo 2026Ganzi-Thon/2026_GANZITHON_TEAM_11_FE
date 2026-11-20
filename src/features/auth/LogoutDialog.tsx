@@ -1,3 +1,4 @@
+import { useLiveService } from '../live/ServiceMode';
 import { useEffect, useRef, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,6 +16,7 @@ export function LogoutDialog(props: Props) {
   return <Session key={source.version} {...props} />;
 }
 function Session({ actions, onCancel }: Props) {
+  const live = useLiveService();
   const [pending, setPending] = useState(false),
     [error, setError] = useState(false);
   const active = useRef<AbortController | null>(null),
@@ -67,8 +69,9 @@ function Session({ actions, onCancel }: Props) {
               기기의 알림은 로그아웃 동안 꺼져요.
             </Text>
             <Text style={s.body}>
-              이 체험판에서는 앱을 완전히 종료하면 모든 예시 계정과 기록이
-              초기화돼요.
+              {live
+                ? '기기의 로그인 정보를 지워요. 다시 로그인하면 저장한 기록을 볼 수 있어요.'
+                : '이 체험판에서는 앱을 완전히 종료하면 모든 예시 계정과 기록이 초기화돼요.'}
             </Text>
             <Button label="계속 있을게요" onPress={cancel} disabled={pending} />
             {error && (

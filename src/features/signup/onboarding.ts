@@ -32,6 +32,7 @@ export function createSignupOnboarding(
     registration: Registration,
     birth: BirthDateResult,
   ) => HomeSource,
+  acknowledgeIntro?: (signal: AbortSignal) => Promise<void>,
 ) {
   const initial: State = {
     stage: 'signup',
@@ -184,6 +185,19 @@ export function createSignupOnboarding(
       if (!active || disposed || state.stage !== 'signup') return;
       publish({ home: createHome(registration, birth), stage: 'home' });
     },
+    restoreIntro: (
+      registration: Registration,
+      birth: BirthDateResult,
+      time: string | null,
+    ) => {
+      if (!active || disposed || state.stage !== 'signup') return;
+      publish({
+        home: createHome(registration, birth),
+        stage: 'intro',
+        localTime: time ?? '23:00',
+        intent: time ? 'allow' : 'skip',
+      });
+    },
     openTime: () => {
       if (!state.busy && state.stage === 'choice' && state.retry !== 'clock')
         publish({ stage: 'time', draftTime: parseLocalTime(state.localTime)! });
@@ -230,7 +244,30 @@ export function createSignupOnboarding(
           });
       }),
     acknowledge: () => {
-      if (!state.busy && state.stage === 'intro') publish({ stage: 'home' });
+      if (state.busy || state.stage !== 'intro') return;
+      if (!acknowledgeIntro) {
+        publish({ stage: 'home' });
+        return;
+      }
+      const request = new AbortController(),
+        token = ++version;
+      pending = request;
+      publish({ busy: true, error: '' });
+      void acknowledgeIntro(request.signal)
+        .then(() => {
+          if (active && version === token)
+            publish({ stage: 'home', busy: false });
+        })
+        .catch(() => {
+          if (active && version === token)
+            publish({
+              busy: false,
+              error: '안내 확인을 저장하지 못했어요. 다시 눌러 주세요.',
+            });
+        })
+        .finally(() => {
+          if (pending === request) pending = null;
+        });
     },
   };
   return c;

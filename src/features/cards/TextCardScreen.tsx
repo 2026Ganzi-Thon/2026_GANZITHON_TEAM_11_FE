@@ -1,3 +1,4 @@
+import { useLiveService } from '../live/ServiceMode';
 import { useEffect } from 'react';
 import {
   BackHandler,
@@ -49,6 +50,7 @@ export function TextCardScreen({
   completionLabel?: string;
   conflictTitle?: string;
 }) {
+  const live = useLiveService();
   const flow = useTextCardWriting(
     actions,
     sourceNightId,
@@ -94,7 +96,11 @@ export function TextCardScreen({
               <Text style={styles.link}>〈 이전</Text>
             </Pressable>
           )}
-          <Text style={styles.preview}>미리보기 · 서버 전송 안 함</Text>
+          <Text style={styles.preview}>
+            {live
+              ? '검수 요청 후 서버에 저장돼요'
+              : '미리보기 · 서버 전송 안 함'}
+          </Text>
           {step === 'complete' ? (
             <>
               <TextCardArtwork />
@@ -107,8 +113,9 @@ export function TextCardScreen({
                   승인된 뒤에 다른 사람에게 보여요.
                 </Text>
                 <Text style={styles.hint}>
-                  지금은 예시 응답으로 접수 과정을 확인했어요. 실제 카드는
-                  전송되지 않았어요.
+                  {live
+                    ? '서버에서 접수한 카드를 내 카드에서 확인할 수 있어요.'
+                    : '지금은 예시 응답으로 접수 과정을 확인했어요. 실제 카드는 전송되지 않았어요.'}
                 </Text>
               </View>
               <Button label={completionLabel} onPress={onDone} />

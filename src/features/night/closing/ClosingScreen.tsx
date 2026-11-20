@@ -1,3 +1,4 @@
+import { useLiveService } from '../../live/ServiceMode';
 import { useEffect } from 'react';
 import {
   ActivityIndicator,
@@ -31,6 +32,7 @@ export function ClosingScreen({
   onWrite?: () => void;
   blocked?: boolean;
 }) {
+  const live = useLiveService();
   const flow = useClosingFlow(input, actions, onExit, blocked);
   const { state, request, exit } = flow;
   const summary = state.result?.summary;
@@ -67,7 +69,11 @@ export function ClosingScreen({
               ? '마무리를 준비하지 못했어요'
               : '선택을 확인하지 못했어요'
           }
-          description="잠시 후 다시 시도해 주세요. 예시 응답으로 확인 중이에요."
+          description={
+            live
+              ? '서버에서 결과를 확인하지 못했어요. 다시 시도해 주세요.'
+              : '잠시 후 다시 시도해 주세요. 예시 응답으로 확인 중이에요.'
+          }
         />
         <Button label="다시 시도" onPress={flow.retry} disabled={blocked} />
       </View>
@@ -128,18 +134,22 @@ export function ClosingScreen({
       <View style={styles.center}>
         <Notice
           title={
-            state.step === 'writing'
-              ? onWrite
-                ? '초안을 잠깐 접어뒀어요'
-                : '카드 작성 화면은 준비 중이에요'
-              : '편안한 밤 보내요'
+            live
+              ? '저장된 밤 기록은 아침에 다시 볼 수 있어요.'
+              : state.step === 'writing'
+                ? onWrite
+                  ? '초안을 잠깐 접어뒀어요'
+                  : '카드 작성 화면은 준비 중이에요'
+                : '편안한 밤 보내요'
           }
           description={
-            state.step === 'writing'
-              ? onWrite
-                ? '이 시연 안에서 글을 이어 쓰거나 아침으로 미룰 수 있어요.'
-                : '지금 쓰기 선택까지만 확인했어요. 실제 카드는 작성되거나 저장되지 않았어요.'
-              : '마무리 미리보기를 마쳤어요. 실제 종료 기록과 아침 작성 예약은 저장하지 않았어요.'
+            live
+              ? '저장된 밤 기록은 아침에 다시 볼 수 있어요.'
+              : state.step === 'writing'
+                ? onWrite
+                  ? '이 시연 안에서 글을 이어 쓰거나 아침으로 미룰 수 있어요.'
+                  : '지금 쓰기 선택까지만 확인했어요. 실제 카드는 작성되거나 저장되지 않았어요.'
+                : '마무리 미리보기를 마쳤어요. 실제 종료 기록과 아침 작성 예약은 저장하지 않았어요.'
           }
         />
         {state.step === 'writing' && onWrite && (
@@ -172,7 +182,9 @@ export function ClosingScreen({
       }
     >
       <View style={styles.header}>
-        <Text style={styles.preview}>미리보기 · 저장 안 함</Text>
+        <Text style={styles.preview}>
+          {live ? '밤 마무리' : '미리보기 · 저장 안 함'}
+        </Text>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="미리보기 나가기"

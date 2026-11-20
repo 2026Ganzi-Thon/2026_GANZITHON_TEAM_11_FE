@@ -1,3 +1,4 @@
+import { useLiveService } from '../live/ServiceMode';
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { Image } from 'expo-image';
 import {
@@ -75,6 +76,7 @@ function SongCardSession({
   conflictTitle?: string;
   resubmission?: { id: string; reason: string };
 }) {
+  const live = useLiveService();
   const flow = useSongCardWriting(
       actions,
       sourceNightId,
@@ -253,7 +255,9 @@ function SongCardSession({
                   )}
                   {search.status === 'idle' && (
                     <Text style={[styles.hint, styles.panel]}>
-                      곡 이름이나 가수를 입력하면 예시 결과가 나타나요.
+                      {live
+                        ? '곡 이름이나 가수로 검색해 주세요.'
+                        : '곡 이름이나 가수를 입력하면 예시 결과가 나타나요.'}
                     </Text>
                   )}
                   {search.status === 'loading' && (

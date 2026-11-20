@@ -15,6 +15,7 @@ export function SignupFlow(props: {
   onComplete?: (registration: Registration, birth: BirthDateResult) => void;
   onLoginComplete?: () => void;
   initialLoginEmail?: string;
+  resume?: { registration: Registration; stage: 'consents' | 'birth' };
 }) {
   const [source, setSource] = useState({ actions: props.actions, version: 0 });
   if (source.actions !== props.actions)
@@ -27,17 +28,20 @@ function SignupSession({
   onComplete,
   onLoginComplete,
   initialLoginEmail,
+  resume,
 }: {
   actions: SignupActions;
   onExit: () => void;
   onComplete?: (registration: Registration, birth: BirthDateResult) => void;
   onLoginComplete?: () => void;
   initialLoginEmail?: string;
+  resume?: { registration: Registration; stage: 'consents' | 'birth' };
 }) {
   const [c] = useState(() =>
     createSignupController(
       actions,
       initialLoginEmail !== undefined ? 'login' : 'welcome',
+      resume,
     ),
   );
   const state = useSyncExternalStore(c.subscribe, c.getSnapshot, c.getSnapshot);

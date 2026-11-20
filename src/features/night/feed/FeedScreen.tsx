@@ -1,3 +1,4 @@
+import { useLiveService } from '../../live/ServiceMode';
 import { YarnFeedback } from '../../yarn/YarnFeedback';
 import { FluffFeedback } from '../../fluff/FluffFeedback';
 import { useFluffBookmarks } from '../../fluff/useFluffBookmarks';
@@ -69,6 +70,7 @@ export function FeedScreen({
   stopOffer?: StopOfferItem;
   blocked?: boolean;
 }) {
+  const live = useLiveService();
   const { fontScale } = useWindowDimensions();
   const [viewportHeight, setViewportHeight] = useState(0),
     [contentHeight, setContentHeight] = useState(0);
@@ -329,7 +331,9 @@ export function FeedScreen({
               ? `${position.position} / ${cards.length}`
               : '양 세는 밤'}
           </Text>
-          <Text style={styles.preview}>미리보기 · 저장 안 함</Text>
+          <Text style={styles.preview}>
+            {live ? '서버 연결' : '미리보기 · 저장 안 함'}
+          </Text>
         </View>
         <Pressable
           accessibilityRole="button"

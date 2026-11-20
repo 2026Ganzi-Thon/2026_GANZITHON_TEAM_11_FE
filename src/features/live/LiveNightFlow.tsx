@@ -7,6 +7,7 @@ import { createLiveNight } from '../../api/night';
 import { createLiveCardWriting } from '../../api/cardWriting';
 import { NightEntryScreen } from '../night/NightEntryScreen';
 import { FeedScreen } from '../night/feed/FeedScreen';
+import { FeedCard } from '../night/feed/FeedCard';
 import type { FeedPosition } from '../night/feed/model';
 import { ClosingScreen } from '../night/closing/ClosingScreen';
 import type { ClosingRequest } from '../night/closing/types';
@@ -122,6 +123,25 @@ function NightSession({
     });
     return () => sub.remove();
   }, [page, onHome]);
+  // Bootstrap supplies the pending card but not its finished session ID.
+  // Keep this read-only until that ID can be used for closing-view confirmation.
+  if (boot.next_screen === 'NIGHT_CLOSING' && !boot.active_session_id) {
+    const card = boot.last_session?.closing_card;
+    return (
+      <NightScreen>
+        <ScrollView contentContainerStyle={{ padding: 24, gap: 16 }}>
+          <Notice
+            title="밤의 마무리"
+            description="아까 센 양들이 잘 쉬고 있어요."
+          />
+          {card?.available && card.content && (
+            <FeedCard card={card} isLast={false} />
+          )}
+          <Button label="홈으로" onPress={onHome} />
+        </ScrollView>
+      </NightScreen>
+    );
+  }
   if (error || page === 'loading')
     return (
       <NightScreen>

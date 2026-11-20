@@ -27,6 +27,13 @@ jobs:
       - name: Pin npm version
         run: npm install --global npm@11.12.1
       - run: npm ci
+      - name: Test font downloads
+        run: node --test scripts/fetch-fonts.test.mjs
+      - name: Cache verified app fonts
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .expo/app-fonts
+          key: app-fonts-${{ runner.os }}-${{ hashFiles('scripts/font-sources.json') }}
       - name: Prepare app fonts
         run: node scripts/fetch-fonts.mjs
       - run: npm run check

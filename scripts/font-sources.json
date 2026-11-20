@@ -1,13 +1,15 @@
 [
   {
     "name": "PFStardust",
-    "url": "https://download.blog.naver.com/open/9c098036221716a2876b0e3a02ec9ee5401cee41/EFsQabdNxrvO_902E-QRigSVEg-Y5-VrZ1UNNWQxmAMrdou5UHwu7va2D4BnhCpK-SyzBA-u1xQV145tyZ6Iek9xwSVV1u1MbnU/PF%EC%8A%A4%ED%83%80%EB%8D%94%EC%8A%A4%ED%8A%B8%203.0.ttf",
-    "sha256": "14e09873c3d5b9a0237759c9abd7ccb851eaac938ea7b05ab37e3311dff56da2"
+    "sha256": "14e09873c3d5b9a0237759c9abd7ccb851eaac938ea7b05ab37e3311dff56da2",
+    "pageUrl": "https://m.blog.naver.com/campanula913/221366697603",
+    "fileName": "PF스타더스트 3.0.ttf"
   },
   {
     "name": "PFStardustBold",
-    "url": "https://download.blog.naver.com/open/c055dc6f7c2d24f8d53b56635bb8cabb194ebe50fb/EFsQabdNxrvO9t5fLuoSggWaFwbSq-dnekQCLn08wAspGuW_VX8n5P22AoVjgCgkxRCqAU_W2T8VxR00IMwGwKsV2pw4XzOmUGzQ/PF%EC%8A%A4%ED%83%80%EB%8D%94%EC%8A%A4%ED%8A%B8%203.0%20Bold.ttf",
-    "sha256": "d23021d127c8e020843b5a39d3fa27b4a92d62598f06dc541538318fd0a4f4c1"
+    "sha256": "d23021d127c8e020843b5a39d3fa27b4a92d62598f06dc541538318fd0a4f4c1",
+    "pageUrl": "https://m.blog.naver.com/campanula913/221366697603",
+    "fileName": "PF스타더스트 3.0 Bold.ttf"
   },
   {
     "name": "OwnglyphPDH",

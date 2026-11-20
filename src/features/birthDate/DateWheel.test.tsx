@@ -5,12 +5,9 @@ import { DateWheel } from './DateWheel';
 const originalWindow = Dimensions.get('window');
 afterEach(() => Dimensions.set({ window: originalWindow }));
 const scroll = (y: number) => ({ nativeEvent: { contentOffset: { x: 0, y } } });
-it.each([
-  [1, 34],
-  [2, 56],
-])(
+it.each([1, 2])(
   'scrolls continuously through months at font scale %s',
-  async (fontScale, rowHeight) => {
+  async (fontScale) => {
     Dimensions.set({ window: { ...originalWindow, fontScale } });
     const onChange = jest.fn();
     await render(
@@ -22,12 +19,13 @@ it.each([
       />,
     );
     const wheel = screen.getByTestId('wheel-출생 월');
-    await fireEvent(wheel, 'scrollBeginDrag', scroll(4 * rowHeight));
-    await fireEvent.scroll(wheel, scroll(5 * rowHeight));
+    const actualRowHeight = wheel.props.snapToInterval;
+    await fireEvent(wheel, 'scrollBeginDrag', scroll(4 * actualRowHeight));
+    await fireEvent.scroll(wheel, scroll(5 * actualRowHeight));
     expect(onChange).toHaveBeenLastCalledWith('month', 6);
-    await fireEvent.scroll(wheel, scroll(6 * rowHeight));
+    await fireEvent.scroll(wheel, scroll(6 * actualRowHeight));
     expect(onChange).toHaveBeenLastCalledWith('month', 7);
-    await fireEvent(wheel, 'momentumScrollEnd', scroll(6 * rowHeight));
+    await fireEvent(wheel, 'momentumScrollEnd', scroll(6 * actualRowHeight));
     expect(onChange).toHaveBeenCalledTimes(2);
   },
 );

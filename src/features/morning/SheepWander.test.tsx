@@ -33,6 +33,9 @@ it('keeps each slow route inside its pasture and gives sheep different paths', (
     expect(route.at(-1)).toMatchObject({ x: 0, y: 0 });
   }
   expect(a).not.toEqual(b);
+  expect(a[0].rest).not.toBe(b[0].rest);
+  expect(Math.max(...a.map((leg) => leg.rest))).toBeGreaterThan(6000);
+  expect(a.some((leg) => leg.rest < 1000)).toBe(true);
 });
 
 it('faces the walking direction, turns during the pause and keeps positions in bounds', () => {
@@ -46,7 +49,13 @@ it('faces the walking direction, turns during the pause and keeps positions in b
   // Wait at the first target, then face left before travelling to the second.
   const turn = path.face.indexOf(-1);
   expect(path.x[turn]).toBe(10);
-  expect(path.x[turn + 1]).toBe(-8);
+  expect(path.x.slice(turn + 1)).toContain(-8);
+  // Smooth acceleration: a quarter of the time covers less than a quarter of the distance.
+  const quarter = path.inputRange.findIndex(
+    (t) => Math.abs(t * path.duration - 2000) < 1,
+  );
+  expect(path.x[quarter]).toBeGreaterThan(0);
+  expect(path.x[quarter]).toBeLessThan(2.5);
   expect(path.face[turn + 1]).toBe(-1);
   expect(path.face.at(-1)).toBe(1);
   expect(path.inputRange[0]).toBe(0);

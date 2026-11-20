@@ -7,17 +7,27 @@ interface Bounds {
   minY: number;
   maxY: number;
 }
+interface WanderLeg {
+  x: number;
+  y: number;
+  duration: number;
+  rest: number;
+  control?: { x: number; y: number };
+}
 /** Independent, bounded routes in each sheep's local pasture coordinates. */
 export function wanderRoute(
   id: string,
   bounds: Bounds,
   variation = Math.floor(Math.random() * 4294967296),
-) {
+): WanderLeg[] {
   let seed = (2166136261 ^ variation) >>> 0;
   for (const char of id)
     seed = Math.imul(seed ^ char.charCodeAt(0), 16777619) >>> 0;
   const random = () =>
     (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296;
+  const strollSpeed = 1.1 + random() * 3.8;
+  const restChance = 0.25 + random() * 0.5;
+  const firstRest = 700 + random() * 16000;
   let previous = { x: 0, y: 0 };
   return Array.from({ length: 24 }, (_, index) => {
     const point =
@@ -27,15 +37,25 @@ export function wanderRoute(
             x: bounds.minX + random() * (bounds.maxX - bounds.minX),
             y: bounds.minY + random() * (bounds.maxY - bounds.minY),
           };
-    const speed = 2.2 + random() * 3.6;
+    const control = {
+      x: previous.x + (point.x - previous.x) * (0.2 + random() * 0.6),
+      y: previous.y + (point.y - previous.y) * (0.2 + random() * 0.6),
+    };
+    const speed = strollSpeed * (0.75 + random() * 0.5);
     const duration = Math.max(
-      2500,
+      4000,
       Math.round(
         (Math.hypot(point.x - previous.x, point.y - previous.y) / speed) * 1000,
       ),
     );
     previous = point;
-    return { ...point, duration, rest: 500 + Math.round(random() * 3500) };
+    const rest =
+      index === 0
+        ? firstRest
+        : random() < restChance
+          ? 2500 + random() * 14000
+          : 150 + random() * 650;
+    return { ...point, control, duration, rest: Math.round(rest) };
   });
 }
 
@@ -57,11 +77,28 @@ export function wanderTimeline(route: ReturnType<typeof wanderRoute>) {
     x.push(previousX, previousX);
     y.push(previousY, previousY);
     face.push(previousFace, nextFace);
+    const control = point.control ?? {
+      x: (previousX + point.x) / 2,
+      y: (previousY + point.y) / 2,
+    };
+    // Smooth acceleration/deceleration along a gently curved, bounded path.
+    for (let sample = 1; sample <= 8; sample++) {
+      const t = sample / 8;
+      const u = t * t * (3 - 2 * t);
+      inputRange.push(elapsed + point.duration * t);
+      x.push(
+        (1 - u) ** 2 * previousX +
+          2 * (1 - u) * u * control.x +
+          u ** 2 * point.x,
+      );
+      y.push(
+        (1 - u) ** 2 * previousY +
+          2 * (1 - u) * u * control.y +
+          u ** 2 * point.y,
+      );
+      face.push(nextFace);
+    }
     elapsed += point.duration;
-    inputRange.push(elapsed);
-    x.push(point.x);
-    y.push(point.y);
-    face.push(nextFace);
   }
   return {
     inputRange: inputRange.map((time) => time / elapsed),

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Image, type ImageSource } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
 import {
+  Animated,
   BackHandler,
   Modal,
   Pressable,
@@ -22,6 +23,7 @@ import { MyCardsWritingFlow } from '../myCards/MyCardsWritingFlow';
 import { FirstNightArtwork } from './FirstNightArtwork';
 import { HomeNightButton } from './HomeNightButton';
 import { fortuneDate } from './model';
+import { SheepWander, usePastureMotion } from '../morning/SheepWander';
 import type { HomeContext } from './useHomeContext';
 import type { HomeSource } from './types';
 function Icon({
@@ -76,6 +78,7 @@ export function FirstNightHome({
     scale,
     Math.min(fontScale, (Math.min(width, 480) - 40) / 153),
   );
+  const wandering = usePastureMotion(panel === null && !fortuneOpen);
   const date = flow.snapshot
     ? fortuneDate(Date.parse(flow.snapshot.server_time))
     : '';
@@ -191,16 +194,31 @@ export function FirstNightHome({
                 />
                 <Text style={styles.guide}>오늘 밤 첫 양을 데려와 줘!</Text>
               </View>
-              <Image
-                source={require('../../../assets/images/first-night-home/guide-sheep.png')}
-                contentFit="contain"
-                style={{
-                  marginTop: 4 * scale,
-                  width: 36 * scale,
-                  height: 30 * scale,
+              <SheepWander
+                id="first-night-guide"
+                enabled={wandering}
+                bounds={{
+                  minX: 0,
+                  maxX: 110 * scale,
+                  minY: 0,
+                  maxY: 38 * scale,
                 }}
-                accessible={false}
-              />
+              >
+                {(facing) => (
+                  <Animated.View style={{ transform: [{ scaleX: facing }] }}>
+                    <Image
+                      source={require('../../../assets/images/first-night-home/guide-sheep.png')}
+                      contentFit="contain"
+                      style={{
+                        marginTop: 4 * scale,
+                        width: 36 * scale,
+                        height: 30 * scale,
+                      }}
+                      accessible={false}
+                    />
+                  </Animated.View>
+                )}
+              </SheepWander>
             </View>
             <View
               style={{

@@ -1,10 +1,16 @@
-import { afterEach, expect, it, jest } from '@jest/globals';
+import { afterEach, beforeEach, expect, it, jest } from '@jest/globals';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { AccessibilityInfo, Animated, ScrollView } from 'react-native';
 import { MorningScreen } from './MorningScreen';
 import { createMockMorning } from '../../mocks/morning';
 import { createMockFortune } from '../../mocks/fortune';
 
+// These assertions count the one-off arrival, independently of idle wandering.
+beforeEach(() => {
+  jest
+    .spyOn(Animated, 'loop')
+    .mockReturnValue({ start: () => {}, stop: () => {}, reset: () => {} });
+});
 afterEach(() => {
   jest.useRealTimers();
   jest.restoreAllMocks();

@@ -1,6 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { SheepArrival } from './SheepArrival';
+import { SheepWander, usePastureMotion } from './SheepWander';
 import {
+  Animated,
   Pressable,
   StyleSheet,
   Text,
@@ -21,6 +23,7 @@ export function MorningPasture({
   arrival,
   onSheepLayout,
   layoutKey = 'static',
+  paused = false,
 }: {
   items: Sheep[];
   lastNightId?: string;
@@ -31,9 +34,16 @@ export function MorningPasture({
   arrival?: { ready: boolean; reducedMotion: boolean };
   onSheepLayout?: (y: number) => void;
   layoutKey?: string;
+  paused?: boolean;
 }) {
   const { width, fontScale } = useWindowDimensions(),
     scale = Math.min(width, 480) / 360;
+  const wandering = usePastureMotion(!paused);
+  const cellWidth = (Math.min(width, 480) - 32) / 4;
+  const travelX = Math.min(
+    22 * scale,
+    Math.max(0, (cellWidth - Math.max(48, 27 * fontScale + 20)) / 2 - 4),
+  );
   const [gridY, setGridY] = useState<number | null>(null);
   const [cell, setCell] = useState<{ key: string; y: number } | null>(null);
   useEffect(() => {
@@ -50,7 +60,10 @@ export function MorningPasture({
               setCell({ key: layoutKey, y: event.nativeEvent.layout.y })
           : undefined
       }
-      style={[styles.cell, { paddingTop: index % 2 === 0 ? 10 : 0 }]}
+      style={[
+        styles.cell,
+        { minHeight: 92 * scale, paddingTop: index % 2 === 0 ? 10 : 0 },
+      ]}
     >
       <SheepArrival
         active={item.id === newId && !!arrival}
@@ -58,19 +71,37 @@ export function MorningPasture({
         reducedMotion={arrival?.reducedMotion ?? true}
         scale={scale}
       >
-        <Pressable
-          accessible
-          accessibilityRole={onSelect ? 'button' : undefined}
-          disabled={!onSelect}
-          onPress={() => onSelect?.(item.id)}
-          accessibilityLabel={`${item.night_date}의 양${item.id === newId ? ' · 새로 온 양' : ''}${item.placements?.length ? ` · 스티커 ${item.placements.length}개` : ''}`}
-          style={[styles.sheep, item.id === newId && styles.newSheep]}
+        <SheepWander
+          id={item.id}
+          bounds={{
+            minX: -travelX,
+            maxX: travelX,
+            minY: 0,
+            maxY: fontScale > 1.3 ? 8 : 24 * scale,
+          }}
+          enabled={
+            wandering && (item.id !== newId || !arrival || arrival.ready)
+          }
+          delayMs={item.id === newId && arrival ? 900 : 0}
         >
-          {item.night_id === lastNightId && (
-            <Text style={styles.badge}>어젯밤</Text>
+          {(facing) => (
+            <Pressable
+              accessible
+              accessibilityRole={onSelect ? 'button' : undefined}
+              disabled={!onSelect}
+              onPress={() => onSelect?.(item.id)}
+              accessibilityLabel={`${item.night_date}의 양${item.id === newId ? ' · 새로 온 양' : ''}${item.placements?.length ? ` · 스티커 ${item.placements.length}개` : ''}`}
+              style={[styles.sheep, item.id === newId && styles.newSheep]}
+            >
+              {item.night_id === lastNightId && (
+                <Text style={styles.badge}>어젯밤</Text>
+              )}
+              <Animated.View style={{ transform: [{ scaleX: facing }] }}>
+                <DecoratedSheepArt sheep={item} />
+              </Animated.View>
+            </Pressable>
           )}
-          <DecoratedSheepArt sheep={item} />
-        </Pressable>
+        </SheepWander>
       </SheepArrival>
     </View>
   ));

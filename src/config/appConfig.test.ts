@@ -49,8 +49,8 @@ it('routes only the standalone mock preview to its compatible update channel whi
   });
   expect(c.scheme).toBe('yangsebam-preview');
   expect(c.name).toContain('체험판');
-  expect(c.android?.versionCode).toBe(5);
-  expect(c.version).toBe('0.1.0-preview.5');
+  expect(c.android?.versionCode).toBe(6);
+  expect(c.version).toBe('0.1.0-preview.6');
 });
 it.each([undefined, 'production'])(
   'keeps production updates and mock access disabled despite inherited preview settings (%s)',

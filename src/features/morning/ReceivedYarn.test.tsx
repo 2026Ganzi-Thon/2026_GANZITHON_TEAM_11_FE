@@ -444,12 +444,16 @@ it('does not let a flock load failure block the independent summary', async () =
 it('waits until foreground before presenting or acknowledging a summary loaded in background', async () => {
   jest.useFakeTimers();
   const previous = AppState.currentState;
-  let change!: (state: AppStateStatus) => void;
+  const listeners = new Set<(state: AppStateStatus) => void>();
   jest
     .spyOn(AppState, 'addEventListener')
     .mockImplementation((_event, listener) => {
-      change = listener;
-      return { remove: () => {} };
+      listeners.add(listener);
+      return {
+        remove: () => {
+          listeners.delete(listener);
+        },
+      };
     });
   Object.defineProperty(AppState, 'currentState', {
     value: 'background',
@@ -473,7 +477,9 @@ it('waits until foreground before presenting or acknowledging a summary loaded i
       configurable: true,
       writable: true,
     });
-    await act(async () => change('active'));
+    await act(async () => {
+      for (const listener of listeners) listener('active');
+    });
     await tick();
     expect(screen.getByText('털실 3개가 도착했어요')).toBeTruthy();
     expect(seen).not.toHaveBeenCalled();

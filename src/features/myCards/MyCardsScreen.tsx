@@ -340,7 +340,7 @@ function SubmissionRow({
         </View>
       </View>
       <Text
-        style={styles.summary}
+        style={[styles.summary, item.kind === 'text' && theme.contentText]}
         numberOfLines={fontScale > 1.3 ? undefined : 2}
       >
         {title}

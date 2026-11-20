@@ -87,11 +87,15 @@ function CandidateDetail({
             {card.content.track.title} · {card.content.track.artist}
           </Text>
           {card.author_type !== 'ai' && card.content.recommendation && (
-            <Text style={styles.text}>{card.content.recommendation}</Text>
+            <Text style={[styles.text, theme.contentText]}>
+              {card.content.recommendation}
+            </Text>
           )}
         </>
       ) : card.kind === 'text' && card.content ? (
-        <Text style={styles.text}>{card.content.text}</Text>
+        <Text style={[styles.text, theme.contentText]}>
+          {card.content.text}
+        </Text>
       ) : null}
       {card.author_type !== 'ai' && card.author_label && (
         <Text style={[styles.text, styles.small]}>{card.author_label}</Text>

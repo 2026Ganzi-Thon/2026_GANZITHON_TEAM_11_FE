@@ -81,7 +81,7 @@ export function WorryPaper({
               : '마음에 남은 고민을 한두 줄 적어 주세요'
         }
         placeholderTextColor="#8C6E62"
-        style={styles.input}
+        style={[styles.input, !!value && theme.contentText]}
         autoCorrect={false}
         autoComplete="off"
       />

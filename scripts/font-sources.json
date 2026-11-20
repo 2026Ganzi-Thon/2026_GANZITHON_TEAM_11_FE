@@ -1,0 +1,12 @@
+[
+  {
+    "name": "Tuktakpotato",
+    "url": "https://download.blog.naver.com/open/9e0b8234221514a085690c3801e69bec4610e121/EFsQa7ZLxbrO9tNaLuoSggWaFwbSq-due1MOLDFnkANHGI23Vnon7_e7CYNkg0NcokzyQEfA_BQHIbF6et7p7h_X59sYqLbHrw/%E1%84%84%E1%85%AE%E1%86%A8%E1%84%84%E1%85%A1%E1%86%A8%E1%84%80%E1%85%A1%E1%86%B7%E1%84%8C%E1%85%A1%E1%84%8E%E1%85%A6.ttf",
+    "sha256": "2013f075bd74f3d4af37cbdbe11b6707f0db3eb203c3ae99953bef5a09eb8247"
+  },
+  {
+    "name": "OwnglyphPDH",
+    "url": "https://ownglyph-out-bucket.s3.ap-northeast-2.amazonaws.com/11ebf7f8-0997-4f03-a393-0959a07286aa/%EC%98%A8%EA%B8%80%EC%9E%8E%20%EB%B0%95%EB%8B%A4%ED%98%84%EC%B2%B4.ttf",
+    "sha256": "fbcc7e2e16abd0c9192aff6561871ab95c369bc58284879e813055bde7c5568f"
+  }
+]

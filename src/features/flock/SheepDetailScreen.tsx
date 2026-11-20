@@ -43,14 +43,18 @@ function SavedCard({ card }: { card: Card }) {
   return (
     <View style={styles.card}>
       {card.kind === 'text' && card.content ? (
-        <Text style={styles.body}>{card.content.text}</Text>
+        <Text style={[styles.body, theme.contentText]}>
+          {card.content.text}
+        </Text>
       ) : card.kind === 'song' && card.content ? (
         <>
           <Text style={styles.caption}>노래 추천</Text>
           <Text style={styles.body}>{card.content.track.title}</Text>
           <Text style={styles.artist}>{card.content.track.artist}</Text>
           {card.author_type !== 'ai' && card.content.recommendation && (
-            <Text style={styles.body}>{card.content.recommendation}</Text>
+            <Text style={[styles.body, theme.contentText]}>
+              {card.content.recommendation}
+            </Text>
           )}
         </>
       ) : null}
@@ -88,7 +92,7 @@ function NightRecord({ detail }: { detail: SheepDetail }) {
         <Text accessibilityRole="header" style={styles.sectionTitle}>
           그 밤의 고민
         </Text>
-        <Text style={styles.recordText}>
+        <Text style={[styles.recordText, hasWorry && theme.contentText]}>
           {night.category_id === 'none'
             ? '고민 없이 쉬어 간 밤이에요.'
             : hasWorry

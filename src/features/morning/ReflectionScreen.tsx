@@ -159,7 +159,9 @@ function ReflectionSession({
                 {night!.night_date} 밤 · {timeLabel(night!.worry_saved_at)}
                 {night!.entrusted ? '맡긴 걱정' : '지난밤 걱정'}
               </Text>
-              <Text style={styles.text}>{night!.worry_text}</Text>
+              <Text style={[styles.text, theme.contentText]}>
+                {night!.worry_text}
+              </Text>
             </View>
             <View style={styles.panel}>
               <Text accessibilityRole="header" style={styles.question}>

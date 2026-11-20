@@ -76,7 +76,10 @@ export function CardDeleteDialog({
             이 카드를 지울까요?
           </Text>
           <Text style={styles.target}>
-            {item.kind === 'text' ? '짧은 글' : '노래 추천'} · {excerpt}
+            {item.kind === 'text' ? '짧은 글' : '노래 추천'} ·{' '}
+            <Text style={item.kind === 'text' && theme.contentText}>
+              {excerpt}
+            </Text>
             {excerpt !== title ? '…' : ''}
           </Text>
           <Text style={styles.body}>

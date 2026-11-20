@@ -358,7 +358,11 @@ function SongCardSession({
                   onChangeText={(recommendation) =>
                     flow.update({ recommendation })
                   }
-                  style={[styles.input, styles.recommendation]}
+                  style={[
+                    styles.input,
+                    styles.recommendation,
+                    !!draft.recommendation && theme.contentText,
+                  ]}
                 />
                 <Text
                   style={[

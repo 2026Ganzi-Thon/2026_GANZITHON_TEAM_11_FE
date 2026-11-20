@@ -159,7 +159,7 @@ export function FeedCard({
               {card.content.track.artist}
             </Text>
             {!automatic && (
-              <Text style={styles.compactRecommendation}>
+              <Text style={[styles.compactRecommendation, theme.contentText]}>
                 {sentenceLines(card.content.recommendation ?? '')}
               </Text>
             )}
@@ -252,6 +252,7 @@ export function FeedCard({
               styles.bodyText,
               warm && styles.warmText,
               postcard && styles.postcardText,
+              theme.contentText,
             ]}
           >
             {sentenceLines(card.content.text)}

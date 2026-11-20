@@ -138,7 +138,7 @@ export function ResubmitTextCardScreen({
                     onChangeText={(text) => flow.update({ text })}
                     textAlignVertical="top"
                     scrollEnabled
-                    style={styles.input}
+                    style={[styles.input, !!draft.text && theme.contentText]}
                   />
                   <View style={styles.divider} />
                   <Text

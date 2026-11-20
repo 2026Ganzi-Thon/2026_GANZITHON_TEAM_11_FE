@@ -27,6 +27,8 @@ jobs:
       - name: Pin npm version
         run: npm install --global npm@11.12.1
       - run: npm ci
+      - name: Prepare app fonts
+        run: node scripts/fetch-fonts.mjs
       - run: npm run check
       - name: Run tests
         run: npm run test:ci

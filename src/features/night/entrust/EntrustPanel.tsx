@@ -68,7 +68,7 @@ export function EntrustPanel({
         <Text accessibilityRole="header" style={styles.paperLabel}>
           처음 적은 걱정
         </Text>
-        <Text selectable style={styles.worry}>
+        <Text selectable style={[styles.worry, theme.contentText]}>
           {worry || '남아 있는 고민 기록이 없어요.'}
         </Text>
       </View>

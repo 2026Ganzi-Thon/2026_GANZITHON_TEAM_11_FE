@@ -13,6 +13,8 @@
 
 현재는 **개발용 mock 시연 중심**입니다. 실제 서버·인증·영속 저장·곡 검색 API·음원 재생은 연결하지 않았으며, 시연 데이터는 메모리에서 관리하고 시연 종료·앱 재실행 시 초기화합니다. 전화·연락처·브라우저 열기와 클립보드 등 일부 기기 기능은 실제로 동작합니다.
 
+제목·버튼·안내는 Tuktakpotato, 고민·글 카드·추천 문장은 Ownglyph PDH를 사용합니다. 폰트 원본은 공개 저장소에 포함하지 않고 원 배포처에서 준비해 앱에 탑재합니다. [폰트 출처·이용 조건](assets/fonts/README.md)을 확인하세요.
+
 ## 개발 환경
 
 - Expo SDK 58 · React Native · TypeScript · Expo Router
@@ -24,6 +26,7 @@
 
 ```sh
 npm ci
+node scripts/fetch-fonts.mjs
 npm run android
 ```
 

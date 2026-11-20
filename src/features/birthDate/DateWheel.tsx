@@ -69,10 +69,9 @@ const styles = StyleSheet.create({
   band: {
     position: 'absolute',
     left: 12,
-    right: 12,
+    right: 10,
     borderRadius: 4,
-    borderWidth: 1,
-    borderColor: '#4A5BC2',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.25)',
     backgroundColor: '#1E2063',
   },
 });

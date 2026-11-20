@@ -5,10 +5,24 @@ import { AndroidReminderRuntime } from '../notifications/AndroidReminderRuntime'
 import { StatusBar } from 'expo-status-bar';
 
 export default function RootLayout() {
-  const [fontsLoaded, fontError] = useFonts({
-    Tuktakpotato: require('../../.expo/app-fonts/Tuktakpotato.ttf'),
-    OwnglyphPDH: require('../../.expo/app-fonts/OwnglyphPDH.ttf'),
-  });
+  const [fontsLoaded, fontError] = useFonts([
+    {
+      fontFamily: 'PFStardust',
+      fontDefinitions: [
+        { path: require('../../.expo/app-fonts/PFStardust.ttf'), weight: 400 },
+        {
+          path: require('../../.expo/app-fonts/PFStardustBold.ttf'),
+          weight: 700,
+        },
+      ],
+    },
+    {
+      fontFamily: 'OwnglyphPDH',
+      fontDefinitions: [
+        { path: require('../../.expo/app-fonts/OwnglyphPDH.ttf'), weight: 400 },
+      ],
+    },
+  ]);
   if (!fontsLoaded && !fontError)
     return (
       <View

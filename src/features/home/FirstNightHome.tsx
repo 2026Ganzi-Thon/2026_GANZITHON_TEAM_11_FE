@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Image, type ImageSource } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
 import {
+  Animated,
   BackHandler,
   Modal,
   Pressable,
@@ -198,21 +199,25 @@ export function FirstNightHome({
                 enabled={wandering}
                 bounds={{
                   minX: 0,
-                  maxX: 60 * scale,
+                  maxX: 110 * scale,
                   minY: 0,
-                  maxY: 18 * scale,
+                  maxY: 38 * scale,
                 }}
               >
-                <Image
-                  source={require('../../../assets/images/first-night-home/guide-sheep.png')}
-                  contentFit="contain"
-                  style={{
-                    marginTop: 4 * scale,
-                    width: 36 * scale,
-                    height: 30 * scale,
-                  }}
-                  accessible={false}
-                />
+                {(facing) => (
+                  <Animated.View style={{ transform: [{ scaleX: facing }] }}>
+                    <Image
+                      source={require('../../../assets/images/first-night-home/guide-sheep.png')}
+                      contentFit="contain"
+                      style={{
+                        marginTop: 4 * scale,
+                        width: 36 * scale,
+                        height: 30 * scale,
+                      }}
+                      accessible={false}
+                    />
+                  </Animated.View>
+                )}
               </SheepWander>
             </View>
             <View

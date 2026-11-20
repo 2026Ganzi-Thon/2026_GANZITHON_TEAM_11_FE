@@ -7,25 +7,50 @@ import {
   Text,
   type AppStateStatus,
 } from 'react-native';
-import { SheepWander, wanderRoute, usePastureMotion } from './SheepWander';
+import {
+  SheepWander,
+  wanderRoute,
+  wanderTimeline,
+  usePastureMotion,
+} from './SheepWander';
 
 afterEach(() => {
   jest.restoreAllMocks();
 });
 const bounds = { minX: -12, maxX: 12, minY: 0, maxY: 6 };
 it('keeps each slow route inside its pasture and gives sheep different paths', () => {
-  const a = wanderRoute('sheep-a', bounds),
-    b = wanderRoute('sheep-b', bounds);
+  const a = wanderRoute('sheep-a', bounds, 1),
+    b = wanderRoute('sheep-b', bounds, 1);
+  expect(a.length).toBeGreaterThan(10);
+  expect(a).not.toEqual(wanderRoute('sheep-a', bounds, 2));
   for (const route of [a, b]) {
     expect(
       route.every(
         (p) =>
-          p.x >= -12 && p.x <= 12 && p.y >= 0 && p.y <= 6 && p.duration >= 4500,
+          p.x >= -12 && p.x <= 12 && p.y >= 0 && p.y <= 6 && p.duration >= 2500,
       ),
     ).toBe(true);
     expect(route.at(-1)).toMatchObject({ x: 0, y: 0 });
   }
   expect(a).not.toEqual(b);
+});
+
+it('faces the walking direction, turns during the pause and keeps positions in bounds', () => {
+  const path = wanderTimeline([
+    { x: 10, y: 3, duration: 4000, rest: 1000 },
+    { x: -8, y: 6, duration: 6000, rest: 2000 },
+    { x: 0, y: 0, duration: 3000, rest: 500 },
+  ]);
+  expect(path.x.at(-1)).toBe(0);
+  expect(path.y.at(-1)).toBe(0);
+  // Wait at the first target, then face left before travelling to the second.
+  const turn = path.face.indexOf(-1);
+  expect(path.x[turn]).toBe(10);
+  expect(path.x[turn + 1]).toBe(-8);
+  expect(path.face[turn + 1]).toBe(-1);
+  expect(path.face.at(-1)).toBe(1);
+  expect(path.inputRange[0]).toBe(0);
+  expect(path.inputRange.at(-1)).toBe(1);
 });
 
 it('stops wandering for reduced motion, background, covered panels and unmount', async () => {

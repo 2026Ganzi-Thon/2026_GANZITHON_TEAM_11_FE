@@ -28,7 +28,6 @@ export function TimeWheel({
         style={[styles.band, { top: rowHeight * 2 + 2, height: rowHeight + 6 }]}
       />
       <WheelColumn
-        wrap
         label="알림 오전·오후"
         values={periods}
         value={value.period}

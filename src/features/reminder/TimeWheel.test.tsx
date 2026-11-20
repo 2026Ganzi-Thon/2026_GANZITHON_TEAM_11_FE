@@ -1,7 +1,7 @@
 import { expect, it, jest } from '@jest/globals';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { TimeWheel } from './TimeWheel';
-it('wraps minutes, hours and periods within valid choices without mixing their values', async () => {
+it('shows AM/PM once and stops at either end while hours and minutes still wrap', async () => {
   const change = jest.fn();
   await render(
     <TimeWheel
@@ -10,16 +10,24 @@ it('wraps minutes, hours and periods within valid choices without mixing their v
       onChange={change}
     />,
   );
-  for (const name of ['알림 분', '알림 시', '알림 오전·오후'])
-    await fireEvent(
-      screen.getByRole('adjustable', { name }),
-      'accessibilityAction',
-      { nativeEvent: { actionName: 'increment' } },
-    );
+  expect(screen.getAllByText('오전')).toHaveLength(1);
+  expect(screen.getAllByText('오후')).toHaveLength(1);
+  const adjust = (name: string, actionName = 'increment') =>
+    fireEvent(screen.getByRole('adjustable', { name }), 'accessibilityAction', {
+      nativeEvent: { actionName },
+    });
+  await adjust('알림 분');
+  await adjust('알림 시');
+  await adjust('알림 오전·오후');
+  await adjust('알림 오전·오후', 'decrement');
+  await adjust('알림 오전·오후', 'decrement');
+  await adjust('알림 오전·오후');
+  await adjust('알림 오전·오후');
   expect(change.mock.calls).toEqual([
     ['minute', 0],
     ['hour', 1],
     ['period', 0],
+    ['period', 1],
   ]);
 });
 it('does not change a disabled wheel through accessibility actions', async () => {

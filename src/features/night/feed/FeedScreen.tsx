@@ -313,14 +313,7 @@ export function FeedScreen({
             : undefined
       }
     >
-      <View
-        style={[
-          styles.topbar,
-          (isEntrust || isStopOffer) &&
-            fontScale > 1.3 &&
-            styles.expandedTopbar,
-        ]}
-      >
+      <View style={[styles.topbar, fontScale > 1.3 && styles.expandedTopbar]}>
         <View>
           <Text
             accessibilityLabel="양 세기 진행"

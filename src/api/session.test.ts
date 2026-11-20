@@ -26,6 +26,22 @@ function setup(fetch: typeof globalThis.fetch) {
   );
   return { session, saved: () => saved };
 }
+it('revokes the rotated refresh token when logout needs an access-token refresh', async () => {
+  const revoked: string[] = [];
+  const { session, saved } = setup(async (url, init) => {
+    if (String(url).endsWith('/auth/refresh')) return json(fresh);
+    const token = new Headers(init?.headers).get('Authorization');
+    if (token === 'Bearer old')
+      return json({ error: { code: 'UNAUTHORIZED' } }, 401);
+    const body = JSON.parse(init?.body as string);
+    revoked.push(body.refresh_token);
+    return new Response(null, { status: 204 });
+  });
+  await session.restore();
+  await session.logout(new AbortController().signal);
+  expect(revoked).toEqual(['refresh-2']);
+  expect(saved()).toBeNull();
+});
 it('restores tokens and shares a rotating refresh across concurrent 401 responses', async () => {
   let refreshes = 0;
   const keys: string[] = [];

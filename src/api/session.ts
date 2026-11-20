@@ -155,12 +155,28 @@ export function createApiSession(
       }
     },
     async logout(signal: AbortSignal) {
-      if (auth)
-        await this.request('/auth/logout', {
+      const previous = auth,
+        version = generation;
+      check(version, signal);
+      const revoke = (current: Auth) =>
+        client.request('/auth/logout', {
           method: 'POST',
-          body: { refresh_token: auth.refresh_token },
+          accessToken: current.access_token,
+          body: { refresh_token: current.refresh_token },
           signal,
         });
+      if (previous) {
+        try {
+          await revoke(previous);
+        } catch (error) {
+          check(version, signal);
+          if (!(error instanceof ApiError) || error.status !== 401) throw error;
+          await refresh(previous, version);
+          check(version, signal);
+          if (auth) await revoke(auth);
+        }
+        check(version, signal);
+      }
       await clear();
     },
   };
